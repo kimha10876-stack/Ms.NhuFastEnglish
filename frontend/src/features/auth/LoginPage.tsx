@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const { mutate: login, isPending, error } = useLogin()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: { preventDefault(): void }) => {
     e.preventDefault()
     login({ email, password })
   }
@@ -115,6 +115,13 @@ export default function LoginPage() {
                 {isPending ? 'Đang đăng nhập...' : 'Đăng nhập'}
               </Button>
             </form>
+
+            <div className="mt-5 pt-5 border-t text-center text-sm text-muted-foreground">
+              Chưa có tài khoản?{' '}
+              <Link to="/dang-ky-tu-van" className="text-primary font-medium hover:underline underline-offset-2">
+                Đăng ký tư vấn
+              </Link>
+            </div>
           </div>
 
           {/* Back to home */}
