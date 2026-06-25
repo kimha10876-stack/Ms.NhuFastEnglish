@@ -79,12 +79,25 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Auto-create schema on startup (EnsureCreated — no migrations needed for fresh deploy)
-// Switch to Database.Migrate() + migration files before going live with real data
+// Auto-create schema — retry nếu Postgres chưa sẵn sàng (Docker startup race)
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppDbContext>>();
+    for (var attempt = 1; attempt <= 10; attempt++)
+    {
+        try
+        {
+            db.Database.EnsureCreated();
+            break;
+        }
+        catch (Exception ex)
+        {
+            if (attempt == 10) throw;
+            logger.LogWarning("DB chưa sẵn sàng (lần {Attempt}/10): {Msg}", attempt, ex.Message);
+            Thread.Sleep(TimeSpan.FromSeconds(3));
+        }
+    }
 }
 
 app.UseSwagger();

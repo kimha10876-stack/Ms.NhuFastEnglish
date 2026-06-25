@@ -61,9 +61,9 @@ services:
       AppUrl:          ${FRONTEND_URL:-http://localhost}
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_started
       redis:
-        condition: service_healthy
+        condition: service_started
 
   # ── Frontend (React + nginx) ─────────────────────────────────────────────────
   frontend:
