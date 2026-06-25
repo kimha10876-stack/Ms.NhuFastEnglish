@@ -45,6 +45,20 @@ public record AuthUserDto(
 
 public record RegisterResponse(Guid Id, string Email, string FullName, string[] Roles);
 
+// ── Public student self-registration ─────────────────────────────────────────
+public record RegisterStudentRequest
+{
+    public required string FullName { get; init; }
+    public required string Email    { get; init; }
+    public required string Password { get; init; }
+    public string? Phone       { get; init; }
+    public string? ParentPhone { get; init; }
+    /// <summary>"basic"|"cap1"|"cap2"|"cap3"|"pre-ielts"|"ielts"|"giao-tiep"</summary>
+    public required string Level { get; init; }
+    /// <summary>"giao-tiep"|"ielts"|"thi-lop-10"|"thi-lop-12"|"mat-goc"|"nang-diem"</summary>
+    public required string Goal  { get; init; }
+}
+
 // ── Forgot / Reset password ───────────────────────────────────────────────────
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Token, string NewPassword);

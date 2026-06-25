@@ -38,6 +38,16 @@ public class AuthController(AuthService authService) : ControllerBase
         return NoContent();
     }
 
+    // POST /api/auth/register/student  — Học sinh tự đăng ký (public)
+    [HttpPost("register/student")]
+    public async Task<IActionResult> RegisterStudent([FromBody] RegisterStudentRequest req)
+    {
+        var (result, error) = await authService.RegisterStudentAsync(req);
+        if (error is not null)
+            return BadRequest(new { message = error });
+        return StatusCode(201, result);
+    }
+
     // POST /api/auth/register  — Admin tạo tài khoản cho giáo viên / học viên
     [HttpPost("register")]
     [Authorize(Roles = "Admin")]

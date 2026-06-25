@@ -17,4 +17,14 @@ export interface AuthUser {
   roles: string[]
 }
 
+export interface RegisterStudentRequest {
+  fullName: string
+  email: string
+  password: string
+  phone?: string
+  parentPhone?: string
+  level: string
+  goal: string
+}
+
 export type ViewMode = 'admin' | 'teacher'

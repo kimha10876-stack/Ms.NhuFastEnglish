@@ -1,5 +1,5 @@
 import { api } from '@/shared/api/client'
-import type { LoginRequest, AuthResponse } from './auth.types'
+import type { LoginRequest, AuthResponse, RegisterStudentRequest } from './auth.types'
 
 export const authApi = {
   login: (body: LoginRequest) =>
@@ -10,4 +10,7 @@ export const authApi = {
 
   logout: (allDevices = false) =>
     api.post('/auth/logout', { allDevices }),
+
+  registerStudent: (body: RegisterStudentRequest) =>
+    api.post<AuthResponse>('/auth/register/student', body).then((r) => r.data),
 }

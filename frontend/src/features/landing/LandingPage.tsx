@@ -56,7 +56,7 @@ export default function LandingPage() {
             hiện đại và giáo viên tận tâm.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/dang-ky-tu-van">
+            <Link to="/dang-ky">
               <Button size="lg" className="w-full sm:w-auto px-8">
                 Đăng ký tư vấn miễn phí
                 <ChevronRight className="h-4 w-4 ml-0.5" />
@@ -122,7 +122,7 @@ export default function LandingPage() {
           <p className="text-white/70 mb-6 text-sm">
             Tư vấn miễn phí · Không cam kết · Không áp lực
           </p>
-          <Link to="/dang-ky-tu-van">
+          <Link to="/dang-ky">
             <Button
               size="lg"
               className="bg-white text-primary hover:bg-white/90 font-semibold px-8"

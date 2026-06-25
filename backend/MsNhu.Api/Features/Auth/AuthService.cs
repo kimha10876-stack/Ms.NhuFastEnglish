@@ -100,6 +100,51 @@ public class AuthService(
         return (new RegisterResponse(user.Id, user.Email, user.FullName, [role.Name]), null);
     }
 
+    // ── Public: học sinh tự đăng ký ───────────────────────────────────────────
+    public async Task<(AuthResponse? Result, string? Error)> RegisterStudentAsync(RegisterStudentRequest req)
+    {
+        if (await db.Users.AnyAsync(u => u.Email == req.Email.ToLower()))
+            return (null, "Email đã được sử dụng");
+
+        var role = await db.Roles.FirstAsync(r => r.Name == "Student");
+
+        var user = new User
+        {
+            Id           = Guid.NewGuid(),
+            FullName     = req.FullName,
+            Email        = req.Email.ToLower(),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
+            IsActive     = true,
+        };
+
+        user.UserRoles.Add(new UserRole
+        {
+            UserId     = user.Id,
+            RoleId     = role.Id,
+            AssignedAt = DateTime.UtcNow,
+        });
+
+        db.Users.Add(user);
+
+        db.StudentProfiles.Add(new StudentProfile
+        {
+            Id          = Guid.NewGuid(),
+            UserId      = user.Id,
+            Phone       = req.Phone,
+            ParentPhone = req.ParentPhone,
+            Level       = req.Level,
+            Goal        = req.Goal,
+            Status      = "active",
+        });
+
+        await db.SaveChangesAsync();
+
+        _ = email.SendWelcomeAsync(user.Email, user.FullName, req.Password);
+
+        user.UserRoles.First().Role = role;
+        return (await IssueTokensAsync(user), null);
+    }
+
     // ── Forgot password ────────────────────────────────────────────────────────
     public async Task ForgotPasswordAsync(string emailAddress)
     {
