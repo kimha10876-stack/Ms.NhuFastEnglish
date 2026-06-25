@@ -116,12 +116,6 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-5 pt-5 border-t text-center text-sm text-muted-foreground">
-              Chưa có tài khoản?{' '}
-              <Link to="/dang-ky" className="text-primary font-medium hover:underline underline-offset-2">
-                Đăng ký tài khoản
-              </Link>
-            </div>
           </div>
 
           {/* Back to home */}

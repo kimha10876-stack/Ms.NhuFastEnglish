@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace MsNhu.Api.Features.Auth;
 
@@ -39,6 +40,7 @@ public class AuthController(AuthService authService) : ControllerBase
     }
 
     // POST /api/auth/register/student  — Học sinh tự đăng ký (public)
+    [EnableRateLimiting("register")]
     [HttpPost("register/student")]
     public async Task<IActionResult> RegisterStudent([FromBody] RegisterStudentRequest req)
     {
