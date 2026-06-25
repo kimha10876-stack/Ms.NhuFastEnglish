@@ -48,6 +48,10 @@ builder.Services.AddCors(options =>
     });
 });
 
+// ── Features ──────────────────────────────────────────────────────────────────
+builder.Services.AddScoped<MsNhu.Api.Features.Email.EmailService>();
+builder.Services.AddScoped<MsNhu.Api.Features.Auth.AuthService>();
+
 // ── Controllers + Swagger ─────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
