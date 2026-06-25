@@ -7,7 +7,7 @@ on:
 jobs:
   deploy:
     name: Deploy to VPS
-    runs-on: self-hosted          # runner bạn đã kết nối
+    runs-on: self-hosted
     timeout-minutes: 20
 
     steps:
@@ -15,7 +15,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ── 2. Tạo .env từ GitHub Secrets ─────────────────────────────────────
+      # ── 2. Kiểm tra secrets bắt buộc trước khi làm bất cứ điều gì ─────────
+      - name: Validate secrets
+        run: |
+          MISSING=""
+          [ -z "${{ secrets.POSTGRES_PASSWORD }}" ] && MISSING="$MISSING\n  - POSTGRES_PASSWORD"
+          [ -z "${{ secrets.POSTGRES_USER }}"     ] && MISSING="$MISSING\n  - POSTGRES_USER"
+          [ -z "${{ secrets.POSTGRES_DB }}"       ] && MISSING="$MISSING\n  - POSTGRES_DB"
+          [ -z "${{ secrets.REDIS_PASSWORD }}"    ] && MISSING="$MISSING\n  - REDIS_PASSWORD"
+          [ -z "${{ secrets.JWT_KEY }}"           ] && MISSING="$MISSING\n  - JWT_KEY"
+          if [ -n "$MISSING" ]; then
+            printf "❌ Thiếu GitHub Secrets — vào Settings → Secrets → Actions để thêm:%b\n" "$MISSING"
+            exit 1
+          fi
+          echo "✓ Tất cả secrets bắt buộc đã có"
+
+      # ── 3. Tạo .env từ GitHub Secrets ─────────────────────────────────────
       - name: Write .env
         run: |
           {
@@ -34,42 +49,47 @@ jobs:
             echo "HTTP_PORT=${{ secrets.HTTP_PORT }}"
           } > .env
 
-      # ── 3. Build images (BuildKit + parallel) ──────────────────────────────
+      # ── 4. Build images (BuildKit + parallel) ──────────────────────────────
       - name: Build Docker images
         env:
           DOCKER_BUILDKIT: "1"
           COMPOSE_DOCKER_CLI_BUILD: "1"
         run: docker compose build --parallel --pull
 
-      # ── 4. Deploy (zero-downtime: up trước, xóa container cũ sau) ─────────
+      # ── 5. Deploy ──────────────────────────────────────────────────────────
       - name: Deploy containers
         run: |
           docker compose up -d --remove-orphans
-          docker compose ps
+          sleep 15
+          docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Health}}"
 
-      # ── 5. Health check ────────────────────────────────────────────────────
+      # ── 6. Health check ────────────────────────────────────────────────────
       - name: Health check
         run: |
-          echo "Waiting for services..."
-          sleep 8
-          docker compose ps --format "table {{.Name}}\t{{.Status}}"
+          PORT="${{ secrets.HTTP_PORT }}"
+          PORT="${PORT:-80}"
 
-          # Kiểm tra backend API còn sống không
-          HTTP_PORT=${{ secrets.HTTP_PORT || '80' }}
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            http://localhost:${HTTP_PORT}/api/health 2>/dev/null || echo "000")
+          # Chờ backend init xong (có retry DB nên cần thêm thời gian)
+          for i in $(seq 1 12); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              http://localhost:${PORT}/api/auth/login \
+              -X POST -H "Content-Type: application/json" \
+              -d '{"email":"x","password":"x"}' 2>/dev/null || echo "000")
 
-          if [ "$STATUS" = "000" ]; then
-            echo "⚠ Backend chưa có /api/health endpoint — skip (sẽ thêm sau)"
-          elif [ "$STATUS" = "200" ]; then
-            echo "✓ Backend healthy"
-          else
-            echo "✗ Backend trả về HTTP $STATUS"
-            docker compose logs backend --tail=30
-            exit 1
-          fi
+            if [ "$STATUS" = "401" ] || [ "$STATUS" = "400" ]; then
+              echo "✓ Backend đang chạy (HTTP $STATUS — đúng với request sai credentials)"
+              break
+            elif [ "$i" = "12" ]; then
+              echo "✗ Backend không phản hồi sau 60s — HTTP $STATUS"
+              docker compose logs backend --tail=50
+              exit 1
+            else
+              echo "Chờ backend... ($i/12, HTTP $STATUS)"
+              sleep 5
+            fi
+          done
 
-      # ── 6. Dọn dẹp image cũ ───────────────────────────────────────────────
+      # ── 7. Dọn dẹp image cũ ───────────────────────────────────────────────
       - name: Prune old images
         if: always()
         run: docker image prune -f
