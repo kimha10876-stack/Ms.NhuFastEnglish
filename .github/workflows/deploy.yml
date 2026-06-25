@@ -8,6 +8,7 @@ jobs:
   deploy:
     name: Deploy to VPS
     runs-on: self-hosted
+    environment: env
     timeout-minutes: 20
 
     steps:
