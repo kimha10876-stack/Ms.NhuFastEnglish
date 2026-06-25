@@ -53,10 +53,8 @@ public record RegisterStudentRequest
     public required string Password { get; init; }
     public string? Phone       { get; init; }
     public string? ParentPhone { get; init; }
-    /// <summary>"basic"|"cap1"|"cap2"|"cap3"|"pre-ielts"|"ielts"|"giao-tiep"</summary>
-    public required string Level { get; init; }
-    /// <summary>"giao-tiep"|"ielts"|"thi-lop-10"|"thi-lop-12"|"mat-goc"|"nang-diem"</summary>
-    public required string Goal  { get; init; }
+    public string? Level { get; init; }
+    public string? Goal  { get; init; }
 }
 
 // ── Forgot / Reset password ───────────────────────────────────────────────────

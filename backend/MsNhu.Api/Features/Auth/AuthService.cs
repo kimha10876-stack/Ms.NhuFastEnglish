@@ -132,8 +132,8 @@ public class AuthService(
             UserId      = user.Id,
             Phone       = req.Phone,
             ParentPhone = req.ParentPhone,
-            Level       = req.Level,
-            Goal        = req.Goal,
+            Level       = req.Level ?? string.Empty,
+            Goal        = req.Goal  ?? string.Empty,
             Status      = "active",
         });
 

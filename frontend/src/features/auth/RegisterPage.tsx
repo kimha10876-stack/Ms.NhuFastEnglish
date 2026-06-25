@@ -5,36 +5,12 @@ import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useRegisterStudent } from './useAuth'
 
-const LEVEL_OPTIONS = [
-  { value: 'mat-goc',   label: 'Mất gốc (chưa biết gì)' },
-  { value: 'co-ban',    label: 'Cơ bản' },
-  { value: 'tieu-hoc',  label: 'Tiểu học (Cấp 1)' },
-  { value: 'thcs',      label: 'THCS (Cấp 2)' },
-  { value: 'thpt',      label: 'THPT (Cấp 3)' },
-  { value: 'pre-ielts', label: 'Pre-IELTS' },
-  { value: 'ielts',     label: 'IELTS' },
-  { value: 'giao-tiep', label: 'Giao tiếp' },
-]
-
-const GOAL_OPTIONS = [
-  { value: 'giao-tiep',    label: 'Giao tiếp tự nhiên' },
-  { value: 'ielts',        label: 'Thi IELTS' },
-  { value: 'thi-lop-10',   label: 'Thi vào lớp 10' },
-  { value: 'thi-tot-nghiep', label: 'Thi tốt nghiệp THPT' },
-  { value: 'hoc-lai',      label: 'Học lại từ đầu' },
-  { value: 'nang-diem',    label: 'Nâng điểm' },
-]
-
 export default function RegisterPage() {
   const [form, setForm] = useState({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    phone: '',
-    parentPhone: '',
-    level: '',
-    goal: '',
   })
   const [passwordError, setPasswordError] = useState('')
 
@@ -54,10 +30,6 @@ export default function RegisterPage() {
       fullName: form.fullName,
       email: form.email,
       password: form.password,
-      phone: form.phone || undefined,
-      parentPhone: form.parentPhone || undefined,
-      level: form.level,
-      goal: form.goal,
     })
   }
 
@@ -91,8 +63,8 @@ export default function RegisterPage() {
       </div>
 
       {/* ── Form panel ──────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-start justify-center px-5 py-10 bg-[#F2F2F7] overflow-y-auto">
-        <div className="w-full max-w-[400px]">
+      <div className="flex-1 flex items-center justify-center px-5 py-10 bg-[#F2F2F7]">
+        <div className="w-full max-w-[360px]">
 
           {/* Mobile logo */}
           <div className="md:hidden flex items-center gap-2 justify-center mb-8">
@@ -112,9 +84,8 @@ export default function RegisterPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Full name */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Họ và tên <span className="text-destructive">*</span></label>
+                <label className="text-sm font-medium">Họ và tên</label>
                 <Input
                   placeholder="Nguyễn Văn A"
                   value={form.fullName}
@@ -124,9 +95,8 @@ export default function RegisterPage() {
                 />
               </div>
 
-              {/* Email */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Email <span className="text-destructive">*</span></label>
+                <label className="text-sm font-medium">Email</label>
                 <Input
                   type="email"
                   placeholder="email@example.com"
@@ -137,88 +107,31 @@ export default function RegisterPage() {
                 />
               </div>
 
-              {/* Password + Confirm */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Mật khẩu <span className="text-destructive">*</span></label>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={form.password}
-                    onChange={set('password')}
-                    required
-                    autoComplete="new-password"
-                    minLength={8}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Xác nhận <span className="text-destructive">*</span></label>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={form.confirmPassword}
-                    onChange={set('confirmPassword')}
-                    required
-                    autoComplete="new-password"
-                  />
-                </div>
-              </div>
-
-              {/* Phone + Parent phone */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Số điện thoại</label>
-                  <Input
-                    type="tel"
-                    placeholder="0901234567"
-                    value={form.phone}
-                    onChange={set('phone')}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">SĐT phụ huynh</label>
-                  <Input
-                    type="tel"
-                    placeholder="0901234567"
-                    value={form.parentPhone}
-                    onChange={set('parentPhone')}
-                  />
-                </div>
-              </div>
-
-              {/* Level */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Trình độ hiện tại <span className="text-destructive">*</span></label>
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  value={form.level}
-                  onChange={set('level')}
+                <label className="text-sm font-medium">Mật khẩu</label>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={set('password')}
                   required
-                >
-                  <option value="" disabled>Chọn trình độ...</option>
-                  {LEVEL_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+                  autoComplete="new-password"
+                  minLength={8}
+                />
               </div>
 
-              {/* Goal */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Mục tiêu học <span className="text-destructive">*</span></label>
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  value={form.goal}
-                  onChange={set('goal')}
+                <label className="text-sm font-medium">Xác nhận mật khẩu</label>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  value={form.confirmPassword}
+                  onChange={set('confirmPassword')}
                   required
-                >
-                  <option value="" disabled>Chọn mục tiêu...</option>
-                  {GOAL_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+                  autoComplete="new-password"
+                />
               </div>
 
-              {/* Errors */}
               {passwordError && (
                 <p className="text-[13px] text-destructive bg-destructive/5 px-3 py-2 rounded-lg">
                   {passwordError}
@@ -247,7 +160,6 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Back to home */}
           <Link
             to="/"
             className="flex items-center justify-center gap-1.5 mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"

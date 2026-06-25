@@ -23,8 +23,8 @@ export interface RegisterStudentRequest {
   password: string
   phone?: string
   parentPhone?: string
-  level: string
-  goal: string
+  level?: string
+  goal?: string
 }
 
 export type ViewMode = 'admin' | 'teacher'
