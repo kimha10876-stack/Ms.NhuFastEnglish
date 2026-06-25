@@ -84,19 +84,42 @@ using (var scope = app.Services.CreateScope())
 {
     var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppDbContext>>();
+
     for (var attempt = 1; attempt <= 10; attempt++)
     {
-        try
-        {
-            db.Database.EnsureCreated();
-            break;
-        }
+        try { db.Database.EnsureCreated(); break; }
         catch (Exception ex)
         {
             if (attempt == 10) throw;
             logger.LogWarning("DB chưa sẵn sàng (lần {Attempt}/10): {Msg}", attempt, ex.Message);
             Thread.Sleep(TimeSpan.FromSeconds(3));
         }
+    }
+
+    // Seed Admin user nếu chưa có
+    var adminEmail = app.Configuration["Seed:AdminEmail"] ?? "admin@msnhu.com";
+    if (!db.Users.Any(u => u.Email == adminEmail))
+    {
+        var adminPwd  = app.Configuration["Seed:AdminPassword"] ?? "Admin@123456";
+        var adminUser = new MsNhu.Api.Domain.Entities.User
+        {
+            Id           = Guid.NewGuid(),
+            FullName     = "Admin",
+            Email        = adminEmail,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPwd),
+            IsActive     = true,
+        };
+        adminUser.UserRoles.Add(new MsNhu.Api.Domain.Entities.UserRole
+        {
+            UserId     = adminUser.Id,
+            RoleId     = 1, // Admin
+            AssignedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(adminUser);
+        db.SaveChanges();
+
+        var seedLogger = scope.ServiceProvider.GetRequiredService<ILogger<MsNhu.Api.Domain.Entities.User>>();
+        seedLogger.LogInformation("✓ Seed Admin: {Email} / {Pwd}", adminEmail, adminPwd);
     }
 }
 

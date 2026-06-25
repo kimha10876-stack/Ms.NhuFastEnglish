@@ -125,9 +125,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         // ── Seed Roles ────────────────────────────────────────────────────
         mb.Entity<Role>().HasData(
-            new Role { Id = 1, Name = "Admin", Description = "Chủ trung tâm, toàn quyền" },
+            new Role { Id = 1, Name = "Admin",   Description = "Chủ trung tâm, toàn quyền" },
             new Role { Id = 2, Name = "Teacher", Description = "Giáo viên" },
             new Role { Id = 3, Name = "Student", Description = "Học viên" }
+        );
+
+        // ── Seed ClassCategories ──────────────────────────────────────────
+        mb.Entity<ClassCategory>().HasData(
+            new ClassCategory { Id = 1, Name = "Giao tiếp",    Slug = "giao-tiep",    ColorHex = "#007AFF", Icon = "message-circle",  SortOrder = 1 },
+            new ClassCategory { Id = 2, Name = "IELTS",         Slug = "ielts",         ColorHex = "#30D158", Icon = "award",            SortOrder = 2 },
+            new ClassCategory { Id = 3, Name = "Thiếu nhi",    Slug = "thieu-nhi",    ColorHex = "#FF9500", Icon = "star",             SortOrder = 3 },
+            new ClassCategory { Id = 4, Name = "Luyện thi",    Slug = "luyen-thi",    ColorHex = "#FF3B30", Icon = "clipboard-list",   SortOrder = 4 },
+            new ClassCategory { Id = 5, Name = "Mất gốc",      Slug = "mat-goc",      ColorHex = "#AF52DE", Icon = "refresh-cw",       SortOrder = 5 },
+            new ClassCategory { Id = 6, Name = "Doanh nghiệp", Slug = "doanh-nghiep", ColorHex = "#5856D6", Icon = "briefcase",        SortOrder = 6 }
         );
     }
 }

@@ -59,6 +59,8 @@ services:
       Smtp__FromEmail: ${SMTP_FROM_EMAIL}
       Smtp__FromName:  ${SMTP_FROM_NAME:-MsNhu English}
       AppUrl:          ${FRONTEND_URL:-http://localhost}
+      Seed__AdminEmail:    ${SEED_ADMIN_EMAIL:-admin@msnhu.com}
+      Seed__AdminPassword: ${SEED_ADMIN_PASSWORD:-Admin@123456}
     depends_on:
       db:
         condition: service_started
