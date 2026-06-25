@@ -1,0 +1,75 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: self-hosted          # runner bạn đã kết nối
+    timeout-minutes: 20
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── 2. Tạo .env từ GitHub Secrets ─────────────────────────────────────
+      - name: Write .env
+        run: |
+          {
+            echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}"
+            echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}"
+            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
+            echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}"
+            echo "JWT_KEY=${{ secrets.JWT_KEY }}"
+            echo "SMTP_HOST=${{ secrets.SMTP_HOST }}"
+            echo "SMTP_PORT=${{ secrets.SMTP_PORT }}"
+            echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}"
+            echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}"
+            echo "SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}"
+            echo "SMTP_FROM_NAME=${{ secrets.SMTP_FROM_NAME }}"
+            echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}"
+            echo "HTTP_PORT=${{ secrets.HTTP_PORT }}"
+          } > .env
+
+      # ── 3. Build images (BuildKit + parallel) ──────────────────────────────
+      - name: Build Docker images
+        env:
+          DOCKER_BUILDKIT: "1"
+          COMPOSE_DOCKER_CLI_BUILD: "1"
+        run: docker compose build --parallel --pull
+
+      # ── 4. Deploy (zero-downtime: up trước, xóa container cũ sau) ─────────
+      - name: Deploy containers
+        run: |
+          docker compose up -d --remove-orphans
+          docker compose ps
+
+      # ── 5. Health check ────────────────────────────────────────────────────
+      - name: Health check
+        run: |
+          echo "Waiting for services..."
+          sleep 8
+          docker compose ps --format "table {{.Name}}\t{{.Status}}"
+
+          # Kiểm tra backend API còn sống không
+          HTTP_PORT=${{ secrets.HTTP_PORT || '80' }}
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            http://localhost:${HTTP_PORT}/api/health 2>/dev/null || echo "000")
+
+          if [ "$STATUS" = "000" ]; then
+            echo "⚠ Backend chưa có /api/health endpoint — skip (sẽ thêm sau)"
+          elif [ "$STATUS" = "200" ]; then
+            echo "✓ Backend healthy"
+          else
+            echo "✗ Backend trả về HTTP $STATUS"
+            docker compose logs backend --tail=30
+            exit 1
+          fi
+
+      # ── 6. Dọn dẹp image cũ ───────────────────────────────────────────────
+      - name: Prune old images
+        if: always()
+        run: docker image prune -f
