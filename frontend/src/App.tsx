@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from '@/shared/components/layout/AppShell'
 import { AuthGuard } from '@/shared/components/layout/AuthGuard'
 
+const LandingPage      = lazy(() => import('@/features/landing/LandingPage'))
 const LoginPage        = lazy(() => import('@/features/auth/LoginPage'))
 const DashboardPage    = lazy(() => import('@/features/dashboard/DashboardPage'))
 const StudentsPage     = lazy(() => import('@/features/students/StudentsPage'))
@@ -29,12 +30,13 @@ export default function App() {
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>
+            {/* Public */}
+            <Route path="/"      element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
 
-            {/* Protected routes */}
+            {/* Protected */}
             <Route element={<AuthGuard />}>
               <Route element={<AppShell />}>
-                <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="dashboard"     element={<DashboardPage />} />
                 <Route path="students"      element={<StudentsPage />} />
                 <Route path="classes"       element={<ClassesPage />} />
@@ -43,7 +45,7 @@ export default function App() {
               </Route>
             </Route>
 
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
