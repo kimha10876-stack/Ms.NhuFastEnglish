@@ -127,6 +127,25 @@ using (var scope = app.Services.CreateScope())
 
     // Seed Admin
     var adminEmail = app.Configuration["Seed:AdminEmail"] ?? "admin@msnhu.com";
+    if (!db.Users.Any(u => u.Email == "kimha10876@gmail.com"))
+    {
+        var devUser = new User
+        {
+            Id           = Guid.NewGuid(),
+            FullName     = "Kim Hà",
+            Email        = "kimha10876@gmail.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("MsNhu@123456"),
+            IsActive     = true,
+        };
+        devUser.UserRoles.Add(new UserRole
+        {
+            UserId     = devUser.Id,
+            RoleId     = 1, // Admin
+            AssignedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(devUser);
+        db.SaveChanges();
+    }
     if (!db.Users.Any(u => u.Email == adminEmail))
     {
         var adminPwd  = app.Configuration["Seed:AdminPassword"] ?? "Admin@123456";
