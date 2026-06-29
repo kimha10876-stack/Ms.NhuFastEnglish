@@ -40,15 +40,16 @@ api.interceptors.response.use(
 
     try {
       const refreshToken = localStorage.getItem('refresh_token')
-      const { data } = await axios.post<ApiResponse<{ accessToken: string; refreshToken: string }>>(
+      const res = await axios.post<ApiResponse<{ accessToken: string; refreshToken: string }>>(
         '/api/auth/refresh',
         { refreshToken }
       )
-      localStorage.setItem('access_token', data.data!.accessToken)
-      localStorage.setItem('refresh_token', data.data!.refreshToken)
-      queue.forEach((cb) => cb(data.data!.accessToken))
+      const tokens = res.data.data!
+      localStorage.setItem('access_token', tokens.accessToken)
+      localStorage.setItem('refresh_token', tokens.refreshToken)
+      queue.forEach((cb) => cb(tokens.accessToken))
       queue = []
-      original.headers.Authorization = `Bearer ${data.accessToken}`
+      original.headers.Authorization = `Bearer ${tokens.accessToken}`
       return api(original)
     } catch {
       localStorage.removeItem('access_token')
