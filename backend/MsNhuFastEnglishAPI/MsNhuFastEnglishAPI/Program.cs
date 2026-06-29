@@ -130,49 +130,44 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // Seed Admin
-    var adminEmail = app.Configuration["Seed:AdminEmail"] ?? "admin@msnhu.com";
+    // Seed Admin — kimha10876@gmail.com
     if (!db.Users.Any(u => u.Email == "kimha10876@gmail.com"))
     {
-        var devUser = new User
+        var admin = new User
         {
             Id           = Guid.NewGuid(),
             FullName     = "Kim Hà",
             Email        = "kimha10876@gmail.com",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("MsNhu@123456"),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
             IsActive     = true,
         };
-        devUser.UserRoles.Add(new UserRole
-        {
-            UserId     = devUser.Id,
-            RoleId     = 1,
-            AssignedAt = DateTime.UtcNow,
-        });
-        db.Users.Add(devUser);
+        admin.UserRoles.Add(new UserRole { UserId = admin.Id, RoleId = 1, AssignedAt = DateTime.UtcNow });
+        db.Users.Add(admin);
         db.SaveChanges();
     }
-    if (!db.Users.Any(u => u.Email == adminEmail))
+
+    // Seed Teacher — nampnhse173502@fpt.edu.vn
+    if (!db.Users.Any(u => u.Email == "nampnhse173502@fpt.edu.vn"))
     {
-        var adminPwd  = app.Configuration["Seed:AdminPassword"] ?? "Admin@123456";
-        var adminUser = new User
+        var teacher = new User
         {
             Id           = Guid.NewGuid(),
-            FullName     = "Admin",
-            Email        = adminEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPwd),
+            FullName     = "Nam Phan",
+            Email        = "nampnhse173502@fpt.edu.vn",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
             IsActive     = true,
         };
-        adminUser.UserRoles.Add(new UserRole
+        teacher.UserRoles.Add(new UserRole { UserId = teacher.Id, RoleId = 2, AssignedAt = DateTime.UtcNow });
+        db.Users.Add(teacher);
+        db.TeacherProfiles.Add(new TeacherProfile
         {
-            UserId     = adminUser.Id,
-            RoleId     = 1,
-            AssignedAt = DateTime.UtcNow,
+            Id            = Guid.NewGuid(),
+            UserId        = teacher.Id,
+            Phone         = "",
+            Type          = "permanent",
+            ContractStart = DateOnly.FromDateTime(DateTime.UtcNow),
         });
-        db.Users.Add(adminUser);
         db.SaveChanges();
-
-        var seedLogger = scope.ServiceProvider.GetRequiredService<ILogger<User>>();
-        seedLogger.LogInformation("Seed Admin: {Email}", adminEmail);
     }
 }
 
