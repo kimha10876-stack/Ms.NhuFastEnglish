@@ -97,7 +97,8 @@ export default function ForgotPasswordPage() {
                   </div>
                   {sendError && (
                     <p className="text-[13px] text-destructive bg-destructive/5 px-3 py-2 rounded-lg">
-                      Có lỗi xảy ra, vui lòng thử lại
+                      {(sendError as { response?: { data?: { message?: string } } })?.response?.data?.message
+                        ?? 'Có lỗi xảy ra, vui lòng thử lại'}
                     </p>
                   )}
                   <Button type="submit" className="w-full h-11 text-[15px] font-semibold" disabled={sending}>
