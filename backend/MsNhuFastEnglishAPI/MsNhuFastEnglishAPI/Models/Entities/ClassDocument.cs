@@ -1,4 +1,4 @@
-namespace MsNhuFastEnglishAPI.Domain.Entities;
+namespace MsNhuFastEnglishAPI.Models.Entities;
 
 public class ClassDocument
 {

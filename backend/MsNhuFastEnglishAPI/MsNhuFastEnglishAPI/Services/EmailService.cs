@@ -2,7 +2,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 
-namespace MsNhuFastEnglishAPI.Features.Email;
+namespace MsNhuFastEnglishAPI.Services;
 
 public class EmailService(IConfiguration config, ILogger<EmailService> logger)
 {

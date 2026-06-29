@@ -3,12 +3,12 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using MsNhuFastEnglishAPI.Domain.Entities;
-using MsNhuFastEnglishAPI.Features.Email;
-using MsNhuFastEnglishAPI.Infrastructure.Persistence;
+using MsNhuFastEnglishAPI.Data;
+using MsNhuFastEnglishAPI.Models.DTOs;
+using MsNhuFastEnglishAPI.Models.Entities;
 using StackExchange.Redis;
 
-namespace MsNhuFastEnglishAPI.Features.Auth;
+namespace MsNhuFastEnglishAPI.Services;
 
 public class AuthService(
     AppDbContext db,
@@ -140,17 +140,18 @@ public class AuthService(
     }
 
     // ── Forgot password — sinh OTP 6 số, lưu Redis 15 phút ───────────────────
-    public async Task ForgotPasswordAsync(string emailAddress)
+    public async Task<bool> ForgotPasswordAsync(string emailAddress)
     {
         var user = await db.Users.FirstOrDefaultAsync(
             u => u.Email == emailAddress.ToLower() && u.IsActive);
-        if (user is null) return;
+        if (user is null) return false;
 
         var otp = Random.Shared.Next(100_000, 1_000_000).ToString();
         await _cache.StringSetAsync(
             $"pwd_otp:{user.Email}", otp, TimeSpan.FromMinutes(15));
 
         _ = email.SendOtpAsync(user.Email, user.FullName, otp);
+        return true;
     }
 
     // ── Reset password — xác thực OTP rồi đổi mật khẩu ───────────────────────

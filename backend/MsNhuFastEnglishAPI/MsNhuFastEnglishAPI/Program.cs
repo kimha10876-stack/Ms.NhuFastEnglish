@@ -5,11 +5,10 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using MsNhuFastEnglishAPI.Domain.Entities;
-using MsNhuFastEnglishAPI.Features.Auth;
-using MsNhuFastEnglishAPI.Features.Email;
-using MsNhuFastEnglishAPI.Infrastructure.Middleware;
-using MsNhuFastEnglishAPI.Infrastructure.Persistence;
+using MsNhuFastEnglishAPI.Data;
+using MsNhuFastEnglishAPI.Middleware;
+using MsNhuFastEnglishAPI.Models.Entities;
+using MsNhuFastEnglishAPI.Services;
 using MsNhuFastEnglishAPI.Shared;
 using StackExchange.Redis;
 
@@ -146,7 +145,7 @@ using (var scope = app.Services.CreateScope())
         devUser.UserRoles.Add(new UserRole
         {
             UserId     = devUser.Id,
-            RoleId     = 1, // Admin
+            RoleId     = 1,
             AssignedAt = DateTime.UtcNow,
         });
         db.Users.Add(devUser);

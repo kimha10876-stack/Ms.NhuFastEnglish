@@ -1,4 +1,4 @@
-namespace MsNhuFastEnglishAPI.Features.Auth;
+namespace MsNhuFastEnglishAPI.Models.DTOs;
 
 // ── Login ─────────────────────────────────────────────────────────────────────
 public record LoginRequest(string Email, string Password);

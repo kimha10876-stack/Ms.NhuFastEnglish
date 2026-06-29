@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using MsNhuFastEnglishAPI.Domain.Entities;
+using MsNhuFastEnglishAPI.Models.Entities;
 
-namespace MsNhuFastEnglishAPI.Infrastructure.Persistence;
+namespace MsNhuFastEnglishAPI.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {

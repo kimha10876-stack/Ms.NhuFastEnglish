@@ -2,9 +2,11 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using MsNhuFastEnglishAPI.Models.DTOs;
+using MsNhuFastEnglishAPI.Services;
 using MsNhuFastEnglishAPI.Shared;
 
-namespace MsNhuFastEnglishAPI.Features.Auth;
+namespace MsNhuFastEnglishAPI.Controllers;
 
 [ApiController]
 [Route("api/auth")]
@@ -60,8 +62,10 @@ public class AuthController(AuthService authService) : ControllerBase
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
     {
-        await authService.ForgotPasswordAsync(req.Email);
-        return Ok(ApiResponse.Ok<object?>(null, "Nếu email tồn tại, bạn sẽ nhận được mã OTP."));
+        var found = await authService.ForgotPasswordAsync(req.Email);
+        if (!found)
+            return NotFound(ApiResponse.NotFound("Email không tồn tại trong hệ thống"));
+        return Ok(ApiResponse.Ok<object?>(null, "Mã OTP đã được gửi đến email của bạn"));
     }
 
     [HttpPost("reset-password")]

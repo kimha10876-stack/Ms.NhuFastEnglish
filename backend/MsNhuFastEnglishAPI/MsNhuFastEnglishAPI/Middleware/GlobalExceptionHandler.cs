@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics;
 using MsNhuFastEnglishAPI.Shared;
 
-namespace MsNhuFastEnglishAPI.Infrastructure.Middleware;
+namespace MsNhuFastEnglishAPI.Middleware;
 
 public class GlobalExceptionHandler(
     ILogger<GlobalExceptionHandler> logger,
