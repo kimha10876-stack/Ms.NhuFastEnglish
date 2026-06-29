@@ -3,22 +3,22 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/shared/utils/cn'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 disabled:pointer-events-none disabled:opacity-50 rounded-xl',
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-        outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 hover:underline',
+        default:     'bg-amber-500 text-gray-900 hover:bg-amber-600',
+        destructive: 'bg-red-600 text-white hover:bg-red-700',
+        outline:     'border border-amber-500 text-amber-600 bg-transparent hover:bg-amber-50',
+        secondary:   'bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200',
+        ghost:       'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+        link:        'text-amber-600 underline-offset-4 hover:underline font-medium',
       },
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-12 rounded-xl px-8',
-        icon: 'h-10 w-10',
+        default: 'h-[38px] px-4 text-sm',
+        sm:      'h-8 px-3 text-xs rounded-lg',
+        lg:      'h-11 px-5 text-[15px]',
+        icon:    'h-9 w-9',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },

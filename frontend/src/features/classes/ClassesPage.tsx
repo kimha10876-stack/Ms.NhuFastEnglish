@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Users, Clock, MapPin, BookOpen } from 'lucide-react'
+import { Plus, Users, Clock, MapPin, BookOpen, ChevronRight } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useAuthStore } from '@/features/auth/auth.store'
@@ -13,9 +13,9 @@ const STATUS_LABEL: Record<string, string> = {
   ended:  'Đã kết thúc',
 }
 const STATUS_COLOR: Record<string, string> = {
-  active: 'bg-green-100 text-green-700',
-  paused: 'bg-yellow-100 text-yellow-700',
-  ended:  'bg-gray-100 text-gray-500',
+  active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  paused: 'bg-amber-50 text-amber-700 border-amber-200',
+  ended:  'bg-gray-100 text-gray-500 border-gray-200',
 }
 
 const CATEGORIES = [
@@ -85,34 +85,56 @@ export default function ClassesPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6">
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Lớp học</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {isLoading ? 'Đang tải...' : `${classes.length} lớp`}
-          </p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">Quản lý</p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Lớp học</h1>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
+        <Button onClick={() => setShowCreate(true)} className="gap-1.5">
           <Plus className="h-4 w-4" />
           Tạo lớp mới
         </Button>
       </div>
 
-      {/* Grid */}
+      {/* ── Stats row ── */}
+      {!isLoading && classes.length > 0 && (
+        <div className="flex gap-3 mb-6 flex-wrap">
+          {[
+            { label: 'Tổng lớp', value: classes.length },
+            { label: 'Đang hoạt động', value: classes.filter((c) => c.status === 'active').length },
+            { label: 'Tổng học viên', value: classes.reduce((s, c) => s + c.memberCount, 0) },
+          ].map((s) => (
+            <div key={s.label} className="bg-white border border-gray-200 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-sm">
+              <div>
+                <p className="text-xl font-bold text-gray-900">{s.value}</p>
+                <p className="text-xs text-gray-500">{s.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Grid ── */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-44 rounded-2xl bg-muted animate-pulse" />
+            <div key={i} className="h-44 rounded-2xl bg-gray-100 animate-pulse" />
           ))}
         </div>
       ) : classes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <BookOpen className="h-12 w-12 text-muted-foreground/30 mb-4" />
-          <p className="font-medium text-muted-foreground">Chưa có lớp học nào</p>
-          <p className="text-sm text-muted-foreground/70 mt-1">Nhấn "Tạo lớp mới" để bắt đầu</p>
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mb-4">
+            <BookOpen className="h-7 w-7 text-amber-500" />
+          </div>
+          <p className="font-semibold text-gray-700">Chưa có lớp học nào</p>
+          <p className="text-sm text-gray-500 mt-1 mb-4">Tạo lớp đầu tiên để bắt đầu quản lý học viên</p>
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4" />
+            Tạo lớp học
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -120,45 +142,49 @@ export default function ClassesPage() {
             <button
               key={cls.id}
               onClick={() => navigate(`/classes/${cls.id}`)}
-              className="group text-left bg-white rounded-2xl border border-black/[0.06] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all p-5"
+              className="group text-left bg-white rounded-2xl border border-gray-200 shadow-sm hover:border-amber-300 hover:shadow-md transition-all p-5"
             >
-              {/* Category badge + status */}
-              <div className="flex items-center justify-between mb-3">
+              {/* Top row */}
+              <div className="flex items-start justify-between gap-2 mb-3">
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-white"
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold text-white tracking-wide"
                   style={{ backgroundColor: cls.categoryColorHex }}
                 >
                   {cls.categoryName}
                 </span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[cls.status] ?? STATUS_COLOR.active}`}>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${STATUS_COLOR[cls.status] ?? STATUS_COLOR.active}`}>
                   {STATUS_LABEL[cls.status] ?? cls.status}
                 </span>
               </div>
 
               {/* Class name */}
-              <h3 className="font-bold text-[15px] leading-snug mb-1 group-hover:text-primary transition-colors">
+              <h3 className="font-bold text-[15px] text-gray-900 leading-snug mb-0.5 group-hover:text-amber-700 transition-colors">
                 {cls.name}
               </h3>
-              <p className="text-sm text-muted-foreground mb-3">{cls.teacherName}</p>
+              <p className="text-sm text-gray-500 mb-4">{cls.teacherName}</p>
 
-              {/* Meta row */}
-              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Users className="h-3.5 w-3.5" />
-                  {cls.memberCount} học sinh
-                </span>
-                {cls.scheduleDays && (
+              {/* Meta + arrow */}
+              <div className="flex items-end justify-between">
+                <div className="flex flex-wrap gap-2.5 text-xs text-gray-400">
                   <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {cls.scheduleDays} {cls.scheduleTime}
+                    <Users className="h-3.5 w-3.5" />
+                    {cls.memberCount} học viên
                   </span>
-                )}
-                {cls.room && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {cls.room}
-                  </span>
-                )}
+                  {cls.scheduleDays && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      {cls.scheduleDays}
+                      {cls.scheduleTime && ` · ${cls.scheduleTime}`}
+                    </span>
+                  )}
+                  {cls.room && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {cls.room}
+                    </span>
+                  )}
+                </div>
+                <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-amber-400 shrink-0 transition-colors" />
               </div>
             </button>
           ))}
@@ -172,21 +198,30 @@ export default function ClassesPage() {
           onClick={(e) => e.target === e.currentTarget && setShowCreate(false)}
         >
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
-              <h2 className="text-lg font-bold">Tạo lớp học mới</h2>
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Tạo lớp học mới</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Điền thông tin cơ bản của lớp</p>
+              </div>
+              <button
+                onClick={() => setShowCreate(false)}
+                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Tên lớp *</label>
-                <Input placeholder="VD: Lớp giao tiếp tháng 7" value={form.name} onChange={set('name')} required />
+                <label className="text-sm font-semibold text-gray-700">Tên lớp <span className="text-red-500">*</span></label>
+                <Input placeholder="VD: Lớp giao tiếp tháng 7" value={form.name} onChange={set('name')} required autoFocus />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Danh mục *</label>
+                  <label className="text-sm font-semibold text-gray-700">Danh mục <span className="text-red-500">*</span></label>
                   <select
-                    className="w-full h-9 rounded-xl border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full h-[38px] rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
                     value={form.categoryId}
                     onChange={(e) => setForm((p) => ({ ...p, categoryId: Number(e.target.value) }))}
                   >
@@ -195,43 +230,41 @@ export default function ClassesPage() {
                     ))}
                   </select>
                 </div>
-
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Ngày bắt đầu *</label>
+                  <label className="text-sm font-semibold text-gray-700">Ngày bắt đầu <span className="text-red-500">*</span></label>
                   <Input type="date" value={form.startDate} onChange={set('startDate')} required />
                 </div>
               </div>
 
               {isAdmin && (
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">ID giáo viên *</label>
+                  <label className="text-sm font-semibold text-gray-700">ID giáo viên <span className="text-red-500">*</span></label>
                   <Input
-                    placeholder="UUID giáo viên phụ trách"
+                    placeholder="UUID tài khoản giáo viên"
                     value={form.teacherId}
                     onChange={set('teacherId')}
                   />
-                  <p className="text-xs text-muted-foreground">Nhập ID tài khoản giáo viên</p>
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Lịch học</label>
+                  <label className="text-sm font-semibold text-gray-700">Lịch học</label>
                   <Input placeholder="T2,T4,T6" value={form.scheduleDays ?? ''} onChange={set('scheduleDays')} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Giờ học</label>
+                  <label className="text-sm font-semibold text-gray-700">Giờ học</label>
                   <Input placeholder="08:00-10:00" value={form.scheduleTime ?? ''} onChange={set('scheduleTime')} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Phòng học</label>
+                  <label className="text-sm font-semibold text-gray-700">Phòng học</label>
                   <Input placeholder="Phòng A1" value={form.room ?? ''} onChange={set('room')} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Giới hạn học sinh</label>
+                  <label className="text-sm font-semibold text-gray-700">Giới hạn học viên</label>
                   <Input
                     type="number"
                     placeholder="20"
@@ -248,19 +281,19 @@ export default function ClassesPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Ghi chú</label>
+                <label className="text-sm font-semibold text-gray-700">Ghi chú</label>
                 <Input placeholder="Ghi chú thêm..." value={form.note ?? ''} onChange={set('note')} />
               </div>
 
               {formError && (
-                <p className="text-[13px] text-destructive bg-destructive/5 px-3 py-2 rounded-lg">
-                  {formError}
-                </p>
+                <div className="bg-red-50 border-l-4 border-red-500 px-4 py-2.5 rounded-r-xl">
+                  <p className="text-[13px] text-red-700">{formError}</p>
+                </div>
               )}
 
               <div className="flex gap-3 pt-1">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCreate(false)}>
-                  Huỷ
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowCreate(false)}>
+                  Huỷ bỏ
                 </Button>
                 <Button type="submit" className="flex-1" disabled={isPending}>
                   {isPending ? 'Đang tạo...' : 'Tạo lớp'}
