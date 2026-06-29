@@ -6,7 +6,8 @@ import { AuthGuard } from '@/shared/components/layout/AuthGuard'
 
 const LandingPage      = lazy(() => import('@/features/landing/LandingPage'))
 const LoginPage        = lazy(() => import('@/features/auth/LoginPage'))
-const RegisterPage     = lazy(() => import('@/features/auth/RegisterPage'))
+const RegisterPage        = lazy(() => import('@/features/auth/RegisterPage'))
+const ForgotPasswordPage  = lazy(() => import('@/features/auth/ForgotPasswordPage'))
 const DashboardPage    = lazy(() => import('@/features/dashboard/DashboardPage'))
 const StudentsPage     = lazy(() => import('@/features/students/StudentsPage'))
 const ClassesPage      = lazy(() => import('@/features/classes/ClassesPage'))
@@ -34,7 +35,8 @@ export default function App() {
             {/* Public */}
             <Route path="/"        element={<LandingPage />} />
             <Route path="/login"   element={<LoginPage />} />
-            <Route path="/dang-ky" element={<RegisterPage />} />
+            <Route path="/dang-ky"       element={<RegisterPage />} />
+            <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
 
             {/* Protected */}
             <Route element={<AuthGuard />}>

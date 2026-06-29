@@ -1,5 +1,5 @@
 import { api } from '@/shared/api/client'
-import type { LoginRequest, AuthResponse, RegisterStudentRequest } from './auth.types'
+import type { LoginRequest, AuthResponse, RegisterStudentRequest, ForgotPasswordRequest, ResetPasswordRequest } from './auth.types'
 
 export const authApi = {
   login: (body: LoginRequest) =>
@@ -13,4 +13,10 @@ export const authApi = {
 
   registerStudent: (body: RegisterStudentRequest) =>
     api.post<AuthResponse>('/auth/register/student', body).then((r) => r.data),
+
+  forgotPassword: (body: ForgotPasswordRequest) =>
+    api.post('/auth/forgot-password', body).then((r) => r.data),
+
+  resetPassword: (body: ResetPasswordRequest) =>
+    api.post('/auth/reset-password', body).then((r) => r.data),
 }

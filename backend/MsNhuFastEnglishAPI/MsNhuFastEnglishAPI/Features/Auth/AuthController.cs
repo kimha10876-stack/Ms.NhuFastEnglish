@@ -66,8 +66,8 @@ public class AuthController(AuthService authService) : ControllerBase
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
     {
-        var ok = await authService.ResetPasswordAsync(req);
-        if (!ok) return BadRequest(new { message = "Token không hợp lệ hoặc đã hết hạn" });
+        var (ok, error) = await authService.ResetPasswordAsync(req);
+        if (!ok) return BadRequest(new { message = error });
         return Ok(new { message = "Đổi mật khẩu thành công" });
     }
 }

@@ -27,4 +27,14 @@ export interface RegisterStudentRequest {
   goal?: string
 }
 
+export interface ForgotPasswordRequest {
+  email: string
+}
+
+export interface ResetPasswordRequest {
+  email: string
+  otp: string
+  newPassword: string
+}
+
 export type ViewMode = 'admin' | 'teacher'

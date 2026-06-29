@@ -57,6 +57,12 @@ public record AuthUserDto(
 
 public record RegisterResponse(Guid Id, string Email, string FullName, string[] Roles);
 
-// ── Forgot / Reset password ───────────────────────────────────────────────────
+// ── Forgot / Reset password (OTP) ────────────────────────────────────────────
 public record ForgotPasswordRequest(string Email);
-public record ResetPasswordRequest(string Token, string NewPassword);
+
+public record ResetPasswordRequest
+{
+    public required string Email       { get; init; }
+    public required string Otp         { get; init; }
+    public required string NewPassword { get; init; }
+}

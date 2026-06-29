@@ -21,16 +21,18 @@ public class EmailService(IConfiguration config, ILogger<EmailService> logger)
             </div>
             """);
 
-    public Task SendPasswordResetAsync(string toEmail, string fullName, string resetUrl) =>
-        SendAsync(toEmail, "Đặt lại mật khẩu Ms. Nhụ Fast English", $"""
+    public Task SendOtpAsync(string toEmail, string fullName, string otp) =>
+        SendAsync(toEmail, "Mã OTP đặt lại mật khẩu — Ms. Nhụ Fast English", $"""
             <div style="font-family:sans-serif;max-width:520px;margin:0 auto">
               <h2 style="color:#007AFF">Xin chào {fullName},</h2>
-              <p>Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn nút bên dưới để tiếp tục:</p>
-              <a href="{resetUrl}" style="display:inline-block;margin:20px 0;padding:12px 28px;
-                 background:#007AFF;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">
-                Đặt lại mật khẩu
-              </a>
-              <p style="color:#636366;font-size:13px">Link có hiệu lực trong 15 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>
+              <p>Bạn vừa yêu cầu đặt lại mật khẩu. Nhập mã OTP bên dưới:</p>
+              <div style="margin:28px 0;text-align:center">
+                <span style="display:inline-block;font-size:40px;font-weight:700;letter-spacing:12px;
+                  color:#1C1C1E;background:#F2F2F7;padding:16px 28px;border-radius:12px">
+                  {otp}
+                </span>
+              </div>
+              <p style="color:#636366;font-size:13px">Mã có hiệu lực trong <strong>15 phút</strong>. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>
             </div>
             """);
 

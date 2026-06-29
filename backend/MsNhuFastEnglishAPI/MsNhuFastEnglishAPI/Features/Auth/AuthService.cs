@@ -139,38 +139,43 @@ public class AuthService(
         return (await IssueTokensAsync(user), null);
     }
 
-    // ── Forgot password ────────────────────────────────────────────────────────
+    // ── Forgot password — sinh OTP 6 số, lưu Redis 15 phút ───────────────────
     public async Task ForgotPasswordAsync(string emailAddress)
     {
         var user = await db.Users.FirstOrDefaultAsync(
             u => u.Email == emailAddress.ToLower() && u.IsActive);
         if (user is null) return;
 
-        var token    = Guid.NewGuid().ToString("N");
-        var appUrl   = config["AppUrl"] ?? "http://localhost:5173";
-        var resetUrl = $"{appUrl}/reset-password?token={token}";
+        var otp = Random.Shared.Next(100_000, 1_000_000).ToString();
+        await _cache.StringSetAsync(
+            $"pwd_otp:{user.Email}", otp, TimeSpan.FromMinutes(15));
 
-        await _cache.StringSetAsync($"pwd_reset:{token}", user.Id.ToString(), TimeSpan.FromMinutes(15));
-        _ = email.SendPasswordResetAsync(user.Email, user.FullName, resetUrl);
+        _ = email.SendOtpAsync(user.Email, user.FullName, otp);
     }
 
-    // ── Reset password ─────────────────────────────────────────────────────────
-    public async Task<bool> ResetPasswordAsync(ResetPasswordRequest req)
+    // ── Reset password — xác thực OTP rồi đổi mật khẩu ───────────────────────
+    public async Task<(bool Ok, string? Error)> ResetPasswordAsync(ResetPasswordRequest req)
     {
-        var userIdStr = await _cache.StringGetAsync($"pwd_reset:{req.Token}");
-        if (userIdStr.IsNullOrEmpty || !Guid.TryParse(userIdStr, out var userId))
-            return false;
+        var emailKey  = req.Email.ToLower();
+        var storedOtp = await _cache.StringGetAsync($"pwd_otp:{emailKey}");
 
-        var user = await db.Users.FindAsync(userId);
-        if (user is null || !user.IsActive) return false;
+        if (storedOtp.IsNullOrEmpty)
+            return (false, "Mã OTP đã hết hạn, vui lòng yêu cầu lại");
+
+        if (storedOtp != req.Otp)
+            return (false, "Mã OTP không đúng");
+
+        var user = await db.Users.FirstOrDefaultAsync(
+            u => u.Email == emailKey && u.IsActive);
+        if (user is null) return (false, "Tài khoản không tồn tại");
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
         user.UpdatedAt    = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
-        await _cache.KeyDeleteAsync($"pwd_reset:{req.Token}");
-        await LogoutAsync(userId, refreshToken: null, allDevices: true);
-        return true;
+        await _cache.KeyDeleteAsync($"pwd_otp:{emailKey}");
+        await LogoutAsync(user.Id, refreshToken: null, allDevices: true);
+        return (true, null);
     }
 
     // ── Refresh ────────────────────────────────────────────────────────────────
