@@ -39,7 +39,7 @@ services:
   # ── Backend (ASP.NET Core 8) ─────────────────────────────────────────────────
   backend:
     build:
-      context: ./backend
+      context: ./backend/MsNhuFastEnglishAPI
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
