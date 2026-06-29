@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using MsNhuFastEnglishAPI.Domain.Entities;
 using MsNhuFastEnglishAPI.Features.Auth;
 using MsNhuFastEnglishAPI.Features.Email;
+using MsNhuFastEnglishAPI.Infrastructure.Middleware;
 using MsNhuFastEnglishAPI.Infrastructure.Persistence;
 using StackExchange.Redis;
 
@@ -76,6 +77,10 @@ builder.Services.AddRateLimiter(options =>
             "{\"message\":\"Quá nhiều yêu cầu, vui lòng thử lại sau 1 giờ\"}", token);
     };
 });
+
+// ── Exception handler ─────────────────────────────────────────────────────────
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // ── Features ──────────────────────────────────────────────────────────────────
 builder.Services.AddScoped<EmailService>();
@@ -171,6 +176,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.UseExceptionHandler();
 app.UseRateLimiter();
 app.UseSwagger();
 app.UseSwaggerUI();
