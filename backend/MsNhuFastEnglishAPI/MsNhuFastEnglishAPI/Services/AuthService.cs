@@ -140,18 +140,38 @@ public class AuthService(
     }
 
     // ── Forgot password — sinh OTP 6 số, lưu Redis 15 phút ───────────────────
-    public async Task<bool> ForgotPasswordAsync(string emailAddress)
+    public async Task<(bool Ok, bool IsCooldown, string? Error)> ForgotPasswordAsync(string emailAddress)
     {
-        var user = await db.Users.FirstOrDefaultAsync(
-            u => u.Email == emailAddress.ToLower() && u.IsActive);
-        if (user is null) return false;
+        var key = emailAddress.ToLower();
 
-        var otp = Random.Shared.Next(100_000, 1_000_000).ToString();
-        await _cache.StringSetAsync(
-            $"pwd_otp:{user.Email}", otp, TimeSpan.FromMinutes(15));
+        var user = await db.Users.FirstOrDefaultAsync(
+            u => u.Email == key && u.IsActive);
+        if (user is null) return (false, false, "Email không tồn tại trong hệ thống");
+
+        // Kiểm tra cooldown 60s
+        if (await _cache.KeyExistsAsync($"pwd_otp_cd:{key}"))
+            return (false, true, "Vui lòng đợi 60 giây trước khi gửi lại");
+
+        // Dùng lại OTP cũ nếu còn hạn, ngược lại tạo mới
+        var existing = await _cache.StringGetAsync($"pwd_otp:{key}");
+        var otp = existing.HasValue
+            ? existing.ToString()
+            : Random.Shared.Next(100_000, 1_000_000).ToString();
+
+        await _cache.StringSetAsync($"pwd_otp:{key}", otp, TimeSpan.FromMinutes(15));
+        await _cache.StringSetAsync($"pwd_otp_cd:{key}", "1", TimeSpan.FromSeconds(60));
 
         _ = email.SendOtpAsync(user.Email, user.FullName, otp);
-        return true;
+        return (true, false, null);
+    }
+
+    // ── Verify OTP — kiểm tra không xóa ──────────────────────────────────────
+    public async Task<(bool Ok, string? Error)> VerifyOtpAsync(VerifyOtpRequest req)
+    {
+        var stored = await _cache.StringGetAsync($"pwd_otp:{req.Email.ToLower()}");
+        if (stored.IsNullOrEmpty) return (false, "Mã OTP đã hết hạn, vui lòng gửi lại");
+        if (stored != req.Otp)    return (false, "Mã OTP không đúng");
+        return (true, null);
     }
 
     // ── Reset password — xác thực OTP rồi đổi mật khẩu ───────────────────────

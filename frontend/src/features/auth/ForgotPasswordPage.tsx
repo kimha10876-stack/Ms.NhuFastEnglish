@@ -1,25 +1,48 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BookOpen, ArrowLeft, CheckCircle } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-import { useForgotPassword, useResetPassword } from './useAuth'
+import { useForgotPassword, useVerifyOtp, useResetPassword } from './useAuth'
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate()
-  const [step, setStep]               = useState<1 | 2 | 3>(1)
+  const [step, setStep]               = useState<1 | 2 | 3 | 4>(1)
   const [email, setEmail]             = useState('')
   const [otp, setOtp]                 = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPwd, setConfirmPwd]   = useState('')
   const [pwdError, setPwdError]       = useState('')
+  const [countdown, setCountdown]     = useState(0)
 
-  const { mutate: sendOtp, isPending: sending, error: sendError } = useForgotPassword()
-  const { mutate: resetPwd, isPending: resetting, error: resetError } = useResetPassword()
+  const { mutate: sendOtp,   isPending: sending,    error: sendError   } = useForgotPassword()
+  const { mutate: verifyOtp, isPending: verifying,  error: verifyError } = useVerifyOtp()
+  const { mutate: resetPwd,  isPending: resetting,  error: resetError  } = useResetPassword()
+
+  // Đếm ngược 60s cho nút resend
+  useEffect(() => {
+    if (countdown <= 0) return
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [countdown])
 
   const handleSendOtp = (e: { preventDefault(): void }) => {
     e.preventDefault()
-    sendOtp({ email }, { onSuccess: () => setStep(2) })
+    sendOtp({ email }, {
+      onSuccess: () => {
+        setStep(2)
+        setCountdown(60)
+      },
+    })
+  }
+
+  const handleResend = () => {
+    sendOtp({ email }, { onSuccess: () => setCountdown(60) })
+  }
+
+  const handleVerifyOtp = (e: { preventDefault(): void }) => {
+    e.preventDefault()
+    verifyOtp({ email, otp }, { onSuccess: () => setStep(3) })
   }
 
   const handleReset = (e: { preventDefault(): void }) => {
@@ -29,8 +52,11 @@ export default function ForgotPasswordPage() {
       return
     }
     setPwdError('')
-    resetPwd({ email, otp, newPassword }, { onSuccess: () => setStep(3) })
+    resetPwd({ email, otp, newPassword }, { onSuccess: () => setStep(4) })
   }
+
+  const serverMsg = (err: unknown) =>
+    (err as { response?: { data?: { message?: string } } })?.response?.data?.message
 
   return (
     <div className="min-h-svh flex">
@@ -78,9 +104,7 @@ export default function ForgotPasswordPage() {
               <>
                 <div className="mb-6">
                   <h1 className="text-[22px] font-bold tracking-tight">Quên mật khẩu</h1>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    Nhập email để nhận mã OTP
-                  </p>
+                  <p className="text-muted-foreground text-sm mt-1">Nhập email để nhận mã OTP</p>
                 </div>
                 <form onSubmit={handleSendOtp} className="space-y-4">
                   <div className="space-y-1.5">
@@ -97,8 +121,7 @@ export default function ForgotPasswordPage() {
                   </div>
                   {sendError && (
                     <p className="text-[13px] text-destructive bg-destructive/5 px-3 py-2 rounded-lg">
-                      {(sendError as { response?: { data?: { message?: string } } })?.response?.data?.message
-                        ?? 'Có lỗi xảy ra, vui lòng thử lại'}
+                      {serverMsg(sendError) ?? 'Có lỗi xảy ra, vui lòng thử lại'}
                     </p>
                   )}
                   <Button type="submit" className="w-full h-11 text-[15px] font-semibold" disabled={sending}>
@@ -108,7 +131,7 @@ export default function ForgotPasswordPage() {
               </>
             )}
 
-            {/* ── Step 2: nhập OTP + mật khẩu mới ── */}
+            {/* ── Step 2: nhập OTP ── */}
             {step === 2 && (
               <>
                 <div className="mb-6">
@@ -117,7 +140,7 @@ export default function ForgotPasswordPage() {
                     Kiểm tra email <span className="font-medium text-foreground">{email}</span>
                   </p>
                 </div>
-                <form onSubmit={handleReset} className="space-y-4">
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Mã OTP (6 số)</label>
                     <Input
@@ -130,6 +153,45 @@ export default function ForgotPasswordPage() {
                       className="text-center text-xl font-bold tracking-[0.3em]"
                     />
                   </div>
+                  {verifyError && (
+                    <p className="text-[13px] text-destructive bg-destructive/5 px-3 py-2 rounded-lg">
+                      {serverMsg(verifyError) ?? 'Mã OTP không hợp lệ'}
+                    </p>
+                  )}
+                  <Button
+                    type="submit"
+                    className="w-full h-11 text-[15px] font-semibold"
+                    disabled={verifying || otp.length < 6}
+                  >
+                    {verifying ? 'Đang xác thực...' : 'Xác nhận OTP'}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={countdown > 0 || sending}
+                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {countdown > 0
+                      ? `Gửi lại sau ${countdown}s`
+                      : sending ? 'Đang gửi...' : 'Gửi lại mã OTP'}
+                  </button>
+                  {sendError && (
+                    <p className="text-[13px] text-destructive bg-destructive/5 px-3 py-2 rounded-lg">
+                      {serverMsg(sendError) ?? 'Không thể gửi lại, thử lại sau'}
+                    </p>
+                  )}
+                </form>
+              </>
+            )}
+
+            {/* ── Step 3: nhập mật khẩu mới ── */}
+            {step === 3 && (
+              <>
+                <div className="mb-6">
+                  <h1 className="text-[22px] font-bold tracking-tight">Mật khẩu mới</h1>
+                  <p className="text-muted-foreground text-sm mt-1">Nhập mật khẩu mới cho tài khoản</p>
+                </div>
+                <form onSubmit={handleReset} className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Mật khẩu mới</label>
                     <Input
@@ -139,6 +201,7 @@ export default function ForgotPasswordPage() {
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
                       minLength={8}
+                      autoFocus
                       autoComplete="new-password"
                     />
                   </div>
@@ -160,26 +223,22 @@ export default function ForgotPasswordPage() {
                   )}
                   {resetError && (
                     <p className="text-[13px] text-destructive bg-destructive/5 px-3 py-2 rounded-lg">
-                      {(resetError as { response?: { data?: { message?: string } } })?.response?.data?.message
-                        ?? 'Mã OTP không đúng hoặc đã hết hạn'}
+                      {serverMsg(resetError) ?? 'Có lỗi xảy ra, vui lòng thử lại'}
                     </p>
                   )}
-                  <Button type="submit" className="w-full h-11 text-[15px] font-semibold" disabled={resetting || otp.length < 6}>
+                  <Button
+                    type="submit"
+                    className="w-full h-11 text-[15px] font-semibold"
+                    disabled={resetting}
+                  >
                     {resetting ? 'Đang đặt lại...' : 'Đặt lại mật khẩu'}
                   </Button>
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Gửi lại mã OTP
-                  </button>
                 </form>
               </>
             )}
 
-            {/* ── Step 3: thành công ── */}
-            {step === 3 && (
+            {/* ── Step 4: thành công ── */}
+            {step === 4 && (
               <div className="py-4 text-center">
                 <div className="flex justify-center mb-4">
                   <CheckCircle className="h-12 w-12 text-green-500" />

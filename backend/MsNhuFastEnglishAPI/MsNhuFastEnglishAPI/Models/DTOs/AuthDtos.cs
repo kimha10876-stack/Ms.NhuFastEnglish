@@ -60,6 +60,8 @@ public record RegisterResponse(Guid Id, string Email, string FullName, string[] 
 // ── Forgot / Reset password (OTP) ────────────────────────────────────────────
 public record ForgotPasswordRequest(string Email);
 
+public record VerifyOtpRequest(string Email, string Otp);
+
 public record ResetPasswordRequest
 {
     public required string Email       { get; init; }

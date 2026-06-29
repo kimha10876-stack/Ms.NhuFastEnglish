@@ -62,10 +62,18 @@ public class AuthController(AuthService authService) : ControllerBase
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
     {
-        var found = await authService.ForgotPasswordAsync(req.Email);
-        if (!found)
-            return NotFound(ApiResponse.NotFound("Email không tồn tại trong hệ thống"));
+        var (ok, isCooldown, error) = await authService.ForgotPasswordAsync(req.Email);
+        if (!ok && isCooldown) return StatusCode(429, ApiResponse.TooManyRequests(error!));
+        if (!ok)               return NotFound(ApiResponse.NotFound(error!));
         return Ok(ApiResponse.Ok<object?>(null, "Mã OTP đã được gửi đến email của bạn"));
+    }
+
+    [HttpPost("verify-otp")]
+    public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest req)
+    {
+        var (ok, error) = await authService.VerifyOtpAsync(req);
+        if (!ok) return BadRequest(ApiResponse.BadRequest(error!));
+        return Ok(ApiResponse.Ok<object?>(null, "Mã OTP hợp lệ"));
     }
 
     [HttpPost("reset-password")]
