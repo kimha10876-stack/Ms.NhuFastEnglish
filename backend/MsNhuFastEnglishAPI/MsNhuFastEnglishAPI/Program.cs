@@ -85,6 +85,7 @@ builder.Services.AddProblemDetails();
 // ── Features ──────────────────────────────────────────────────────────────────
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<ClassService>();
 
 // ── Controllers + Swagger ─────────────────────────────────────────────────────
 builder.Services.AddControllers();

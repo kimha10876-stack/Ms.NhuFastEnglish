@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { BookOpen, ArrowLeft } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useRegisterStudent } from './useAuth'
 
 export default function RegisterPage() {
+  const [searchParams] = useSearchParams()
+  const inviteToken    = searchParams.get('invite')
+
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -14,7 +17,7 @@ export default function RegisterPage() {
   })
   const [passwordError, setPasswordError] = useState('')
 
-  const { mutate: register, isPending, error } = useRegisterStudent()
+  const { mutate: register, isPending, error } = useRegisterStudent(inviteToken ?? undefined)
 
   const set = (field: string) => (e: { target: { value: string } }) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }))

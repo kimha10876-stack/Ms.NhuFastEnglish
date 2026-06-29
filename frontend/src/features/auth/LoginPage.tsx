@@ -1,14 +1,17 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { BookOpen, ArrowLeft } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useLogin } from './useAuth'
 
 export default function LoginPage() {
+  const [searchParams] = useSearchParams()
+  const redirectTo     = searchParams.get('redirect') ?? undefined
+
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const { mutate: login, isPending, error } = useLogin()
+  const { mutate: login, isPending, error } = useLogin(redirectTo)
 
   const handleSubmit = (e: { preventDefault(): void }) => {
     e.preventDefault()

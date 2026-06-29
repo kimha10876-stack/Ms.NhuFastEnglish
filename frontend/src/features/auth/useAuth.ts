@@ -4,8 +4,8 @@ import { authApi } from './auth.api'
 import { useAuthStore } from './auth.store'
 import type { LoginRequest, RegisterStudentRequest, ForgotPasswordRequest, VerifyOtpRequest, ResetPasswordRequest } from './auth.types'
 
-export function useLogin() {
-  const setUser = useAuthStore((s) => s.setUser)
+export function useLogin(redirectTo?: string) {
+  const setUser  = useAuthStore((s) => s.setUser)
   const navigate = useNavigate()
 
   return useMutation({
@@ -14,13 +14,13 @@ export function useLogin() {
       localStorage.setItem('access_token', data.accessToken)
       localStorage.setItem('refresh_token', data.refreshToken)
       setUser(data.user)
-      navigate('/dashboard')
+      navigate(redirectTo ?? '/dashboard')
     },
   })
 }
 
-export function useRegisterStudent() {
-  const setUser = useAuthStore((s) => s.setUser)
+export function useRegisterStudent(inviteToken?: string) {
+  const setUser  = useAuthStore((s) => s.setUser)
   const navigate = useNavigate()
 
   return useMutation({
@@ -29,7 +29,11 @@ export function useRegisterStudent() {
       localStorage.setItem('access_token', data.accessToken)
       localStorage.setItem('refresh_token', data.refreshToken)
       setUser(data.user)
-      navigate('/dashboard')
+      if (inviteToken) {
+        navigate(`/tham-gia/${inviteToken}`)
+      } else {
+        navigate('/dashboard')
+      }
     },
   })
 }
