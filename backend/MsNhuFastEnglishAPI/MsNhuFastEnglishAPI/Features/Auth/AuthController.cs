@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using MsNhuFastEnglishAPI.Shared;
 
 namespace MsNhuFastEnglishAPI.Features.Auth;
 
@@ -14,8 +15,8 @@ public class AuthController(AuthService authService) : ControllerBase
     {
         var result = await authService.LoginAsync(req);
         if (result is null)
-            return Unauthorized(new { message = "Email hoặc mật khẩu không đúng" });
-        return Ok(result);
+            return Unauthorized(ApiResponse.Unauthorized("Email hoặc mật khẩu không đúng"));
+        return Ok(ApiResponse.Ok(result, "Đăng nhập thành công"));
     }
 
     [HttpPost("refresh")]
@@ -23,8 +24,8 @@ public class AuthController(AuthService authService) : ControllerBase
     {
         var result = await authService.RefreshAsync(req.RefreshToken);
         if (result is null)
-            return Unauthorized(new { message = "Refresh token không hợp lệ hoặc đã hết hạn" });
-        return Ok(result);
+            return Unauthorized(ApiResponse.Unauthorized("Refresh token không hợp lệ hoặc đã hết hạn"));
+        return Ok(ApiResponse.Ok(result, "Làm mới token thành công"));
     }
 
     [HttpPost("logout")]
@@ -33,7 +34,7 @@ public class AuthController(AuthService authService) : ControllerBase
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         await authService.LogoutAsync(userId, req.RefreshToken, req.AllDevices);
-        return NoContent();
+        return Ok(ApiResponse.Ok<object?>(null, "Đăng xuất thành công"));
     }
 
     [HttpPost("register/student")]
@@ -42,8 +43,8 @@ public class AuthController(AuthService authService) : ControllerBase
     {
         var (result, error) = await authService.RegisterStudentAsync(req);
         if (error is not null)
-            return BadRequest(new { message = error });
-        return StatusCode(201, result);
+            return BadRequest(ApiResponse.BadRequest(error));
+        return StatusCode(201, ApiResponse.Created(result!, "Đăng ký thành công"));
     }
 
     [HttpPost("register")]
@@ -52,22 +53,23 @@ public class AuthController(AuthService authService) : ControllerBase
     {
         var (result, error) = await authService.RegisterAsync(req);
         if (error is not null)
-            return BadRequest(new { message = error });
-        return StatusCode(201, result);
+            return BadRequest(ApiResponse.BadRequest(error));
+        return StatusCode(201, ApiResponse.Created(result!, "Tạo tài khoản thành công"));
     }
 
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
     {
         await authService.ForgotPasswordAsync(req.Email);
-        return Ok(new { message = "Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu." });
+        return Ok(ApiResponse.Ok<object?>(null, "Nếu email tồn tại, bạn sẽ nhận được mã OTP."));
     }
 
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
     {
         var (ok, error) = await authService.ResetPasswordAsync(req);
-        if (!ok) return BadRequest(new { message = error });
-        return Ok(new { message = "Đổi mật khẩu thành công" });
+        if (!ok)
+            return BadRequest(ApiResponse.BadRequest(error!));
+        return Ok(ApiResponse.Ok<object?>(null, "Đổi mật khẩu thành công"));
     }
 }

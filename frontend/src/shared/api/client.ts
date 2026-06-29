@@ -1,4 +1,5 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios'
+import type { ApiResponse } from './types'
 
 export const api = axios.create({
   baseURL: '/api',
@@ -39,13 +40,13 @@ api.interceptors.response.use(
 
     try {
       const refreshToken = localStorage.getItem('refresh_token')
-      const { data } = await axios.post<{ accessToken: string; refreshToken: string }>(
+      const { data } = await axios.post<ApiResponse<{ accessToken: string; refreshToken: string }>>(
         '/api/auth/refresh',
         { refreshToken }
       )
-      localStorage.setItem('access_token', data.accessToken)
-      localStorage.setItem('refresh_token', data.refreshToken)
-      queue.forEach((cb) => cb(data.accessToken))
+      localStorage.setItem('access_token', data.data!.accessToken)
+      localStorage.setItem('refresh_token', data.data!.refreshToken)
+      queue.forEach((cb) => cb(data.data!.accessToken))
       queue = []
       original.headers.Authorization = `Bearer ${data.accessToken}`
       return api(original)

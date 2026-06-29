@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
+using MsNhuFastEnglishAPI.Shared;
 
 namespace MsNhuFastEnglishAPI.Infrastructure.Middleware;
 
@@ -17,8 +18,8 @@ public class GlobalExceptionHandler(
         httpContext.Response.ContentType = "application/json";
 
         object body = env.IsDevelopment()
-            ? new { message = exception.Message, detail = exception.ToString() }
-            : new { message = "Đã xảy ra lỗi, vui lòng thử lại sau" };
+            ? new { code = 500, message = exception.Message, detail = exception.ToString() }
+            : (object)ApiResponse.ServerError("Đã xảy ra lỗi, vui lòng thử lại sau");
 
         await httpContext.Response.WriteAsJsonAsync(body, cancellationToken);
         return true;

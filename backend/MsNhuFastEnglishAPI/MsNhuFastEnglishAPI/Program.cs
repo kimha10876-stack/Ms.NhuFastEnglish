@@ -10,6 +10,7 @@ using MsNhuFastEnglishAPI.Features.Auth;
 using MsNhuFastEnglishAPI.Features.Email;
 using MsNhuFastEnglishAPI.Infrastructure.Middleware;
 using MsNhuFastEnglishAPI.Infrastructure.Persistence;
+using MsNhuFastEnglishAPI.Shared;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -73,8 +74,8 @@ builder.Services.AddRateLimiter(options =>
     {
         ctx.HttpContext.Response.StatusCode  = 429;
         ctx.HttpContext.Response.ContentType = "application/json";
-        await ctx.HttpContext.Response.WriteAsync(
-            "{\"message\":\"Quá nhiều yêu cầu, vui lòng thử lại sau 1 giờ\"}", token);
+        await ctx.HttpContext.Response.WriteAsJsonAsync(
+            ApiResponse.TooManyRequests("Quá nhiều yêu cầu, vui lòng thử lại sau 1 giờ"), token);
     };
 });
 
