@@ -8,6 +8,7 @@ import type {
   InviteInfo,
   InviteLink,
   StudentSearchResult,
+  TeacherSearchResult,
 } from './classes.types'
 
 export const classesApi = {
@@ -35,6 +36,11 @@ export const classesApi = {
   searchStudents: (q: string) =>
     api
       .get<ApiResponse<StudentSearchResult[]>>('/classes/students/search', { params: { q } })
+      .then((r) => r.data.data ?? []),
+
+  searchTeachers: (q: string) =>
+    api
+      .get<ApiResponse<TeacherSearchResult[]>>('/classes/teachers/search', { params: { q } })
       .then((r) => r.data.data ?? []),
 
   createInvite: (classId: string, expiryDays: number) =>

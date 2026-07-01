@@ -43,6 +43,15 @@ public record StudentSearchDto(
     string? AvatarUrl
 );
 
+// ── Teacher search ────────────────────────────────────────────────────────────
+
+public record TeacherSearchDto(
+    Guid   TeacherId,
+    string FullName,
+    string Email,
+    string? AvatarUrl
+);
+
 // ── Responses ─────────────────────────────────────────────────────────────────
 
 public record ClassSummaryDto(

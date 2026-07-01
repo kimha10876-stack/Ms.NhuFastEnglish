@@ -94,3 +94,11 @@ export function useSearchStudents(q: string) {
     staleTime: 5_000,
   })
 }
+
+export function useSearchTeachers(q: string = '') {
+  return useQuery({
+    queryKey: ['teachers-search', q],
+    queryFn: () => classesApi.searchTeachers(q),
+    staleTime: 15_000,
+  })
+}

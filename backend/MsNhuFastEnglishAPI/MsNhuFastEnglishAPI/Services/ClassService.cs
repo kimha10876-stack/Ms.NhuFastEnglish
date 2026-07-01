@@ -225,6 +225,31 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
         )).ToList();
     }
 
+    // ── Teacher search (for Create/Edit Class dropdown) ───────────────────────
+
+    public async Task<IList<TeacherSearchDto>> SearchTeachersAsync(string q)
+    {
+        var term = q.Trim().ToLower();
+        var query = db.TeacherProfiles
+            .Include(t => t.User)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(term))
+        {
+            query = query.Where(t => t.User.FullName.ToLower().Contains(term) ||
+                                     t.User.Email.ToLower().Contains(term));
+        }
+
+        var results = await query.Take(20).ToListAsync();
+
+        return results.Select(t => new TeacherSearchDto(
+            TeacherId: t.UserId,
+            FullName:  t.User.FullName,
+            Email:     t.User.Email,
+            AvatarUrl: t.User.AvatarUrl
+        )).ToList();
+    }
+
     // ── Invite link ───────────────────────────────────────────────────────────
 
     public async Task<InviteLinkDto> CreateInviteAsync(Guid classId, int expiryDays)

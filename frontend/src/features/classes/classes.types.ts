@@ -91,3 +91,10 @@ export interface StudentSearchResult {
   email: string
   avatarUrl: string | null
 }
+
+export interface TeacherSearchResult {
+  teacherId: string
+  fullName: string
+  email: string
+  avatarUrl: string | null
+}

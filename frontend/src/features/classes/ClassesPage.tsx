@@ -6,6 +6,7 @@ import { Input } from '@/shared/components/ui/input'
 import { useAuthStore } from '@/features/auth/auth.store'
 import { useClasses, useCreateClass } from './useClasses'
 import type { CreateClassRequest } from './classes.types'
+import TeacherSelect from './TeacherSelect'
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'Đang hoạt động',
@@ -62,7 +63,7 @@ export default function ClassesPage() {
     e.preventDefault()
     setFormError('')
     if (!form.teacherId.trim()) {
-      setFormError('Vui lòng nhập ID giáo viên phụ trách')
+      setFormError('Vui lòng chọn giáo viên phụ trách')
       return
     }
     create(
@@ -238,11 +239,10 @@ export default function ClassesPage() {
 
               {isAdmin && (
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">ID giáo viên <span className="text-red-500">*</span></label>
-                  <Input
-                    placeholder="UUID tài khoản giáo viên"
+                  <label className="text-sm font-semibold text-gray-700">Giáo viên phụ trách <span className="text-red-500">*</span></label>
+                  <TeacherSelect
                     value={form.teacherId}
-                    onChange={set('teacherId')}
+                    onChange={(val) => setForm((p) => ({ ...p, teacherId: val }))}
                   />
                 </div>
               )}

@@ -12,6 +12,7 @@ import {
   useAddMember, useRemoveMember, useCreateInvite, useSearchStudents,
 } from './useClasses'
 import type { UpdateClassRequest } from './classes.types'
+import TeacherSelect from './TeacherSelect'
 
 type Tab = 'members' | 'info'
 
@@ -300,6 +301,16 @@ export default function ClassDetailPage() {
                   onChange={(e) => setEditForm((p) => p ? { ...p, name: e.target.value } : p)}
                 />
               </div>
+
+              {isAdmin && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Giáo viên phụ trách</label>
+                  <TeacherSelect
+                    value={editForm.teacherId ?? ''}
+                    onChange={(val) => setEditForm((p) => p ? { ...p, teacherId: val } : p)}
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">

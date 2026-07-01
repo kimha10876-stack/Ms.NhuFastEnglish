@@ -113,6 +113,15 @@ public class ClassesController(ClassService classService) : ControllerBase
         return Ok(ApiResponse.Ok(results));
     }
 
+    // ── GET /api/classes/teachers/search?q= ──────────────────────────────────
+
+    [HttpGet("teachers/search")]
+    public async Task<IActionResult> SearchTeachers([FromQuery] string q = "")
+    {
+        var results = await classService.SearchTeachersAsync(q);
+        return Ok(ApiResponse.Ok(results));
+    }
+
     // ── POST /api/classes/{id}/invite ─────────────────────────────────────────
 
     [HttpPost("{id:guid}/invite")]
