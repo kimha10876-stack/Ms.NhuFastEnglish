@@ -233,6 +233,63 @@ using (var scope = app.Services.CreateScope())
     {
         db.SaveChanges();
     }
+
+    // Seed 20 Classes và gán 15 học viên xoay vòng vào từng lớp
+    if (!db.Classes.Any())
+    {
+        var teacherUser = db.Users.FirstOrDefault(u => u.Email == "nampnhse173502@fpt.edu.vn");
+        var students = db.StudentProfiles.ToList();
+        
+        if (teacherUser != null && students.Count >= 15)
+        {
+            var classNames = new[]
+            {
+                "Tiếng Anh Giao Tiếp Trôi Chảy",
+                "Luyện Thi IELTS Cấp Tốc 6.5+",
+                "Tiếng Anh Cho Trẻ Em Kid1",
+                "Luyện Thi THPT Quốc Gia",
+                "Xóa Mất Gốc Tiếng Anh",
+                "Tiếng Anh Thương Mại Doanh Nghiệp"
+            };
+
+            for (int i = 1; i <= 20; i++)
+            {
+                var catId = (i % 6) + 1; // 1 đến 6
+                var catName = classNames[catId - 1];
+                
+                var cls = new Class
+                {
+                    Id = Guid.NewGuid(),
+                    Name = $"{catName} - Lớp {i}",
+                    TeacherId = teacherUser.Id,
+                    CategoryId = catId,
+                    Status = "active",
+                    ScheduleDays = i % 2 == 0 ? "T2,T4,T6" : "T3,T5,T7",
+                    ScheduleTime = i % 3 == 0 ? "18:00-19:30" : i % 3 == 1 ? "19:30-21:00" : "15:00-16:30",
+                    StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    CreatedAt = DateTime.UtcNow,
+                };
+                db.Classes.Add(cls);
+
+                // Add 15 unique students by rotation
+                for (int j = 0; j < 15; j++)
+                {
+                    var studentIndex = (i + j) % students.Count;
+                    var student = students[studentIndex];
+                    
+                    db.ClassMembers.Add(new ClassMember
+                    {
+                        Id = Guid.NewGuid(),
+                        ClassId = cls.Id,
+                        StudentId = student.Id,
+                        JoinedAt = DateTime.UtcNow,
+                        Status = "active"
+                    });
+                }
+            }
+            db.SaveChanges();
+        }
+    }
 }
 
 app.UseExceptionHandler();
