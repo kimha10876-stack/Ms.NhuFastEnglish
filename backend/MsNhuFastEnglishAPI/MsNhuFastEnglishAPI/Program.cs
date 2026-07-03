@@ -139,13 +139,44 @@ using (var scope = app.Services.CreateScope())
             ");
 
             // Migration: Thêm cột MustChangePassword vào bảng Users nếu chưa có
-            try
+            if (db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
             {
-                db.Database.ExecuteSqlRaw(@"ALTER TABLE ""Users"" ADD COLUMN ""MustChangePassword"" INTEGER NOT NULL DEFAULT 0;");
+                db.Database.ExecuteSqlRaw(@"
+                    DO $$ 
+                    BEGIN 
+                        IF NOT EXISTS (
+                            SELECT 1 
+                            FROM information_schema.columns 
+                            WHERE table_name = 'Users' AND column_name = 'MustChangePassword'
+                        ) THEN
+                            ALTER TABLE ""Users"" ADD COLUMN ""MustChangePassword"" BOOLEAN NOT NULL DEFAULT FALSE;
+                        ELSIF EXISTS (
+                            SELECT 1 
+                            FROM information_schema.columns 
+                            WHERE table_name = 'Users' 
+                              AND column_name = 'MustChangePassword' 
+                              AND data_type <> 'boolean'
+                        ) THEN
+                            ALTER TABLE ""Users"" ALTER COLUMN ""MustChangePassword"" TYPE BOOLEAN USING (
+                                CASE 
+                                    WHEN ""MustChangePassword"" = 1 THEN TRUE 
+                                    ELSE FALSE 
+                                END
+                            );
+                        END IF;
+                    END $$;
+                ");
             }
-            catch
+            else
             {
-                // Bỏ qua lỗi nếu cột đã tồn tại
+                try
+                {
+                    db.Database.ExecuteSqlRaw(@"ALTER TABLE ""Users"" ADD COLUMN ""MustChangePassword"" INTEGER NOT NULL DEFAULT 0;");
+                }
+                catch
+                {
+                    // Bỏ qua lỗi nếu cột đã tồn tại (SQLite)
+                }
             }
 
             // Gieo dữ liệu SystemSettings mặc định nếu bảng trống
