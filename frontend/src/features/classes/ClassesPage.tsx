@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Users, Clock, MapPin, BookOpen, ChevronRight } from 'lucide-react'
+import { Plus, Users, Clock, BookOpen, ChevronRight } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useAuthStore } from '@/features/auth/auth.store'
@@ -27,6 +27,8 @@ const CATEGORIES = [
   { id: 5, name: 'Mất gốc' },
   { id: 6, name: 'Doanh nghiệp' },
 ]
+
+const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 
 const EMPTY_FORM: CreateClassRequest = {
   name:         '',
@@ -178,12 +180,6 @@ export default function ClassesPage() {
                       {cls.scheduleTime && ` · ${cls.scheduleTime}`}
                     </span>
                   )}
-                  {cls.room && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {cls.room}
-                    </span>
-                  )}
                 </div>
                 <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-amber-400 shrink-0 transition-colors" />
               </div>
@@ -247,36 +243,75 @@ export default function ClassesPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700">Lịch học</label>
-                  <Input placeholder="T2,T4,T6" value={form.scheduleDays ?? ''} onChange={set('scheduleDays')} />
+                  <div className="flex gap-1.5 flex-wrap">
+                    {WEEKDAYS.map((day) => {
+                      const currentDays = form.scheduleDays ? form.scheduleDays.split(',').map((d) => d.trim()).filter(Boolean) : []
+                      const isSelected = currentDays.includes(day)
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => {
+                            const newDays = isSelected
+                              ? currentDays.filter((d) => d !== day)
+                              : [...currentDays, day].sort((a, b) => WEEKDAYS.indexOf(a) - WEEKDAYS.indexOf(b))
+                            setForm((p) => ({ ...p, scheduleDays: newDays.join(',') }))
+                          }}
+                          className={`h-9 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                            isSelected
+                              ? 'bg-amber-500 border-amber-600 text-white shadow-sm shadow-amber-500/20'
+                              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
+
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700">Giờ học</label>
-                  <Input placeholder="08:00-10:00" value={form.scheduleTime ?? ''} onChange={set('scheduleTime')} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Phòng học</label>
-                  <Input placeholder="Phòng A1" value={form.room ?? ''} onChange={set('room')} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Giới hạn học viên</label>
-                  <Input
-                    type="number"
-                    placeholder="20"
-                    min="1"
-                    value={form.maxStudents ?? ''}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        maxStudents: e.target.value ? Number(e.target.value) : undefined,
-                      }))
-                    }
-                  />
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        type="time"
+                        value={(form.scheduleTime || '').split('-')[0]?.trim() || ''}
+                        onChange={(e) => {
+                          const newStart = e.target.value
+                          setForm((p) => {
+                            const [, currentEnd = ''] = (p.scheduleTime || '').split('-').map((t) => t.trim())
+                            return {
+                              ...p,
+                              scheduleTime: newStart || currentEnd ? `${newStart}-${currentEnd}` : '',
+                            }
+                          })
+                        }}
+                        className="w-full text-center"
+                      />
+                    </div>
+                    <span className="text-gray-400 text-sm font-medium">đến</span>
+                    <div className="relative flex-1">
+                      <Input
+                        type="time"
+                        value={(form.scheduleTime || '').split('-')[1]?.trim() || ''}
+                        onChange={(e) => {
+                          const newEnd = e.target.value
+                          setForm((p) => {
+                            const [currentStart = ''] = (p.scheduleTime || '').split('-').map((t) => t.trim())
+                            return {
+                              ...p,
+                              scheduleTime: currentStart || newEnd ? `${currentStart}-${newEnd}` : '',
+                            }
+                          })
+                        }}
+                        className="w-full text-center"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

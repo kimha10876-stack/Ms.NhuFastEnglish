@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Users, Info, Trash2, Plus, Copy, Check, Link2,
-  Clock, MapPin, BookOpen, Loader2,
+  Clock, BookOpen, Loader2,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -13,6 +13,8 @@ import {
 } from './useClasses'
 import type { UpdateClassRequest } from './classes.types'
 import TeacherSelect from './TeacherSelect'
+
+const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 
 type Tab = 'members' | 'info'
 
@@ -312,55 +314,91 @@ export default function ClassDetailPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Trạng thái</label>
-                  <select
-                    className="w-full h-[38px] rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
-                    value={editForm.status ?? 'active'}
-                    onChange={(e) => setEditForm((p) => p ? { ...p, status: e.target.value } : p)}
-                  >
-                    {STATUS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Giới hạn học viên</label>
-                  <Input
-                    type="number" min="1"
-                    value={editForm.maxStudents ?? ''}
-                    onChange={(e) =>
-                      setEditForm((p) => p ? {
-                        ...p, maxStudents: e.target.value ? Number(e.target.value) : undefined
-                      } : p)
-                    }
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Trạng thái</label>
+                <select
+                  className="w-full h-[38px] rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+                  value={editForm.status ?? 'active'}
+                  onChange={(e) => setEditForm((p) => p ? { ...p, status: e.target.value } : p)}
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                  ))}
+                </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700">Lịch học</label>
-                  <Input placeholder="T2,T4,T6"
-                    value={editForm.scheduleDays ?? ''}
-                    onChange={(e) => setEditForm((p) => p ? { ...p, scheduleDays: e.target.value } : p)}
-                  />
+                  <div className="flex gap-1.5 flex-wrap">
+                    {WEEKDAYS.map((day) => {
+                      const currentDays = editForm.scheduleDays ? editForm.scheduleDays.split(',').map((d) => d.trim()).filter(Boolean) : []
+                      const isSelected = currentDays.includes(day)
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => {
+                            const newDays = isSelected
+                              ? currentDays.filter((d) => d !== day)
+                              : [...currentDays, day].sort((a, b) => WEEKDAYS.indexOf(a) - WEEKDAYS.indexOf(b))
+                            setEditForm((p) => p ? { ...p, scheduleDays: newDays.join(',') } : p)
+                          }}
+                          className={`h-9 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                            isSelected
+                              ? 'bg-amber-500 border-amber-600 text-white shadow-sm shadow-amber-500/20'
+                              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
+
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700">Giờ học</label>
-                  <Input placeholder="08:00-10:00"
-                    value={editForm.scheduleTime ?? ''}
-                    onChange={(e) => setEditForm((p) => p ? { ...p, scheduleTime: e.target.value } : p)}
-                  />
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        type="time"
+                        value={(editForm.scheduleTime || '').split('-')[0]?.trim() || ''}
+                        onChange={(e) => {
+                          const newStart = e.target.value
+                          setEditForm((p) => {
+                            if (!p) return null
+                            const [, currentEnd = ''] = (p.scheduleTime || '').split('-').map((t) => t.trim())
+                            return {
+                              ...p,
+                              scheduleTime: newStart || currentEnd ? `${newStart}-${currentEnd}` : '',
+                            }
+                          })
+                        }}
+                        className="w-full text-center"
+                      />
+                    </div>
+                    <span className="text-gray-400 text-sm font-medium">đến</span>
+                    <div className="relative flex-1">
+                      <Input
+                        type="time"
+                        value={(editForm.scheduleTime || '').split('-')[1]?.trim() || ''}
+                        onChange={(e) => {
+                          const newEnd = e.target.value
+                          setEditForm((p) => {
+                            if (!p) return null
+                            const [currentStart = ''] = (p.scheduleTime || '').split('-').map((t) => t.trim())
+                            return {
+                              ...p,
+                              scheduleTime: currentStart || newEnd ? `${currentStart}-${newEnd}` : '',
+                            }
+                          })
+                        }}
+                        className="w-full text-center"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Phòng học</label>
-                <Input value={editForm.room ?? ''}
-                  onChange={(e) => setEditForm((p) => p ? { ...p, room: e.target.value } : p)}
-                />
               </div>
 
               <div className="space-y-1.5">
@@ -393,14 +431,10 @@ export default function ClassDetailPage() {
                     {[cls.scheduleDays, cls.scheduleTime].filter(Boolean).join(' · ') || '—'}
                   </span>
                 } />
-              <InfoRow icon={<MapPin />} label="Phòng học"
-                value={<span className="font-semibold text-gray-900">{cls.room || '—'}</span>} />
               <InfoRow icon={<Users />} label="Học viên"
                 value={
                   <span className="font-semibold text-gray-900">
-                    {cls.maxStudents
-                      ? `${cls.members.length} / ${cls.maxStudents}`
-                      : `${cls.members.length} (không giới hạn)`}
+                    {cls.members.length} học viên
                   </span>
                 } />
               {cls.note && (
