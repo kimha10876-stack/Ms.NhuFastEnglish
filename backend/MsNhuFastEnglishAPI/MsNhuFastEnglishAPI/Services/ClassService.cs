@@ -256,7 +256,7 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
     {
         var token    = Guid.NewGuid().ToString("N")[..12];
         var redisKey = $"class_invite:{token}";
-        var baseUrl  = config["Frontend:BaseUrl"] ?? "http://localhost:5173";
+        var baseUrl  = config["AppUrl"] ?? config["Frontend:BaseUrl"] ?? "http://localhost:5173";
 
         if (expiryDays > 0)
             await _cache.StringSetAsync(redisKey, classId.ToString(), TimeSpan.FromDays(expiryDays));
