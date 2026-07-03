@@ -254,14 +254,30 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
 
     public async Task<InviteLinkDto> CreateInviteAsync(Guid classId, int expiryDays)
     {
+        // 1. Thu hồi token cũ nếu có
+        var activeInviteKey = $"class_active_invite:{classId}";
+        var oldToken = await _cache.StringGetAsync(activeInviteKey);
+        if (!oldToken.IsNullOrEmpty)
+        {
+            await _cache.KeyDeleteAsync($"class_invite:{oldToken}");
+        }
+
+        // 2. Tạo token mới
         var token    = Guid.NewGuid().ToString("N")[..12];
         var redisKey = $"class_invite:{token}";
         var baseUrl  = config["AppUrl"] ?? config["Frontend:BaseUrl"] ?? "http://localhost:5173";
 
         if (expiryDays > 0)
-            await _cache.StringSetAsync(redisKey, classId.ToString(), TimeSpan.FromDays(expiryDays));
+        {
+            var expiry = TimeSpan.FromDays(expiryDays);
+            await _cache.StringSetAsync(redisKey, classId.ToString(), expiry);
+            await _cache.StringSetAsync(activeInviteKey, token, expiry);
+        }
         else
+        {
             await _cache.StringSetAsync(redisKey, classId.ToString());
+            await _cache.StringSetAsync(activeInviteKey, token);
+        }
 
         DateTime? expiresAt = expiryDays > 0
             ? DateTime.UtcNow.AddDays(expiryDays)
@@ -272,6 +288,41 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
             InviteUrl: $"{baseUrl}/tham-gia/{token}",
             ExpiresAt: expiresAt
         );
+    }
+
+    public async Task<InviteLinkDto?> GetActiveInviteAsync(Guid classId)
+    {
+        var activeInviteKey = $"class_active_invite:{classId}";
+        var token = await _cache.StringGetAsync(activeInviteKey);
+        if (token.IsNullOrEmpty) return null;
+
+        var redisKey = $"class_invite:{token}";
+        if (!await _cache.KeyExistsAsync(redisKey))
+        {
+            await _cache.KeyDeleteAsync(activeInviteKey);
+            return null;
+        }
+
+        var baseUrl  = config["AppUrl"] ?? config["Frontend:BaseUrl"] ?? "http://localhost:5173";
+        var ttl = await _cache.KeyTimeToLiveAsync(redisKey);
+        DateTime? expiresAt = ttl.HasValue ? DateTime.UtcNow.Add(ttl.Value) : null;
+
+        return new InviteLinkDto(
+            Token:     token.ToString(),
+            InviteUrl: $"{baseUrl}/tham-gia/{token}",
+            ExpiresAt: expiresAt
+        );
+    }
+
+    public async Task<bool> RevokeInviteAsync(Guid classId)
+    {
+        var activeInviteKey = $"class_active_invite:{classId}";
+        var token = await _cache.StringGetAsync(activeInviteKey);
+        if (token.IsNullOrEmpty) return false;
+
+        await _cache.KeyDeleteAsync($"class_invite:{token}");
+        await _cache.KeyDeleteAsync(activeInviteKey);
+        return true;
     }
 
     public async Task<InviteInfoDto?> GetInviteInfoAsync(string token)

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Users, Info, Trash2, Plus, Copy, Check, Link2,
+  ArrowLeft, Users, Info, Trash2, Plus, Copy, Link2,
   Clock, BookOpen, Loader2,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
@@ -10,6 +10,7 @@ import { useAuthStore } from '@/features/auth/auth.store'
 import {
   useClassDetail, useUpdateClass, useDeleteClass,
   useAddMember, useRemoveMember, useCreateInvite, useSearchStudents,
+  useActiveInvite, useRevokeInvite,
 } from './useClasses'
 import type { UpdateClassRequest } from './classes.types'
 import TeacherSelect from './TeacherSelect'
@@ -41,7 +42,6 @@ export default function ClassDetailPage() {
   const [showAddMember, setShowAdd] = useState(false)
   const [searchQ, setSearchQ]       = useState('')
   const [addError, setAddError]     = useState('')
-  const [inviteLink, setInviteLink] = useState<{ url: string; copied: boolean } | null>(null)
   const [expiryDays, setExpiryDays] = useState(30)
   const [showInvite, setShowInvite] = useState(false)
   const [editForm, setEditForm]     = useState<UpdateClassRequest | null>(null)
@@ -54,6 +54,8 @@ export default function ClassDetailPage() {
   const { mutate: removeMember }                     = useRemoveMember(id)
   const { mutate: createInvite, isPending: creatingInvite } = useCreateInvite()
   const { data: searchResults = [] }                 = useSearchStudents(searchQ)
+  const { data: activeInvite }                       = useActiveInvite(id)
+  const { mutate: revokeInvite, isPending: revokingInvite } = useRevokeInvite(id)
 
   const handleDelete = () => {
     if (!window.confirm('Bạn có chắc muốn xoá lớp học này?')) return
@@ -73,18 +75,9 @@ export default function ClassDetailPage() {
 
   const handleInvite = () => {
     createInvite({ classId: id, expiryDays }, {
-      onSuccess: (link) => {
-        setInviteLink({ url: link.inviteUrl, copied: false })
+      onSuccess: () => {
         setShowInvite(false)
       },
-    })
-  }
-
-  const copyLink = () => {
-    if (!inviteLink) return
-    navigator.clipboard.writeText(inviteLink.url).then(() => {
-      setInviteLink((p) => p ? { ...p, copied: true } : p)
-      setTimeout(() => setInviteLink((p) => p ? { ...p, copied: false } : p), 2000)
     })
   }
 
@@ -210,18 +203,46 @@ export default function ClassDetailPage() {
               Thêm học viên
             </Button>
 
-            {inviteLink ? (
-              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm flex-1 min-w-0 max-w-md">
-                <Link2 className="h-4 w-4 text-amber-500 shrink-0" />
-                <span className="truncate text-gray-600 flex-1 text-xs">{inviteLink.url}</span>
-                <button
-                  onClick={copyLink}
-                  className="shrink-0 p-1 rounded-lg hover:bg-amber-100 transition-colors"
+            {activeInvite ? (
+              <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0 max-w-xl animate-in fade-in duration-200">
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm flex-1 min-w-0">
+                  <Link2 className="h-4 w-4 text-amber-500 shrink-0" />
+                  <span className="truncate text-gray-600 flex-1 text-xs font-mono">{activeInvite.inviteUrl}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(activeInvite.inviteUrl).then(() => {
+                        alert('Đã sao chép link mời!')
+                      })
+                    }}
+                    className="shrink-0 p-1 rounded-lg hover:bg-amber-100 transition-colors"
+                    title="Sao chép link"
+                  >
+                    <Copy className="h-4 w-4 text-amber-600" />
+                  </button>
+                </div>
+                
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowInvite(true)}
+                  className="h-[38px] text-xs font-semibold px-3"
+                  title="Tạo lại link mới (thu hồi link cũ)"
                 >
-                  {inviteLink.copied
-                    ? <Check className="h-4 w-4 text-emerald-600" />
-                    : <Copy className="h-4 w-4 text-amber-600" />}
-                </button>
+                  Tạo mới link
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (window.confirm('Bạn có chắc muốn hủy link mời này? Học sinh sẽ không thể tham gia qua link này nữa.')) {
+                      revokeInvite()
+                    }
+                  }}
+                  disabled={revokingInvite}
+                  className="h-[38px] px-3 border border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 font-semibold"
+                  title="Hủy link mời"
+                >
+                  {revokingInvite ? <Loader2 className="h-4 w-4 animate-spin animate-in fade-in" /> : 'Hủy link'}
+                </Button>
               </div>
             ) : (
               <Button variant="secondary" onClick={() => setShowInvite(true)} className="gap-1.5">

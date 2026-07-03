@@ -68,4 +68,10 @@ export const classesApi = {
 
   deleteCategory: (id: number) =>
     api.delete<ApiResponse<null>>(`/settings/categories/${id}`).then((r) => r.data),
+
+  getActiveInvite: (classId: string) =>
+    api.get<ApiResponse<InviteLink | null>>(`/classes/${classId}/invite`).then((r) => r.data.data),
+
+  revokeInvite: (classId: string) =>
+    api.delete<ApiResponse<null>>(`/classes/${classId}/invite`).then((r) => r.data),
 }

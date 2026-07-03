@@ -140,6 +140,21 @@ public class ClassesController(ClassService classService) : ControllerBase
         return Ok(ApiResponse.Ok(link, "Tạo link mời thành công"));
     }
 
+    [HttpGet("{id:guid}/invite")]
+    public async Task<IActionResult> GetActiveInvite(Guid id)
+    {
+        var link = await classService.GetActiveInviteAsync(id);
+        return Ok(ApiResponse.Ok(link));
+    }
+
+    [HttpDelete("{id:guid}/invite")]
+    public async Task<IActionResult> RevokeInvite(Guid id)
+    {
+        var ok = await classService.RevokeInviteAsync(id);
+        if (!ok) return BadRequest(ApiResponse.BadRequest("Không tìm thấy link mời đang hoạt động"));
+        return Ok(ApiResponse.Ok<object?>(null, "Hủy link mời thành công"));
+    }
+
     // ── GET /api/classes/join/{token} — public ────────────────────────────────
 
     [HttpGet("join/{token}")]

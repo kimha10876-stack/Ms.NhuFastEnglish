@@ -63,9 +63,11 @@ export function useRemoveMember(classId: string) {
 }
 
 export function useCreateInvite() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ classId, expiryDays }: { classId: string; expiryDays: number }) =>
       classesApi.createInvite(classId, expiryDays),
+    onSuccess: (_, variables) => qc.invalidateQueries({ queryKey: ['classes', variables.classId, 'invite'] }),
   })
 }
 
@@ -135,5 +137,21 @@ export function useDeleteCategory() {
   return useMutation({
     mutationFn: (id: number) => classesApi.deleteCategory(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['class-categories'] }),
+  })
+}
+
+export function useActiveInvite(classId: string) {
+  return useQuery({
+    queryKey: ['classes', classId, 'invite'],
+    queryFn: () => classesApi.getActiveInvite(classId),
+    enabled: !!classId,
+  })
+}
+
+export function useRevokeInvite(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => classesApi.revokeInvite(classId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['classes', classId, 'invite'] }),
   })
 }
