@@ -52,7 +52,8 @@ public record AuthUserDto(
     string   Email,
     string   FullName,
     string[] Roles,
-    string?  AvatarUrl
+    string?  AvatarUrl,
+    bool     MustChangePassword = false
 );
 
 public record RegisterResponse(Guid Id, string Email, string FullName, string[] Roles);
@@ -68,3 +69,5 @@ public record ResetPasswordRequest
     public required string Otp         { get; init; }
     public required string NewPassword { get; init; }
 }
+
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword);

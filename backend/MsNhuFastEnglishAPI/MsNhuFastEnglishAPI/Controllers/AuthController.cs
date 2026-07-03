@@ -84,4 +84,14 @@ public class AuthController(AuthService authService) : ControllerBase
             return BadRequest(ApiResponse.BadRequest(error!));
         return Ok(ApiResponse.Ok<object?>(null, "Đổi mật khẩu thành công"));
     }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var (ok, error) = await authService.ChangePasswordAsync(userId, req);
+        if (!ok) return BadRequest(ApiResponse.BadRequest(error!));
+        return Ok(ApiResponse.Ok<object?>(null, "Thay đổi mật khẩu thành công"));
+    }
 }

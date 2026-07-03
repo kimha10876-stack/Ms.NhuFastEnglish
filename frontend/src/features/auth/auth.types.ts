@@ -15,6 +15,7 @@ export interface AuthUser {
   email: string
   avatarUrl?: string
   roles: string[]
+  mustChangePassword?: boolean
 }
 
 export interface RegisterStudentRequest {

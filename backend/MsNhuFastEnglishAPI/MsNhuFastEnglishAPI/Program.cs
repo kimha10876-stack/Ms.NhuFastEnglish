@@ -138,6 +138,16 @@ using (var scope = app.Services.CreateScope())
                 );
             ");
 
+            // Migration: Thêm cột MustChangePassword vào bảng Users nếu chưa có
+            try
+            {
+                db.Database.ExecuteSqlRaw(@"ALTER TABLE ""Users"" ADD COLUMN ""MustChangePassword"" INTEGER NOT NULL DEFAULT 0;");
+            }
+            catch
+            {
+                // Bỏ qua lỗi nếu cột đã tồn tại
+            }
+
             // Gieo dữ liệu SystemSettings mặc định nếu bảng trống
             if (!db.SystemSettings.Any())
             {

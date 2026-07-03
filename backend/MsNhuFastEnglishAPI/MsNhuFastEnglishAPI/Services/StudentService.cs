@@ -147,14 +147,16 @@ public class StudentService(AppDbContext db)
         if (await db.Users.AnyAsync(u => u.Email.ToLower() == email))
             return (null, "Email đã tồn tại trong hệ thống");
 
+        var rawPassword = string.IsNullOrWhiteSpace(req.Password) ? "123456" : req.Password;
         var user = new User
         {
-            Id           = Guid.NewGuid(),
-            FullName     = req.FullName.Trim(),
-            Email        = email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-            IsActive     = true,
-            CreatedAt    = DateTime.UtcNow
+            Id                 = Guid.NewGuid(),
+            FullName           = req.FullName.Trim(),
+            Email              = email,
+            PasswordHash       = BCrypt.Net.BCrypt.HashPassword(rawPassword),
+            IsActive           = true,
+            MustChangePassword = true,
+            CreatedAt          = DateTime.UtcNow
         };
         user.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = 3, AssignedAt = DateTime.UtcNow }); // Student role id = 3
         db.Users.Add(user);
@@ -208,6 +210,7 @@ public class StudentService(AppDbContext db)
         if (!string.IsNullOrWhiteSpace(req.Password))
         {
             u.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password);
+            u.MustChangePassword = true;
         }
 
         if (req.Phone is not null) student.Phone = req.Phone.Trim();

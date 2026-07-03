@@ -23,4 +23,7 @@ export const authApi = {
 
   resetPassword: (body: ResetPasswordRequest) =>
     api.post<ApiResponse<null>>('/auth/reset-password', body).then((r) => r.data),
+
+  changePassword: (body: any) =>
+    api.post<ApiResponse<null>>('/auth/change-password', body).then((r) => r.data),
 }

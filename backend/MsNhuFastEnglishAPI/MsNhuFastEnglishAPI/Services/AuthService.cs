@@ -191,6 +191,7 @@ public class AuthService(
         if (user is null) return (false, "Tài khoản không tồn tại");
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
+        user.MustChangePassword = false;
         user.UpdatedAt    = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
@@ -245,7 +246,7 @@ public class AuthService(
         return new AuthResponse(
             AccessToken:  GenerateJwt(user, roles),
             RefreshToken: $"{user.Id}:{tokenId}",
-            User: new AuthUserDto(user.Id, user.Email, user.FullName, roles, user.AvatarUrl)
+            User: new AuthUserDto(user.Id, user.Email, user.FullName, roles, user.AvatarUrl, user.MustChangePassword)
         );
     }
 
@@ -271,6 +272,22 @@ public class AuthService(
                 claims:             claims,
                 expires:            expiry,
                 signingCredentials: creds));
+    }
+
+    public async Task<(bool Ok, string? Error)> ChangePasswordAsync(Guid userId, ChangePasswordRequest req)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+        if (user is null) return (false, "Tài khoản không tồn tại");
+
+        if (!BCrypt.Net.BCrypt.Verify(req.CurrentPassword, user.PasswordHash))
+            return (false, "Mật khẩu hiện tại không đúng");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
+        user.MustChangePassword = false;
+        user.UpdatedAt    = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return (true, null);
     }
 
     private static bool TryParseToken(string token, out Guid userId, out string tokenId)

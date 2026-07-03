@@ -8,6 +8,7 @@ public class User
     public string PasswordHash { get; set; } = default!;
     public string? AvatarUrl { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool MustChangePassword { get; set; } = false;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 

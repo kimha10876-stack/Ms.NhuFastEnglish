@@ -67,3 +67,17 @@ export function useLogout() {
     })
   }
 }
+
+export function useChangePassword() {
+  const setUser = useAuthStore((s) => s.setUser)
+  const user = useAuthStore((s) => s.user)
+
+  return useMutation({
+    mutationFn: (body: any) => authApi.changePassword(body),
+    onSuccess: () => {
+      if (user) {
+        setUser({ ...user, mustChangePassword: false })
+      }
+    },
+  })
+}
