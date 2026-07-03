@@ -214,6 +214,7 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
             .Include(s => s.User)
             .Where(s => s.User.FullName.ToLower().Contains(term) ||
                         s.User.Email.ToLower().Contains(term))
+            .OrderBy(s => s.User.FullName)
             .Take(10)
             .ToListAsync();
 
@@ -240,7 +241,10 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
                                      t.User.Email.ToLower().Contains(term));
         }
 
-        var results = await query.Take(20).ToListAsync();
+        var results = await query
+            .OrderBy(t => t.User.FullName)
+            .Take(20)
+            .ToListAsync();
 
         return results.Select(t => new TeacherSearchDto(
             TeacherId: t.UserId,
