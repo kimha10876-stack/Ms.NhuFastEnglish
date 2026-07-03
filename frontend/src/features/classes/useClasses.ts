@@ -102,3 +102,11 @@ export function useSearchTeachers(q: string = '') {
     staleTime: 15_000,
   })
 }
+
+export function useClassCategories() {
+  return useQuery({
+    queryKey: ['class-categories'],
+    queryFn: () => classesApi.getCategories(),
+    staleTime: 60 * 60 * 1000, // 1 hour
+  })
+}

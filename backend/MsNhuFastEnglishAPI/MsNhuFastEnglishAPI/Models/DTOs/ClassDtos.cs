@@ -114,3 +114,10 @@ public record InviteLinkDto(
     string    InviteUrl,
     DateTime? ExpiresAt
 );
+
+public record ClassCategoryDto(
+    int Id,
+    string Name,
+    string ColorHex,
+    string Icon
+);

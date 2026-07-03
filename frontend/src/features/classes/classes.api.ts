@@ -9,6 +9,7 @@ import type {
   InviteLink,
   StudentSearchResult,
   TeacherSearchResult,
+  ClassCategory,
 } from './classes.types'
 
 export const classesApi = {
@@ -53,4 +54,7 @@ export const classesApi = {
 
   joinByInvite: (token: string) =>
     api.post<ApiResponse<null>>(`/classes/join/${token}`).then((r) => r.data),
+
+  getCategories: () =>
+    api.get<ApiResponse<ClassCategory[]>>('/classes/categories').then((r) => r.data.data!),
 }

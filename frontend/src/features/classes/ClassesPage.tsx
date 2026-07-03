@@ -4,7 +4,7 @@ import { Plus, Users, Clock, BookOpen, ChevronRight } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useAuthStore } from '@/features/auth/auth.store'
-import { useClasses, useCreateClass } from './useClasses'
+import { useClasses, useCreateClass, useClassCategories } from './useClasses'
 import type { CreateClassRequest } from './classes.types'
 import TeacherSelect from './TeacherSelect'
 import { CustomDropdown } from '@/shared/components/ui/CustomDropdown'
@@ -19,15 +19,6 @@ const STATUS_COLOR: Record<string, string> = {
   paused: 'bg-amber-50 text-amber-700 border-amber-200',
   ended:  'bg-gray-100 text-gray-500 border-gray-200',
 }
-
-const CATEGORIES = [
-  { id: 1, name: 'Giao tiếp' },
-  { id: 2, name: 'IELTS' },
-  { id: 3, name: 'Thiếu nhi' },
-  { id: 4, name: 'Luyện thi' },
-  { id: 5, name: 'Mất gốc' },
-  { id: 6, name: 'Doanh nghiệp' },
-]
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 
@@ -56,7 +47,17 @@ export default function ClassesPage() {
   const [formError, setFormError] = useState('')
 
   const { data: classes = [], isLoading } = useClasses()
+  const { data: apiCategories = [] }      = useClassCategories()
   const { mutate: create, isPending }     = useCreateClass()
+
+  const openCreateModal = () => {
+    setForm({
+      ...EMPTY_FORM,
+      categoryId: apiCategories[0]?.id || 1,
+      teacherId: isAdmin ? '' : (user?.id ?? ''),
+    })
+    setShowCreate(true)
+  }
 
   const set = (field: keyof CreateClassRequest) =>
     (e: { target: { value: string } }) =>
@@ -97,7 +98,7 @@ export default function ClassesPage() {
           <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">Quản lý</p>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Lớp học</h1>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-1.5">
+        <Button onClick={openCreateModal} className="gap-1.5">
           <Plus className="h-4 w-4" />
           Tạo lớp mới
         </Button>
@@ -135,7 +136,7 @@ export default function ClassesPage() {
           </div>
           <p className="font-semibold text-gray-700">Chưa có lớp học nào</p>
           <p className="text-sm text-gray-500 mt-1 mb-4">Tạo lớp đầu tiên để bắt đầu quản lý học viên</p>
-          <Button onClick={() => setShowCreate(true)}>
+          <Button onClick={openCreateModal}>
             <Plus className="h-4 w-4" />
             Tạo lớp học
           </Button>
@@ -220,7 +221,7 @@ export default function ClassesPage() {
                   <label className="text-sm font-semibold text-gray-700">Danh mục <span className="text-red-500">*</span></label>
                   <CustomDropdown
                     value={form.categoryId}
-                    options={CATEGORIES}
+                    options={apiCategories}
                     onChange={(val) => setForm((p) => ({ ...p, categoryId: Number(val) }))}
                   />
                 </div>

@@ -98,3 +98,10 @@ export interface TeacherSearchResult {
   email: string
   avatarUrl: string | null
 }
+
+export interface ClassCategory {
+  id: number
+  name: string
+  colorHex: string
+  icon: string
+}

@@ -102,6 +102,15 @@ public class ClassesController(ClassService classService) : ControllerBase
         return Ok(ApiResponse.Ok<object?>(null, "Đã xoá học sinh khỏi lớp"));
     }
 
+    // ── GET /api/classes/categories ───────────────────────────────────────────
+
+    [HttpGet("categories")]
+    public async Task<IActionResult> GetCategories()
+    {
+        var results = await classService.GetCategoriesAsync();
+        return Ok(ApiResponse.Ok(results));
+    }
+
     // ── GET /api/classes/students/search?q= ──────────────────────────────────
 
     [HttpGet("students/search")]

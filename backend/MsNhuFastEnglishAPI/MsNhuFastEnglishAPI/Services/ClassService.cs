@@ -314,4 +314,19 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
 
         return await AddMemberAsync(classId, student.Id);
     }
+
+    public async Task<IList<ClassCategoryDto>> GetCategoriesAsync()
+    {
+        var categories = await db.ClassCategories
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.SortOrder)
+            .ToListAsync();
+
+        return categories.Select(c => new ClassCategoryDto(
+            Id: c.Id,
+            Name: c.Name,
+            ColorHex: c.ColorHex,
+            Icon: c.Icon
+        )).ToList();
+    }
 }
