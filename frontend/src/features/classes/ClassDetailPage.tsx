@@ -13,6 +13,7 @@ import {
 } from './useClasses'
 import type { UpdateClassRequest } from './classes.types'
 import TeacherSelect from './TeacherSelect'
+import { CustomDropdown } from '@/shared/components/ui/CustomDropdown'
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 
@@ -316,15 +317,11 @@ export default function ClassDetailPage() {
 
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-gray-700">Trạng thái</label>
-                <select
-                  className="w-full h-[38px] rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+                <CustomDropdown
                   value={editForm.status ?? 'active'}
-                  onChange={(e) => setEditForm((p) => p ? { ...p, status: e.target.value } : p)}
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                  ))}
-                </select>
+                  options={STATUS_OPTIONS.map((s) => ({ id: s, name: STATUS_LABEL[s] }))}
+                  onChange={(val) => setEditForm((p) => p ? { ...p, status: val } : p)}
+                />
               </div>
 
                 <div className="space-y-1.5">

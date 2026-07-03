@@ -7,6 +7,7 @@ import { useAuthStore } from '@/features/auth/auth.store'
 import { useClasses, useCreateClass } from './useClasses'
 import type { CreateClassRequest } from './classes.types'
 import TeacherSelect from './TeacherSelect'
+import { CustomDropdown } from '@/shared/components/ui/CustomDropdown'
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'Đang hoạt động',
@@ -217,15 +218,11 @@ export default function ClassesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700">Danh mục <span className="text-red-500">*</span></label>
-                  <select
-                    className="w-full h-[38px] rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+                  <CustomDropdown
                     value={form.categoryId}
-                    onChange={(e) => setForm((p) => ({ ...p, categoryId: Number(e.target.value) }))}
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                    options={CATEGORIES}
+                    onChange={(val) => setForm((p) => ({ ...p, categoryId: Number(val) }))}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700">Ngày bắt đầu <span className="text-red-500">*</span></label>
