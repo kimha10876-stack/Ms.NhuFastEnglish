@@ -482,7 +482,7 @@ export default function StudentsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-auto flex-1">
+            <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-auto overflow-x-hidden flex-1">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-gray-700">Họ và tên <span className="text-red-500">*</span></label>
                 <Input
@@ -494,32 +494,31 @@ export default function StudentsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Email đăng nhập <span className="text-red-500">*</span></label>
-                  <Input
-                    type="email"
-                    placeholder="VD: user1@gmail.com"
-                    value={form.email}
-                    onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                    <KeyRound className="h-3.5 w-3.5 text-gray-400" />
-                    Mật khẩu khởi tạo <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    type="text"
-                    value={form.password}
-                    readOnly
-                    className="bg-gray-50 text-gray-500 cursor-not-allowed select-none font-mono"
-                  />
-                  <p className="text-[11px] text-amber-600 font-medium mt-1 leading-normal">
-                    * Mật khẩu mặc định là 123456. Học viên bắt buộc phải đổi mật khẩu ở lần đăng nhập đầu tiên.
-                  </p>
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Email đăng nhập <span className="text-red-500">*</span></label>
+                <Input
+                  type="email"
+                  placeholder="VD: user1@gmail.com"
+                  value={form.email}
+                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                  <KeyRound className="h-3.5 w-3.5 text-gray-400" />
+                  Mật khẩu khởi tạo <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  value={form.password}
+                  readOnly
+                  className="bg-gray-50 text-gray-500 cursor-not-allowed select-none font-mono"
+                />
+                <p className="text-[11px] text-amber-600 font-medium mt-1 leading-normal bg-amber-50/50 border border-amber-200/40 p-2.5 rounded-xl">
+                  * Mật khẩu mặc định ban đầu là <strong className="text-amber-800">123456</strong>. Hệ thống sẽ bắt buộc học viên cập nhật lại mật khẩu mới ngay trong lần đăng nhập đầu tiên để bảo mật thông tin.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -600,7 +599,7 @@ export default function StudentsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleUpdate} className="p-6 space-y-4 overflow-y-auto flex-1">
+            <form onSubmit={handleUpdate} className="p-6 space-y-4 overflow-y-auto overflow-x-hidden flex-1">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-gray-700">Họ và tên <span className="text-red-500">*</span></label>
                 <Input
@@ -732,7 +731,7 @@ export default function StudentsPage() {
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-6 flex-1 min-h-0">
+            <div className="p-6 overflow-y-auto overflow-x-hidden space-y-6 flex-1 min-h-0">
               {/* Profile details grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 space-y-2.5">
