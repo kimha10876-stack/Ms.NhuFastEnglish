@@ -198,6 +198,41 @@ using (var scope = app.Services.CreateScope())
         });
         db.SaveChanges();
     }
+
+    // Seed 30 Students: user1@gmail.com to user30@gmail.com
+    var hasNewStudents = false;
+    for (int i = 1; i <= 30; i++)
+    {
+        var email = $"user{i}@gmail.com";
+        if (!db.Users.Any(u => u.Email == email))
+        {
+            var student = new User
+            {
+                Id           = Guid.NewGuid(),
+                FullName     = $"Học viên {i}",
+                Email        = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
+                IsActive     = true,
+                CreatedAt    = DateTime.UtcNow
+            };
+            student.UserRoles.Add(new UserRole { UserId = student.Id, RoleId = 3, AssignedAt = DateTime.UtcNow });
+            db.Users.Add(student);
+            db.StudentProfiles.Add(new StudentProfile
+            {
+                Id          = Guid.NewGuid(),
+                UserId      = student.Id,
+                Phone       = $"09051234{i:D2}",
+                Level       = "Mất gốc",
+                Goal        = "Giao tiếp cơ bản",
+                Status      = "active"
+            });
+            hasNewStudents = true;
+        }
+    }
+    if (hasNewStudents)
+    {
+        db.SaveChanges();
+    }
 }
 
 app.UseExceptionHandler();
