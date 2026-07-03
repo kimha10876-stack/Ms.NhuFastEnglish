@@ -512,11 +512,13 @@ export default function StudentsPage() {
                   </label>
                   <Input
                     type="text"
-                    placeholder="Mặc định: 123456"
                     value={form.password}
-                    onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                    required
+                    readOnly
+                    className="bg-gray-50 text-gray-500 cursor-not-allowed select-none font-mono"
                   />
+                  <p className="text-[11px] text-amber-600 font-medium mt-1 leading-normal">
+                    * Mật khẩu mặc định là 123456. Học viên bắt buộc phải đổi mật khẩu ở lần đăng nhập đầu tiên.
+                  </p>
                 </div>
               </div>
 
