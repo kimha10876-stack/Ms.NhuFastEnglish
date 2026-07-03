@@ -15,6 +15,7 @@ const ClassDetailPage   = lazy(() => import('@/features/classes/ClassDetailPage'
 const JoinClassPage     = lazy(() => import('@/features/classes/JoinClassPage'))
 const TeachersPage      = lazy(() => import('@/features/teachers/TeachersPage'))
 const ConsultationsPage = lazy(() => import('@/features/consultations/ConsultationsPage'))
+const SettingsPage      = lazy(() => import('@/features/settings/SettingsPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -50,6 +51,7 @@ export default function App() {
                 <Route path="classes/:id"      element={<ClassDetailPage />} />
                 <Route path="teachers"         element={<TeachersPage />} />
                 <Route path="consultations"    element={<ConsultationsPage />} />
+                <Route path="settings"         element={<SettingsPage />} />
               </Route>
             </Route>
 

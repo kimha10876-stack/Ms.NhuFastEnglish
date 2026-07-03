@@ -86,6 +86,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ClassService>();
+builder.Services.AddScoped<SettingsService>();
 
 // ── Controllers + Swagger ─────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -122,7 +123,34 @@ using (var scope = app.Services.CreateScope())
 
     for (var attempt = 1; attempt <= 10; attempt++)
     {
-        try { db.Database.EnsureCreated(); break; }
+        try 
+        { 
+            db.Database.EnsureCreated(); 
+            
+            // Khởi tạo bảng SystemSettings nếu chưa tồn tại
+            db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
+                    ""Key"" TEXT NOT NULL,
+                    ""Value"" TEXT NOT NULL,
+                    ""Description"" TEXT,
+                    CONSTRAINT ""PK_SystemSettings"" PRIMARY KEY (""Key"")
+                );
+            ");
+
+            // Gieo dữ liệu SystemSettings mặc định nếu bảng trống
+            if (!db.SystemSettings.Any())
+            {
+                db.SystemSettings.AddRange(
+                    new SystemSetting { Key = "CenterName", Value = "Ms. Nhụ Fast English", Description = "Tên trung tâm" },
+                    new SystemSetting { Key = "Hotline", Value = "0905 123 456", Description = "Số điện thoại hotline" },
+                    new SystemSetting { Key = "Address", Value = "123 Đường Ba Tháng Hai, Đà Nẵng", Description = "Địa chỉ trung tâm" },
+                    new SystemSetting { Key = "FacebookUrl", Value = "https://facebook.com/msnhu.fastenglish", Description = "Liên kết trang Facebook" },
+                    new SystemSetting { Key = "Email", Value = "contact@msnhufastenglish.com", Description = "Email liên hệ" }
+                );
+                db.SaveChanges();
+            }
+            break; 
+        }
         catch (Exception ex)
         {
             if (attempt == 10) throw;

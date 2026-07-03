@@ -10,6 +10,8 @@ import type {
   StudentSearchResult,
   TeacherSearchResult,
   ClassCategory,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
 } from './classes.types'
 
 export const classesApi = {
@@ -57,4 +59,13 @@ export const classesApi = {
 
   getCategories: () =>
     api.get<ApiResponse<ClassCategory[]>>('/classes/categories').then((r) => r.data.data!),
+
+  createCategory: (body: CreateCategoryRequest) =>
+    api.post<ApiResponse<ClassCategory>>('/settings/categories', body).then((r) => r.data.data!),
+
+  updateCategory: (id: number, body: UpdateCategoryRequest) =>
+    api.put<ApiResponse<null>>(`/settings/categories/${id}`, body).then((r) => r.data),
+
+  deleteCategory: (id: number) =>
+    api.delete<ApiResponse<null>>(`/settings/categories/${id}`).then((r) => r.data),
 }

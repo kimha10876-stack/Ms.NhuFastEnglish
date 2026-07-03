@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { classesApi } from './classes.api'
-import type { CreateClassRequest, UpdateClassRequest } from './classes.types'
+import type { CreateClassRequest, UpdateClassRequest, CreateCategoryRequest, UpdateCategoryRequest } from './classes.types'
 
 export const CLASSES_KEY = ['classes'] as const
 
@@ -108,5 +108,32 @@ export function useClassCategories() {
     queryKey: ['class-categories'],
     queryFn: () => classesApi.getCategories(),
     staleTime: 60 * 60 * 1000, // 1 hour
+  })
+}
+
+export function useCreateCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateCategoryRequest) => classesApi.createCategory(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['class-categories'] }),
+  })
+}
+
+export function useUpdateCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number; body: UpdateCategoryRequest }) => classesApi.updateCategory(id, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['class-categories'] })
+      qc.invalidateQueries({ queryKey: CLASSES_KEY })
+    },
+  })
+}
+
+export function useDeleteCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => classesApi.deleteCategory(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['class-categories'] }),
   })
 }

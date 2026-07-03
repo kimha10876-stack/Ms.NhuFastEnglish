@@ -105,3 +105,18 @@ export interface ClassCategory {
   colorHex: string
   icon: string
 }
+
+export interface CreateCategoryRequest {
+  name: string
+  colorHex?: string
+  icon?: string
+  sortOrder?: number
+}
+
+export interface UpdateCategoryRequest {
+  name?: string
+  colorHex?: string
+  icon?: string
+  sortOrder?: number
+  isActive?: boolean
+}

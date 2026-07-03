@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Users, BookOpen, GraduationCap,
-  CreditCard, FileText, MessageSquare, LogOut,
+  CreditCard, FileText, MessageSquare, LogOut, Settings
 } from 'lucide-react'
 import { cn } from '@/shared/utils/cn'
 import { useAuthStore } from '@/features/auth/auth.store'
@@ -126,6 +126,28 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               )}
             </NavLink>
           ))}
+          
+          {isAdmin && (
+            <NavLink
+              to="/settings"
+              onClick={onClose}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-amber-50 text-amber-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Settings className={cn('h-4 w-4 shrink-0', isActive ? 'text-amber-600' : 'text-gray-400')} />
+                  <span className="flex-1">Cấu hình</span>
+                </>
+              )}
+            </NavLink>
+          )}
         </nav>
 
         {/* ── User profile ── */}

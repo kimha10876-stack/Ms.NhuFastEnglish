@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ClassSession> ClassSessions => Set<ClassSession>();
     public DbSet<ClassDocument> ClassDocuments => Set<ClassDocument>();
     public DbSet<ConsultationRequest> ConsultationRequests => Set<ConsultationRequest>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -138,6 +139,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             new ClassCategory { Id = 4, Name = "Luyện thi",    Slug = "luyen-thi",    ColorHex = "#FF3B30", Icon = "clipboard-list",  SortOrder = 4 },
             new ClassCategory { Id = 5, Name = "Mất gốc",      Slug = "mat-goc",      ColorHex = "#AF52DE", Icon = "refresh-cw",      SortOrder = 5 },
             new ClassCategory { Id = 6, Name = "Doanh nghiệp", Slug = "doanh-nghiep", ColorHex = "#5856D6", Icon = "briefcase",       SortOrder = 6 }
+        );
+
+        // ── Seed SystemSettings ──────────────────────────────────────────
+        mb.Entity<SystemSetting>().HasData(
+            new SystemSetting { Key = "CenterName", Value = "Ms. Nhụ Fast English", Description = "Tên trung tâm" },
+            new SystemSetting { Key = "Hotline", Value = "0905 123 456", Description = "Số điện thoại hotline" },
+            new SystemSetting { Key = "Address", Value = "123 Đường Ba Tháng Hai, Đà Nẵng", Description = "Địa chỉ trung tâm" },
+            new SystemSetting { Key = "FacebookUrl", Value = "https://facebook.com/msnhu.fastenglish", Description = "Liên kết trang Facebook" },
+            new SystemSetting { Key = "Email", Value = "contact@msnhufastenglish.com", Description = "Email liên hệ" }
         );
     }
 }
