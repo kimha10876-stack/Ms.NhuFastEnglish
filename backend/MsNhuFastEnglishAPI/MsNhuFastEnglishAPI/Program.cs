@@ -234,35 +234,40 @@ using (var scope = app.Services.CreateScope())
         db.SaveChanges();
     }
 
+    // Seed Class Categories programmatically if empty
+    if (!db.ClassCategories.Any())
+    {
+        db.ClassCategories.AddRange(
+            new ClassCategory { Name = "Giao tiếp",    Slug = "giao-tiep",    ColorHex = "#FF9500", Icon = "message-circle",   SortOrder = 1, IsActive = true },
+            new ClassCategory { Name = "IELTS",        Slug = "ielts",        ColorHex = "#007AFF", Icon = "award",            SortOrder = 2, IsActive = true },
+            new ClassCategory { Name = "Thiếu nhi",    Slug = "thieu-nhi",    ColorHex = "#34C759", Icon = "star",             SortOrder = 3, IsActive = true },
+            new ClassCategory { Name = "Luyện thi",    Slug = "luyen-thi",    ColorHex = "#FF3B30", Icon = "book-open",        SortOrder = 4, IsActive = true },
+            new ClassCategory { Name = "Mất gốc",      Slug = "mat-goc",      ColorHex = "#AF52DE", Icon = "refresh-cw",      SortOrder = 5, IsActive = true },
+            new ClassCategory { Name = "Doanh nghiệp", Slug = "doanh-nghiep", ColorHex = "#5856D6", Icon = "briefcase",       SortOrder = 6, IsActive = true }
+        );
+        db.SaveChanges();
+    }
+
+    var categories = db.ClassCategories.ToList();
+
     // Seed 20 Classes và gán 15 học viên xoay vòng vào từng lớp
     if (!db.Classes.Any())
     {
         var teacherUser = db.Users.FirstOrDefault(u => u.Email == "nampnhse173502@fpt.edu.vn");
         var students = db.StudentProfiles.ToList();
         
-        if (teacherUser != null && students.Count >= 15)
+        if (teacherUser != null && students.Count >= 15 && categories.Any())
         {
-            var classNames = new[]
-            {
-                "Tiếng Anh Giao Tiếp Trôi Chảy",
-                "Luyện Thi IELTS Cấp Tốc 6.5+",
-                "Tiếng Anh Cho Trẻ Em Kid1",
-                "Luyện Thi THPT Quốc Gia",
-                "Xóa Mất Gốc Tiếng Anh",
-                "Tiếng Anh Thương Mại Doanh Nghiệp"
-            };
-
             for (int i = 1; i <= 20; i++)
             {
-                var catId = (i % 6) + 1; // 1 đến 6
-                var catName = classNames[catId - 1];
+                var category = categories[(i - 1) % categories.Count];
                 
                 var cls = new Class
                 {
                     Id = Guid.NewGuid(),
-                    Name = $"{catName} - Lớp {i}",
+                    Name = $"{category.Name} - Lớp {i}",
                     TeacherId = teacherUser.Id,
-                    CategoryId = catId,
+                    CategoryId = category.Id,
                     Status = "active",
                     ScheduleDays = i % 2 == 0 ? "T2,T4,T6" : "T3,T5,T7",
                     ScheduleTime = i % 3 == 0 ? "18:00-19:30" : i % 3 == 1 ? "19:30-21:00" : "15:00-16:30",
