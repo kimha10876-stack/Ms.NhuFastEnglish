@@ -3,7 +3,24 @@ import {
   Settings, BookOpen, Users, Plus, Edit2, Trash2, Save,
   Check, Loader2, Sparkles, Building, Phone, MapPin, Mail,
   Globe, AlertCircle, ShieldAlert,
+  MessageCircle, Award, Star, Briefcase, GraduationCap, Flame,
 } from 'lucide-react'
+
+const ICON_COMPONENTS: Record<string, React.ComponentType<{ className?: string }>> = {
+  'message-circle': MessageCircle,
+  'award': Award,
+  'star': Star,
+  'book-open': BookOpen,
+  'briefcase': Briefcase,
+  'graduation-cap': GraduationCap,
+  'flame': Flame,
+  'sparkles': Sparkles,
+}
+
+function CategoryIcon({ name, className }: { name: string; className?: string }) {
+  const IconComponent = ICON_COMPONENTS[name] || BookOpen
+  return <IconComponent className={className} />
+}
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import {
@@ -360,8 +377,7 @@ export default function SettingsPage() {
                           className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-sm"
                           style={{ backgroundColor: cat.colorHex }}
                         >
-                          {/* Render corresponding icon placeholder */}
-                          <Sparkles className="h-5 w-5" />
+                          <CategoryIcon name={cat.icon} className="h-5 w-5" />
                         </div>
                         <div>
                           <h4 className="font-bold text-gray-900 text-sm leading-snug">{cat.name}</h4>
@@ -561,7 +577,7 @@ export default function SettingsPage() {
                             : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-100'
                         }`}
                       >
-                        <Sparkles className="h-4 w-4" />
+                        <CategoryIcon name={i.name} className="h-4 w-4" />
                         <span className="text-[10px] truncate max-w-full px-1">{i.label}</span>
                       </button>
                     )
