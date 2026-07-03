@@ -12,11 +12,12 @@ import type {
   ClassCategory,
   CreateCategoryRequest,
   UpdateCategoryRequest,
+  PaginatedResponse,
 } from './classes.types'
 
 export const classesApi = {
-  getAll: () =>
-    api.get<ApiResponse<ClassSummary[]>>('/classes').then((r) => r.data.data!),
+  getAll: (params?: { search?: string; categoryId?: number; status?: string; page?: number; pageSize?: number }) =>
+    api.get<ApiResponse<PaginatedResponse<ClassSummary>>>('/classes', { params }).then((r) => r.data.data!),
 
   getDetail: (id: string) =>
     api.get<ApiResponse<ClassDetail>>(`/classes/${id}`).then((r) => r.data.data!),

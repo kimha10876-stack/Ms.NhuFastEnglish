@@ -12,7 +12,13 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
 
     // ── List / Detail ─────────────────────────────────────────────────────────
 
-    public async Task<IList<ClassSummaryDto>> GetAllAsync(Guid? teacherUserId)
+    public async Task<PaginatedListDto<ClassSummaryDto>> GetAllAsync(
+        Guid? teacherUserId,
+        string search = "",
+        int? categoryId = null,
+        string status = "",
+        int page = 1,
+        int pageSize = 10)
     {
         var query = db.Classes
             .Include(c => c.Category)
@@ -20,12 +26,47 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
             .Include(c => c.ClassMembers)
             .AsQueryable();
 
+        // 1. Lọc theo giáo viên phụ trách
         if (teacherUserId.HasValue)
             query = query.Where(c => c.TeacherId == teacherUserId.Value);
 
-        var classes = await query.OrderByDescending(c => c.CreatedAt).ToListAsync();
+        // 2. Tìm kiếm theo từ khóa (tên lớp, phòng, ghi chú)
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(c => c.Name.ToLower().Contains(term) ||
+                                     (c.Room != null && c.Room.ToLower().Contains(term)) ||
+                                     (c.Note != null && c.Note.ToLower().Contains(term)));
+        }
 
-        return classes.Select(c => new ClassSummaryDto(
+        // 3. Lọc theo danh mục
+        if (categoryId.HasValue)
+        {
+            query = query.Where(c => c.CategoryId == categoryId.Value);
+        }
+
+        // 4. Lọc theo trạng thái
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var statusLower = status.Trim().ToLower();
+            query = query.Where(c => c.Status.ToLower() == statusLower);
+        }
+
+        // 5. Tính toán phân trang
+        var totalCount = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+        if (totalPages < 1) totalPages = 1;
+
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+
+        var classes = await query
+            .OrderByDescending(c => c.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var dtos = classes.Select(c => new ClassSummaryDto(
             Id:               c.Id,
             Name:             c.Name,
             CategoryName:     c.Category.Name,
@@ -39,6 +80,8 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
             StartDate:        c.StartDate,
             CreatedAt:        c.CreatedAt
         )).ToList();
+
+        return new PaginatedListDto<ClassSummaryDto>(dtos, totalCount, page, pageSize, totalPages);
     }
 
     public async Task<ClassDetailDto?> GetDetailAsync(Guid id)

@@ -21,10 +21,16 @@ public class ClassesController(ClassService classService) : ControllerBase
     // ── GET /api/classes ──────────────────────────────────────────────────────
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string search = "",
+        [FromQuery] int? categoryId = null,
+        [FromQuery] string status = "",
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
     {
         var teacherFilter = IsAdmin ? (Guid?)null : UserId;
-        var result = await classService.GetAllAsync(teacherFilter);
+        var result = await classService.GetAllAsync(
+            teacherFilter, search, categoryId, status, page, pageSize);
         return Ok(ApiResponse.Ok(result));
     }
 

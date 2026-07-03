@@ -4,10 +4,10 @@ import type { CreateClassRequest, UpdateClassRequest, CreateCategoryRequest, Upd
 
 export const CLASSES_KEY = ['classes'] as const
 
-export function useClasses() {
+export function useClasses(params?: { search?: string; categoryId?: number; status?: string; page?: number; pageSize?: number }) {
   return useQuery({
-    queryKey: CLASSES_KEY,
-    queryFn: () => classesApi.getAll(),
+    queryKey: [...CLASSES_KEY, params],
+    queryFn: () => classesApi.getAll(params),
   })
 }
 

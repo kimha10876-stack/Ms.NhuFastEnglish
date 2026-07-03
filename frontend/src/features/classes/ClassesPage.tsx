@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Users, Clock, BookOpen, ChevronRight } from 'lucide-react'
+import { Plus, Users, Clock, BookOpen, ChevronRight, Search, ChevronLeft } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useAuthStore } from '@/features/auth/auth.store'
@@ -46,7 +46,25 @@ export default function ClassesPage() {
   })
   const [formError, setFormError] = useState('')
 
-  const { data: classes = [], isLoading } = useClasses()
+  // Bộ lọc, tìm kiếm và phân trang
+  const [search, setSearch]                     = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined)
+  const [selectedStatus, setSelectedStatus]     = useState('')
+  const [page, setPage]                         = useState(1)
+  const pageSize                                = 9
+
+  const { data, isLoading } = useClasses({
+    search,
+    categoryId: selectedCategory,
+    status: selectedStatus,
+    page,
+    pageSize,
+  })
+
+  const classes = data?.items ?? []
+  const totalCount = data?.totalCount ?? 0
+  const totalPages = data?.totalPages ?? 1
+
   const { data: apiCategories = [] }      = useClassCategories()
   const { mutate: create, isPending }     = useCreateClass()
 
@@ -98,19 +116,84 @@ export default function ClassesPage() {
           <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">Quản lý</p>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Lớp học</h1>
         </div>
-        <Button onClick={openCreateModal} className="gap-1.5">
+        <Button onClick={openCreateModal} className="gap-1.5 rounded-xl font-bold text-xs">
           <Plus className="h-4 w-4" />
           Tạo lớp mới
         </Button>
       </div>
 
+      {/* ── Filter Bar ── */}
+      <div className="flex flex-col md:flex-row gap-3 mb-6 bg-white border border-gray-200 p-4 rounded-2xl shadow-sm">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Tìm theo tên lớp, phòng học, ghi chú..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
+            className="pl-10 rounded-xl text-sm border-gray-200 focus:border-amber-500 focus:ring-amber-500/20"
+          />
+        </div>
+
+        {/* Category Filter */}
+        <div className="w-full md:w-48">
+          <CustomDropdown
+            value={selectedCategory ?? 'all'}
+            options={[
+              { id: 'all', name: 'Tất cả danh mục' },
+              ...apiCategories.map(c => ({ id: c.id, name: c.name }))
+            ]}
+            onChange={(val) => {
+              setSelectedCategory(val === 'all' ? undefined : Number(val))
+              setPage(1)
+            }}
+          />
+        </div>
+
+        {/* Status Filter */}
+        <div className="w-full md:w-48">
+          <CustomDropdown
+            value={selectedStatus}
+            options={[
+              { id: '', name: 'Tất cả trạng thái' },
+              { id: 'active', name: 'Đang hoạt động' },
+              { id: 'paused', name: 'Tạm dừng' },
+              { id: 'ended', name: 'Đã kết thúc' }
+            ]}
+            onChange={(val) => {
+              setSelectedStatus(val)
+              setPage(1)
+            }}
+          />
+        </div>
+
+        {/* Reset button */}
+        {(search || selectedCategory !== undefined || selectedStatus) && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setSearch('')
+              setSelectedCategory(undefined)
+              setSelectedStatus('')
+              setPage(1)
+            }}
+            className="text-gray-500 hover:text-gray-900 font-semibold text-xs px-3 rounded-xl border border-gray-200 hover:bg-gray-50 h-9"
+          >
+            Đặt lại
+          </Button>
+        )}
+      </div>
+
       {/* ── Stats row ── */}
-      {!isLoading && classes.length > 0 && (
-        <div className="flex gap-3 mb-6 flex-wrap">
+      {!isLoading && totalCount > 0 && (
+        <div className="flex gap-3 mb-6 flex-wrap animate-in fade-in duration-200">
           {[
-            { label: 'Tổng lớp', value: classes.length },
-            { label: 'Đang hoạt động', value: classes.filter((c) => c.status === 'active').length },
-            { label: 'Tổng học viên', value: classes.reduce((s, c) => s + c.memberCount, 0) },
+            { label: 'Tổng lớp tìm thấy', value: totalCount },
+            { label: 'Số lớp trang này', value: classes.length },
+            { label: 'Sĩ số hiển thị', value: classes.reduce((s, c) => s + c.memberCount, 0) },
           ].map((s) => (
             <div key={s.label} className="bg-white border border-gray-200 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-sm">
               <div>
@@ -129,65 +212,151 @@ export default function ClassesPage() {
             <div key={i} className="h-44 rounded-2xl bg-gray-100 animate-pulse" />
           ))}
         </div>
-      ) : classes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mb-4">
-            <BookOpen className="h-7 w-7 text-amber-500" />
-          </div>
-          <p className="font-semibold text-gray-700">Chưa có lớp học nào</p>
-          <p className="text-sm text-gray-500 mt-1 mb-4">Tạo lớp đầu tiên để bắt đầu quản lý học viên</p>
-          <Button onClick={openCreateModal}>
-            <Plus className="h-4 w-4" />
-            Tạo lớp học
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {classes.map((cls) => (
-            <button
-              key={cls.id}
-              onClick={() => navigate(`/classes/${cls.id}`)}
-              className="group text-left bg-white rounded-2xl border border-gray-200 shadow-sm hover:border-amber-300 hover:shadow-md transition-all p-5"
+      ) : totalCount === 0 ? (
+        search || selectedCategory !== undefined || selectedStatus ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-dashed border-gray-200 p-6">
+            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-4 text-gray-400">
+              <Search className="h-6 w-6" />
+            </div>
+            <p className="font-bold text-gray-800 text-sm">Không tìm thấy lớp học nào phù hợp</p>
+            <p className="text-xs text-gray-500 mt-1 mb-4">Vui lòng thay đổi từ khóa hoặc bộ lọc tìm kiếm của bạn</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearch('')
+                setSelectedCategory(undefined)
+                setSelectedStatus('')
+                setPage(1)
+              }}
+              className="rounded-xl font-bold text-xs"
             >
-              {/* Top row */}
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <span
-                  className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold text-white tracking-wide"
-                  style={{ backgroundColor: cls.categoryColorHex }}
-                >
-                  {cls.categoryName}
-                </span>
-                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${STATUS_COLOR[cls.status] ?? STATUS_COLOR.active}`}>
-                  {STATUS_LABEL[cls.status] ?? cls.status}
-                </span>
-              </div>
-
-              {/* Class name */}
-              <h3 className="font-bold text-[15px] text-gray-900 leading-snug mb-0.5 group-hover:text-amber-700 transition-colors">
-                {cls.name}
-              </h3>
-              <p className="text-sm text-gray-500 mb-4">{cls.teacherName}</p>
-
-              {/* Meta + arrow */}
-              <div className="flex items-end justify-between">
-                <div className="flex flex-wrap gap-2.5 text-xs text-gray-400">
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5" />
-                    {cls.memberCount} học viên
+              Xóa bộ lọc
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-2xl border border-dashed border-gray-200 p-6">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mb-4">
+              <BookOpen className="h-7 w-7 text-amber-500" />
+            </div>
+            <p className="font-semibold text-gray-700">Chưa có lớp học nào</p>
+            <p className="text-sm text-gray-500 mt-1 mb-4">Tạo lớp đầu tiên để bắt đầu quản lý học viên</p>
+            <Button onClick={openCreateModal} className="rounded-xl font-bold text-xs">
+              <Plus className="h-4 w-4" />
+              Tạo lớp học
+            </Button>
+          </div>
+        )
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {classes.map((cls) => (
+              <button
+                key={cls.id}
+                onClick={() => navigate(`/classes/${cls.id}`)}
+                className="group text-left bg-white rounded-2xl border border-gray-200 shadow-sm hover:border-amber-300 hover:shadow-md transition-all p-5"
+              >
+                {/* Top row */}
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <span
+                    className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold text-white tracking-wide"
+                    style={{ backgroundColor: cls.categoryColorHex }}
+                  >
+                    {cls.categoryName}
                   </span>
-                  {cls.scheduleDays && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {cls.scheduleDays}
-                      {cls.scheduleTime && ` · ${cls.scheduleTime}`}
-                    </span>
-                  )}
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${STATUS_COLOR[cls.status] ?? STATUS_COLOR.active}`}>
+                    {STATUS_LABEL[cls.status] ?? cls.status}
+                  </span>
                 </div>
-                <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-amber-400 shrink-0 transition-colors" />
+
+                {/* Class name */}
+                <h3 className="font-bold text-[15px] text-gray-900 leading-snug mb-0.5 group-hover:text-amber-700 transition-colors">
+                  {cls.name}
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">{cls.teacherName}</p>
+
+                {/* Meta + arrow */}
+                <div className="flex items-end justify-between">
+                  <div className="flex flex-wrap gap-2.5 text-xs text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5" />
+                      {cls.memberCount} học viên
+                    </span>
+                    {cls.scheduleDays && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {cls.scheduleDays}
+                        {cls.scheduleTime && ` · ${cls.scheduleTime}`}
+                      </span>
+                    )}
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-amber-400 shrink-0 transition-colors" />
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* ── Pagination ── */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 pt-6">
+              <p className="text-xs font-semibold text-gray-500">
+                Hiển thị lớp học từ <span className="font-bold text-gray-900">{((page - 1) * pageSize) + 1}</span> đến{' '}
+                <span className="font-bold text-gray-900">
+                  {Math.min(page * pageSize, totalCount)}
+                </span>{' '}
+                trong tổng số <span className="font-bold text-gray-900">{totalCount}</span> lớp
+              </p>
+
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(p - 1, 1))}
+                  disabled={page === 1}
+                  className="h-8 w-8 p-0 rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                {Array.from({ length: totalPages }).map((_, idx) => {
+                  const pNum = idx + 1
+                  if (totalPages > 5 && Math.abs(pNum - page) > 1 && pNum !== 1 && pNum !== totalPages) {
+                    if (pNum === 2 || pNum === totalPages - 1) {
+                      return <span key={pNum} className="text-xs text-gray-400 px-1 font-bold">...</span>
+                    }
+                    return null
+                  }
+
+                  return (
+                    <Button
+                      key={pNum}
+                      variant={page === pNum ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPage(pNum)}
+                      className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold transition-all ${
+                        page === pNum
+                          ? 'bg-amber-500 border-amber-600 text-white hover:bg-amber-600 hover:text-white'
+                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pNum}
+                    </Button>
+                  )
+                })}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(p + 1, totalPages))}
+                  disabled={page === totalPages}
+                  className="h-8 w-8 p-0 rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
-            </button>
-          ))}
-        </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Create modal ── */}

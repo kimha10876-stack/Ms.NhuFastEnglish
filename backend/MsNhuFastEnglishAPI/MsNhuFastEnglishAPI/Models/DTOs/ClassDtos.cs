@@ -121,3 +121,11 @@ public record ClassCategoryDto(
     string ColorHex,
     string Icon
 );
+
+public record PaginatedListDto<T>(
+    IList<T> Items,
+    int TotalCount,
+    int Page,
+    int PageSize,
+    int TotalPages
+);
