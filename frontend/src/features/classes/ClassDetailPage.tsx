@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Users, Info, Trash2, Plus, Copy, Link2,
-  Clock, BookOpen, Loader2, Check, AlertTriangle, Search,
+  Loader2, Check, AlertTriangle, Search, Edit2,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -442,28 +442,136 @@ export default function ClassDetailPage() {
               </div>
             </form>
           ) : (
-            <div className="space-y-1 max-w-lg">
-              <InfoRow icon={<BookOpen />} label="Danh mục"
-                value={<span className="font-semibold text-gray-900">{cls.categoryName}</span>} />
-              <InfoRow icon={<Clock />} label="Lịch học"
-                value={
-                  <span className="font-semibold text-gray-900">
-                    {[cls.scheduleDays, cls.scheduleTime].filter(Boolean).join(' · ') || '—'}
-                  </span>
-                } />
-              <InfoRow icon={<Users />} label="Học viên"
-                value={
-                  <span className="font-semibold text-gray-900">
-                    {cls.members.length} học viên
-                  </span>
-                } />
+            <div className="space-y-6 max-w-4xl animate-in fade-in duration-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Card 1: Học thuật & Phụ trách */}
+                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow transition-shadow">
+                  <h4 className="font-bold text-gray-900 text-sm border-b border-gray-200/60 pb-2">Học thuật & Quản lý</h4>
+                  
+                  <div className="space-y-3.5">
+                    {/* Danh mục */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500 font-medium">Chương trình học</span>
+                      <span
+                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm"
+                        style={{ backgroundColor: cls.categoryColorHex }}
+                      >
+                        {cls.categoryName}
+                      </span>
+                    </div>
+
+                    {/* Giáo viên */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500 font-medium">Giáo viên phụ trách</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center border border-amber-200">
+                          <span className="text-[10px] font-bold text-amber-700">
+                            {cls.teacherName[0]?.toUpperCase()}
+                          </span>
+                        </div>
+                        <span className="font-semibold text-gray-900">{cls.teacherName}</span>
+                      </div>
+                    </div>
+
+                    {/* Ngày khai giảng */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500 font-medium">Ngày bắt đầu</span>
+                      <span className="font-semibold text-gray-900">
+                        {new Date(cls.startDate).toLocaleDateString('vi-VN', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Trạng thái lớp */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500 font-medium">Trạng thái</span>
+                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${STATUS_COLOR[cls.status] ?? STATUS_COLOR.active}`}>
+                        {STATUS_LABEL[cls.status] ?? cls.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 2: Lịch học & Thời khóa biểu */}
+                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow transition-shadow">
+                  <h4 className="font-bold text-gray-900 text-sm border-b border-gray-200/60 pb-2">Lịch học & Thời gian</h4>
+                  
+                  <div className="space-y-3.5">
+                    {/* Ngày học */}
+                    <div className="flex flex-col gap-1.5 text-sm">
+                      <span className="text-gray-500 font-medium">Lịch học trong tuần</span>
+                      <div className="flex gap-1.5 flex-wrap mt-0.5">
+                        {WEEKDAYS.map((day) => {
+                          const isSelected = cls.scheduleDays?.split(',').map(d => d.trim()).includes(day)
+                          return (
+                            <span
+                              key={day}
+                              className={`h-7 px-2.5 rounded-lg text-[11px] font-bold border flex items-center justify-center select-none transition-all ${
+                                isSelected
+                                  ? 'bg-amber-500 border-amber-600 text-white shadow-sm'
+                                  : 'bg-white border-gray-200 text-gray-400'
+                              }`}
+                            >
+                              {day}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Giờ học */}
+                    <div className="flex items-center justify-between text-sm pt-1">
+                      <span className="text-gray-500 font-medium">Khung giờ học</span>
+                      <span className="font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl text-xs">
+                        {cls.scheduleTime || 'Chưa thiết lập'}
+                      </span>
+                    </div>
+
+                    {/* Sĩ số */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500 font-medium">Sĩ số học viên</span>
+                      <span className="font-semibold text-gray-900 flex items-center gap-1.5">
+                        <Users className="h-4 w-4 text-gray-400" />
+                        {cls.members.length} học viên
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Ghi chú lớp học */}
               {cls.note && (
-                <InfoRow icon={<Info />} label="Ghi chú"
-                  value={<span className="text-gray-600">{cls.note}</span>} />
+                <div className="bg-amber-50/30 border border-amber-200/40 rounded-2xl p-5 flex gap-3.5 items-start">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0 shadow-sm border border-amber-200/50 mt-0.5">
+                    <Info className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h5 className="font-bold text-gray-900 text-xs uppercase tracking-wider mb-1">Ghi chú lớp học</h5>
+                    <p className="text-sm text-gray-600 leading-relaxed font-medium">{cls.note}</p>
+                  </div>
+                </div>
               )}
 
-              <div className="pt-4">
-                <Button onClick={startEdit} variant="secondary">Chỉnh sửa thông tin</Button>
+              {/* Action Buttons */}
+              <div className="pt-2 flex justify-start gap-3">
+                <Button onClick={startEdit} variant="secondary" className="font-semibold gap-1.5 rounded-xl text-xs px-4 h-9">
+                  <Edit2 className="h-3.5 w-3.5" />
+                  Chỉnh sửa thông tin
+                </Button>
+                
+                {isAdmin && (
+                  <Button
+                    onClick={handleDelete}
+                    variant="outline"
+                    className="font-semibold border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 gap-1.5 rounded-xl text-xs px-4 h-9"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Xóa lớp học
+                  </Button>
+                )}
               </div>
             </div>
           )}
@@ -696,16 +804,4 @@ export default function ClassDetailPage() {
   )
 }
 
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-3 p-4 rounded-2xl hover:bg-gray-50 transition-colors">
-      <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 text-amber-500 mt-0.5 [&>svg]:h-4 [&>svg]:w-4">
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">{label}</p>
-        <div className="text-sm">{value}</div>
-      </div>
-    </div>
-  )
-}
+
