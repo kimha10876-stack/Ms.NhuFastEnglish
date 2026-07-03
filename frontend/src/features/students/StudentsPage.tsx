@@ -511,7 +511,7 @@ export default function StudentsPage() {
                     Mật khẩu khởi tạo <span className="text-red-500">*</span>
                   </label>
                   <Input
-                    type="password"
+                    type="text"
                     placeholder="Mặc định: 123456"
                     value={form.password}
                     onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
