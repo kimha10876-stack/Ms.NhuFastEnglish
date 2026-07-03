@@ -243,7 +243,6 @@ export default function ClassesPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700">Lịch học</label>
                   <div className="flex gap-1.5 flex-wrap">
@@ -313,7 +312,6 @@ export default function ClassesPage() {
                     </div>
                   </div>
                 </div>
-              </div>
 
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-gray-700">Ghi chú</label>
