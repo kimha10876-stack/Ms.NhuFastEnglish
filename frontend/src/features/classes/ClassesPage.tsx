@@ -208,7 +208,7 @@ export default function ClassesPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-auto flex-1">
+            <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-auto overflow-x-hidden flex-1">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-gray-700">Tên lớp <span className="text-red-500">*</span></label>
                 <Input placeholder="VD: Lớp giao tiếp tháng 7" value={form.name} onChange={set('name')} required autoFocus />
