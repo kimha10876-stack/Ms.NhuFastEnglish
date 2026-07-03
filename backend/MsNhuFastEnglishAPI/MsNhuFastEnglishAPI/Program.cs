@@ -157,12 +157,8 @@ using (var scope = app.Services.CreateScope())
                               AND column_name = 'MustChangePassword' 
                               AND data_type <> 'boolean'
                         ) THEN
-                            ALTER TABLE ""Users"" ALTER COLUMN ""MustChangePassword"" TYPE BOOLEAN USING (
-                                CASE 
-                                    WHEN ""MustChangePassword"" = 1 THEN TRUE 
-                                    ELSE FALSE 
-                                END
-                            );
+                            ALTER TABLE ""Users"" DROP COLUMN ""MustChangePassword"";
+                            ALTER TABLE ""Users"" ADD COLUMN ""MustChangePassword"" BOOLEAN NOT NULL DEFAULT FALSE;
                         END IF;
                     END $$;
                 ");
