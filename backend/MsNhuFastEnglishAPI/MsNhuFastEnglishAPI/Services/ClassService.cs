@@ -214,15 +214,11 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
             .Include(s => s.User)
             .Where(s => s.User.FullName.ToLower().Contains(term) ||
                         s.User.Email.ToLower().Contains(term))
-            .Take(50)
+            .OrderBy(s => s.User.FullName)
+            .Take(10)
             .ToListAsync();
 
-        var sorted = results
-            .OrderBy(s => s.User.FullName, new NaturalStringComparer())
-            .Take(10)
-            .ToList();
-
-        return sorted.Select(s => new StudentSearchDto(
+        return results.Select(s => new StudentSearchDto(
             StudentId: s.Id,
             FullName:  s.User.FullName,
             Email:     s.User.Email,
@@ -245,14 +241,12 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
                                      t.User.Email.ToLower().Contains(term));
         }
 
-        var results = await query.Take(50).ToListAsync();
-
-        var sorted = results
-            .OrderBy(t => t.User.FullName, new NaturalStringComparer())
+        var results = await query
+            .OrderBy(t => t.User.FullName)
             .Take(20)
-            .ToList();
+            .ToListAsync();
 
-        return sorted.Select(t => new TeacherSearchDto(
+        return results.Select(t => new TeacherSearchDto(
             TeacherId: t.UserId,
             FullName:  t.User.FullName,
             Email:     t.User.Email,
@@ -389,32 +383,5 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
             ColorHex: c.ColorHex,
             Icon: c.Icon
         )).ToList();
-    }
-}
-
-public class NaturalStringComparer : IComparer<string>
-{
-    public int Compare(string? x, string? y)
-    {
-        if (x == y) return 0;
-        if (x == null) return -1;
-        if (y == null) return 1;
-
-        var partsX = System.Text.RegularExpressions.Regex.Split(x, "([0-9]+)");
-        var partsY = System.Text.RegularExpressions.Regex.Split(y, "([0-9]+)");
-
-        for (int i = 0; i < Math.Min(partsX.Length, partsY.Length); i++)
-        {
-            if (partsX[i] != partsY[i])
-            {
-                if (int.TryParse(partsX[i], out var numX) && int.TryParse(partsY[i], out var numY))
-                {
-                    return numX.CompareTo(numY);
-                }
-                return string.Compare(partsX[i], partsY[i], StringComparison.OrdinalIgnoreCase);
-            }
-        }
-
-        return partsX.Length.CompareTo(partsY.Length);
     }
 }
