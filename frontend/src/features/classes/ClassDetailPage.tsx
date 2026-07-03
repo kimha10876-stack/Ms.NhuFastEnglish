@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Users, Info, Trash2, Plus, Copy, Link2,
-  Clock, BookOpen, Loader2, Check, AlertTriangle,
+  Clock, BookOpen, Loader2, Check, AlertTriangle, Search,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -473,54 +473,143 @@ export default function ClassDetailPage() {
       {/* ── Add member modal ── */}
       {showAddMember && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-          onClick={(e) => e.target === e.currentTarget && setShowAdd(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAdd(false)
+              setSearchQ('')
+              setAddError('')
+            }
+          }}
         >
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-5 border-b border-gray-200">
-              <h2 className="font-bold text-lg text-gray-900">Thêm học viên</h2>
-              <button onClick={() => { setShowAdd(false); setSearchQ('') }}
-                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div>
+                <h2 className="font-bold text-lg text-gray-900">Thêm học viên vào lớp</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Tìm học viên đã đăng ký tài khoản tại hệ thống</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAdd(false)
+                  setSearchQ('')
+                  setAddError('')
+                }}
+                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              >
                 ✕
               </button>
             </div>
-            <div className="p-5 space-y-3">
-              <Input
-                autoFocus
-                placeholder="Tìm theo tên hoặc email..."
-                value={searchQ}
-                onChange={(e) => setSearchQ(e.target.value)}
-              />
 
-              {searchQ.trim().length >= 2 && (
-                <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 max-h-64 overflow-y-auto">
-                  {searchResults.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-6">Không tìm thấy học viên</p>
-                  ) : (
-                    searchResults.map((s) => (
-                      <button
-                        key={s.studentId}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-amber-50 transition-colors text-left"
-                        onClick={() => handleAddMember(s.studentId)}
-                        disabled={adding}
-                      >
-                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                          <span className="text-xs font-bold text-amber-700">{s.fullName[0]?.toUpperCase()}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{s.fullName}</p>
-                          <p className="text-xs text-gray-500 truncate">{s.email}</p>
-                        </div>
-                        {adding && <Loader2 className="h-4 w-4 animate-spin text-amber-500 ml-auto shrink-0" />}
-                      </button>
-                    ))
-                  )}
+            {/* Body */}
+            <div className="p-5 flex flex-col gap-4 overflow-y-auto flex-1">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  autoFocus
+                  placeholder="Nhập tên hoặc email học viên..."
+                  value={searchQ}
+                  onChange={(e) => {
+                    setSearchQ(e.target.value)
+                    setAddError('')
+                  }}
+                  className="pl-10 pr-8 py-2.5 rounded-xl border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 text-sm"
+                />
+                {searchQ && (
+                  <button
+                    onClick={() => setSearchQ('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-100"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Error banner */}
+              {addError && (
+                <div className="bg-red-50 border-l-4 border-red-500 px-4 py-2.5 rounded-r-xl">
+                  <p className="text-[13px] text-red-700 flex items-center gap-1.5 font-medium">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    {addError}
+                  </p>
                 </div>
               )}
 
-              {addError && (
-                <div className="bg-red-50 border-l-4 border-red-500 px-4 py-2.5 rounded-r-xl">
-                  <p className="text-[13px] text-red-700">{addError}</p>
+              {/* Empty search state */}
+              {searchQ.trim().length < 2 && (
+                <div className="flex flex-col items-center justify-center py-10 text-center text-gray-400">
+                  <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+                    <Search className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">Hãy nhập từ khóa tìm kiếm</p>
+                  <p className="text-xs text-gray-400 mt-1 max-w-[240px]">
+                    Nhập tối thiểu 2 ký tự (tên hoặc email) để hệ thống bắt đầu tìm kiếm học viên
+                  </p>
+                </div>
+              )}
+
+              {/* Search Results list */}
+              {searchQ.trim().length >= 2 && (
+                <div className="flex-1 flex flex-col gap-2 min-h-0">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Kết quả tìm kiếm ({searchResults.length})</p>
+                  
+                  {searchResults.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center text-gray-400 border border-dashed border-gray-100 rounded-xl bg-gray-50/50">
+                      <p className="text-sm font-medium text-gray-500">Không tìm thấy học viên</p>
+                      <p className="text-xs text-gray-400 mt-1 max-w-[220px]">
+                        Hãy chắc chắn rằng học viên đã tạo tài khoản với email này
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white max-h-64 overflow-y-auto">
+                      {searchResults.map((s) => {
+                        const isAlreadyMember = cls?.members.some(m => m.memberId === s.studentId)
+                        
+                        return (
+                          <div
+                            key={s.studentId}
+                            className="flex items-center justify-between p-3.5 hover:bg-amber-50/20 transition-colors"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0 border border-amber-200/50">
+                                <span className="text-xs font-bold text-amber-700">
+                                  {s.fullName[0]?.toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-gray-900 truncate leading-snug">{s.fullName}</p>
+                                <p className="text-xs text-gray-500 truncate mt-0.5">{s.email}</p>
+                              </div>
+                            </div>
+
+                            {isAlreadyMember ? (
+                              <span className="text-[10px] font-bold bg-gray-50 text-gray-400 border border-gray-200 px-2.5 py-1 rounded-lg select-none">
+                                Đã tham gia
+                              </span>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleAddMember(s.studentId)}
+                                disabled={adding}
+                                className="h-8 rounded-lg text-xs px-3 gap-1 hover:bg-amber-500 hover:text-white transition-all font-semibold"
+                              >
+                                {adding ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Plus className="h-3 w-3" />
+                                    Thêm
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
