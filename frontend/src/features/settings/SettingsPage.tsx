@@ -4,6 +4,7 @@ import {
   Check, Loader2, Sparkles, Building, Phone, MapPin, Mail,
   Globe, AlertCircle, ShieldAlert,
   MessageCircle, Award, Star, Briefcase, GraduationCap, Flame,
+  Search,
 } from 'lucide-react'
 
 const ICON_COMPONENTS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -23,6 +24,7 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
 }
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
+import { CustomDropdown } from '@/shared/components/ui/CustomDropdown'
 import {
   useSystemSettings, useSaveSettings,
   useSettingsUsers, useUpdateUserRoles,
@@ -87,6 +89,7 @@ export default function SettingsPage() {
   const { mutate: updateUserRoles, isPending: updatingUserRoles } = useUpdateUserRoles(selectedUser?.id ?? '')
   const [userRolesError, setUserRolesError] = useState('')
   const [userSearch, setUserSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('')
 
   // Initialize settings form values once data is fetched
   if (settings.length > 0 && !initSettings) {
@@ -205,11 +208,20 @@ export default function SettingsPage() {
     )
   }
 
-  // Filter users based on search query
+  // Filter users based on search query and role filter
   const filteredUsers = users.filter((u) => {
     const q = userSearch.toLowerCase().trim()
-    if (!q) return true
-    return u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+    if (q) {
+      const matchText = u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+      if (!matchText) return false
+    }
+
+    if (roleFilter) {
+      const hasRole = u.roles.includes(roleFilter)
+      if (!hasRole) return false
+    }
+
+    return true
   })
 
   return (
@@ -428,13 +440,28 @@ export default function SettingsPage() {
                 <h3 className="font-bold text-gray-900 text-base">Phân quyền thành viên</h3>
                 <p className="text-xs text-gray-500 mt-0.5">Tìm kiếm thành viên và quản lý các quyền (vai trò) hệ thống</p>
               </div>
-              <div className="w-full md:w-64">
-                <Input
-                  placeholder="Tìm theo tên hoặc email..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  className="w-full"
-                />
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0 animate-in fade-in duration-200">
+                <div className="relative w-full sm:w-60">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <Input
+                    placeholder="Tìm theo tên hoặc email..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    className="pl-9 w-full rounded-xl text-xs"
+                  />
+                </div>
+                <div className="w-full sm:w-44">
+                  <CustomDropdown
+                    value={roleFilter}
+                    options={[
+                      { id: '', name: 'Tất cả vai trò' },
+                      { id: 'Admin', name: 'Quản trị viên (Admin)' },
+                      { id: 'Teacher', name: 'Giáo viên (Teacher)' },
+                      { id: 'Student', name: 'Học viên (Student)' },
+                    ]}
+                    onChange={(val: string) => setRoleFilter(val)}
+                  />
+                </div>
               </div>
             </div>
 
