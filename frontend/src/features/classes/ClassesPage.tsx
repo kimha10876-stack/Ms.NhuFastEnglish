@@ -47,6 +47,7 @@ export default function ClassesPage() {
   const [formError, setFormError] = useState('')
 
   // Bộ lọc, tìm kiếm và phân trang
+  const [searchVal, setSearchVal]               = useState('')
   const [search, setSearch]                     = useState('')
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined)
   const [selectedStatus, setSelectedStatus]     = useState('')
@@ -123,19 +124,38 @@ export default function ClassesPage() {
       </div>
 
       {/* ── Filter Bar ── */}
-      <div className="flex flex-col md:flex-row gap-3 mb-6 bg-white border border-gray-200 p-4 rounded-2xl shadow-sm">
-        {/* Search */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Tìm theo tên lớp, phòng học, ghi chú..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
-            }}
-            className="pl-10 rounded-xl text-sm border-gray-200 focus:border-amber-500 focus:ring-amber-500/20"
-          />
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          setSearch(searchVal)
+          setPage(1)
+        }}
+        className="flex flex-col md:flex-row gap-3 mb-6 bg-white border border-gray-200 p-4 rounded-2xl shadow-sm"
+      >
+        {/* Search Input + Button group */}
+        <div className="flex-1 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Tìm theo tên lớp, phòng học, ghi chú..."
+              value={searchVal}
+              onChange={(e) => setSearchVal(e.target.value)}
+              className="pl-10 rounded-xl text-sm border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 w-full"
+            />
+            {searchVal && (
+              <button
+                type="button"
+                onClick={() => setSearchVal('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-100"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <Button type="submit" className="rounded-xl font-bold text-xs px-4 h-9 gap-1 shadow-sm shrink-0">
+            <Search className="h-3.5 w-3.5" />
+            Tìm kiếm
+          </Button>
         </div>
 
         {/* Category Filter */}
@@ -171,10 +191,12 @@ export default function ClassesPage() {
         </div>
 
         {/* Reset button */}
-        {(search || selectedCategory !== undefined || selectedStatus) && (
+        {(search || selectedCategory !== undefined || selectedStatus || searchVal) && (
           <Button
+            type="button"
             variant="ghost"
             onClick={() => {
+              setSearchVal('')
               setSearch('')
               setSelectedCategory(undefined)
               setSelectedStatus('')
@@ -185,7 +207,7 @@ export default function ClassesPage() {
             Đặt lại
           </Button>
         )}
-      </div>
+      </form>
 
       {/* ── Stats row ── */}
       {!isLoading && totalCount > 0 && (
