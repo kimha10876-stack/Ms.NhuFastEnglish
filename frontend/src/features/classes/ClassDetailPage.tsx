@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Users, Info, Trash2, Plus, Copy, Link2,
-  Clock, BookOpen, Loader2,
+  Clock, BookOpen, Loader2, Check, AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -44,6 +44,15 @@ export default function ClassDetailPage() {
   const [addError, setAddError]     = useState('')
   const [expiryDays, setExpiryDays] = useState(30)
   const [showInvite, setShowInvite] = useState(false)
+  const [copied, setCopied]         = useState(false)
+  const [showRevokeConfirm, setShowRevokeConfirm] = useState(false)
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
   const [editForm, setEditForm]     = useState<UpdateClassRequest | null>(null)
   const [editError, setEditError]   = useState('')
 
@@ -209,15 +218,15 @@ export default function ClassDetailPage() {
                   <Link2 className="h-4 w-4 text-amber-500 shrink-0" />
                   <span className="truncate text-gray-600 flex-1 text-xs font-mono">{activeInvite.inviteUrl}</span>
                   <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(activeInvite.inviteUrl).then(() => {
-                        alert('Đã sao chép link mời!')
-                      })
-                    }}
+                    onClick={() => handleCopy(activeInvite.inviteUrl)}
                     className="shrink-0 p-1 rounded-lg hover:bg-amber-100 transition-colors"
                     title="Sao chép link"
                   >
-                    <Copy className="h-4 w-4 text-amber-600" />
+                    {copied ? (
+                      <Check className="h-4 w-4 text-emerald-600 animate-in zoom-in duration-200" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-amber-600" />
+                    )}
                   </button>
                 </div>
                 
@@ -232,16 +241,11 @@ export default function ClassDetailPage() {
 
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    if (window.confirm('Bạn có chắc muốn hủy link mời này? Học sinh sẽ không thể tham gia qua link này nữa.')) {
-                      revokeInvite()
-                    }
-                  }}
-                  disabled={revokingInvite}
+                  onClick={() => setShowRevokeConfirm(true)}
                   className="h-[38px] px-3 border border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 font-semibold"
                   title="Hủy link mời"
                 >
-                  {revokingInvite ? <Loader2 className="h-4 w-4 animate-spin animate-in fade-in" /> : 'Hủy link'}
+                  Hủy link
                 </Button>
               </div>
             ) : (
@@ -548,6 +552,52 @@ export default function ClassDetailPage() {
               <Button variant="secondary" className="flex-1" onClick={() => setShowInvite(false)}>Huỷ</Button>
               <Button className="flex-1" onClick={handleInvite} disabled={creatingInvite}>
                 {creatingInvite ? <><Loader2 className="h-4 w-4 animate-spin" />Đang tạo...</> : 'Tạo link'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Revoke confirm modal ── */}
+      {showRevokeConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 animate-in fade-in duration-200"
+          onClick={() => setShowRevokeConfirm(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col p-6 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-50 text-red-600 mb-4 mx-auto">
+              <AlertTriangle className="h-6 w-6 shrink-0" />
+            </div>
+            
+            <h3 className="text-center font-bold text-lg text-gray-900 mb-2">Hủy link mời học viên?</h3>
+            <p className="text-center text-sm text-gray-500 mb-6 leading-relaxed">
+              Bạn có chắc chắn muốn hủy link mời này? Học sinh sẽ không thể tham gia lớp học qua link này được nữa.
+            </p>
+
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1 rounded-xl text-xs font-semibold"
+                onClick={() => setShowRevokeConfirm(false)}
+              >
+                Quay lại
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 rounded-xl text-xs font-semibold border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 font-semibold shadow-sm"
+                onClick={() => {
+                  revokeInvite(undefined, {
+                    onSuccess: () => setShowRevokeConfirm(false)
+                  })
+                }}
+                disabled={revokingInvite}
+              >
+                {revokingInvite ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Xác nhận hủy'}
               </Button>
             </div>
           </div>
