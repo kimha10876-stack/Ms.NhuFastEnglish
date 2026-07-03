@@ -482,7 +482,7 @@ export default function ClassDetailPage() {
             }
           }}
         >
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md h-[480px] max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <div>
@@ -502,7 +502,7 @@ export default function ClassDetailPage() {
             </div>
 
             {/* Body */}
-            <div className="p-5 flex flex-col gap-4 overflow-y-auto flex-1">
+            <div className="p-5 flex flex-col gap-4 overflow-y-auto flex-1 min-h-0">
               {/* Search Bar */}
               <div className="relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -538,7 +538,7 @@ export default function ClassDetailPage() {
 
               {/* Empty search state */}
               {searchQ.trim().length < 2 && (
-                <div className="flex flex-col items-center justify-center py-10 text-center text-gray-400">
+                <div className="flex-1 flex flex-col items-center justify-center text-center text-gray-400 py-4">
                   <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
                     <Search className="h-5 w-5 text-gray-400" />
                   </div>
@@ -555,14 +555,14 @@ export default function ClassDetailPage() {
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Kết quả tìm kiếm ({searchResults.length})</p>
                   
                   {searchResults.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-center text-gray-400 border border-dashed border-gray-100 rounded-xl bg-gray-50/50">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center text-gray-400 border border-dashed border-gray-100 rounded-xl bg-gray-50/50 py-4">
                       <p className="text-sm font-medium text-gray-500">Không tìm thấy học viên</p>
                       <p className="text-xs text-gray-400 mt-1 max-w-[220px]">
                         Hãy chắc chắn rằng học viên đã tạo tài khoản với email này
                       </p>
                     </div>
                   ) : (
-                    <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white max-h-64 overflow-y-auto">
+                    <div className="flex-1 border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white overflow-y-auto min-h-0">
                       {searchResults.map((s) => {
                         const isAlreadyMember = cls?.members.some(m => m.memberId === s.studentId)
                         
