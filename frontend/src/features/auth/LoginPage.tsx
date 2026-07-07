@@ -106,7 +106,7 @@ export default function LoginPage() {
 
               {error && (
                 <p className="text-[13px] text-destructive bg-destructive/5 px-3 py-2 rounded-lg">
-                  Email hoặc mật khẩu không đúng
+                  {(error as any)?.response?.data?.message || 'Email hoặc mật khẩu không đúng'}
                 </p>
               )}
 

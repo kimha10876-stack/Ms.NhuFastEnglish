@@ -19,16 +19,20 @@ public class AuthService(
     private readonly IDatabase _cache = redis.GetDatabase();
 
     // ── Login ──────────────────────────────────────────────────────────────────
-    public async Task<AuthResponse?> LoginAsync(LoginRequest req)
+    public async Task<(AuthResponse? Result, string? Error)> LoginAsync(LoginRequest req)
     {
         var user = await db.Users
             .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Email == req.Email.ToLower() && u.IsActive);
+            .FirstOrDefaultAsync(u => u.Email == req.Email.ToLower());
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
-            return null;
+            return (null, "Email hoặc mật khẩu không đúng");
 
-        return await IssueTokensAsync(user);
+        if (!user.IsActive)
+            return (null, "Tài khoản của bạn đã bị khóa");
+
+        var response = await IssueTokensAsync(user);
+        return (response, null);
     }
 
     // ── Register (Admin creates teacher / student) ────────────────────────────

@@ -15,10 +15,14 @@ public class AuthController(AuthService authService) : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
-        var result = await authService.LoginAsync(req);
-        if (result is null)
-            return Unauthorized(ApiResponse.Unauthorized("Email hoặc mật khẩu không đúng"));
-        return Ok(ApiResponse.Ok(result, "Đăng nhập thành công"));
+        var (result, error) = await authService.LoginAsync(req);
+        if (error is not null)
+        {
+            if (error == "Tài khoản của bạn đã bị khóa")
+                return StatusCode(403, ApiResponse.Forbidden(error));
+            return Unauthorized(ApiResponse.Unauthorized(error));
+        }
+        return Ok(ApiResponse.Ok(result!, "Đăng nhập thành công"));
     }
 
     [HttpPost("refresh")]
