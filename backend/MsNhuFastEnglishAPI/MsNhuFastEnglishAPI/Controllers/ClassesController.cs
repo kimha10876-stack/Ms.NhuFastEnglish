@@ -1,6 +1,11 @@
+using System;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MsNhuFastEnglishAPI.Data;
 using MsNhuFastEnglishAPI.Models.DTOs;
 using MsNhuFastEnglishAPI.Services;
 using MsNhuFastEnglishAPI.Shared;
@@ -9,8 +14,8 @@ namespace MsNhuFastEnglishAPI.Controllers;
 
 [ApiController]
 [Route("api/classes")]
-[Authorize(Roles = "Admin,Teacher")]
-public class ClassesController(ClassService classService) : ControllerBase
+[Authorize]
+public class ClassesController(ClassService classService, AppDbContext db) : ControllerBase
 {
     private Guid UserId =>
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -18,9 +23,42 @@ public class ClassesController(ClassService classService) : ControllerBase
     private bool IsAdmin =>
         User.IsInRole("Admin");
 
+    // ── GET /api/classes/my-classes ───────────────────────────────────────────
+    [HttpGet("my-classes")]
+    public async Task<IActionResult> GetMyClasses()
+    {
+        var profile = await db.StudentProfiles.FirstOrDefaultAsync(sp => sp.UserId == UserId);
+        if (profile == null)
+            return NotFound(ApiResponse.NotFound("Không tìm thấy hồ sơ học viên"));
+
+        var classMembers = await db.ClassMembers
+            .Include(m => m.Class)
+                .ThenInclude(c => c.Category)
+            .Include(m => m.Class)
+                .ThenInclude(c => c.Teacher)
+            .Where(m => m.StudentId == profile.Id && m.Status == "active")
+            .ToListAsync();
+
+        var classes = classMembers.Select(m => new {
+            ClassId = m.ClassId,
+            ClassName = m.Class.Name,
+            CategoryName = m.Class.Category.Name,
+            CategoryColorHex = m.Class.Category.ColorHex,
+            TeacherName = m.Class.Teacher.FullName,
+            Status = m.Class.Status,
+            JoinedAt = m.JoinedAt,
+            ScheduleDays = m.Class.ScheduleDays,
+            ScheduleTime = m.Class.ScheduleTime,
+            Room = m.Class.Room
+        }).ToList();
+
+        return Ok(ApiResponse.Ok(classes));
+    }
+
     // ── GET /api/classes ──────────────────────────────────────────────────────
 
     [HttpGet]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> GetAll(
         [FromQuery] string search = "",
         [FromQuery] int? categoryId = null,
@@ -37,6 +75,7 @@ public class ClassesController(ClassService classService) : ControllerBase
     // ── POST /api/classes ─────────────────────────────────────────────────────
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> Create([FromBody] CreateClassRequest req)
     {
         var (result, error) = await classService.CreateAsync(req);
@@ -59,6 +98,7 @@ public class ClassesController(ClassService classService) : ControllerBase
     // ── PUT /api/classes/{id} ─────────────────────────────────────────────────
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateClassRequest req)
     {
         var (ok, error) = await classService.UpdateAsync(id, req);
@@ -80,6 +120,7 @@ public class ClassesController(ClassService classService) : ControllerBase
     // ── GET /api/classes/{id}/members ─────────────────────────────────────────
 
     [HttpGet("{id:guid}/members")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> GetMembers(Guid id)
     {
         var detail = await classService.GetDetailAsync(id);
@@ -91,6 +132,7 @@ public class ClassesController(ClassService classService) : ControllerBase
     // ── POST /api/classes/{id}/members ────────────────────────────────────────
 
     [HttpPost("{id:guid}/members")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> AddMember(Guid id, [FromBody] AddMemberRequest req)
     {
         var (ok, error) = await classService.AddMemberAsync(id, req.StudentId);
@@ -101,6 +143,7 @@ public class ClassesController(ClassService classService) : ControllerBase
     // ── DELETE /api/classes/{id}/members/{memberId} ───────────────────────────
 
     [HttpDelete("{id:guid}/members/{memberId:guid}")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> RemoveMember(Guid id, Guid memberId)
     {
         var ok = await classService.RemoveMemberAsync(id, memberId);
@@ -120,6 +163,7 @@ public class ClassesController(ClassService classService) : ControllerBase
     // ── GET /api/classes/students/search?q= ──────────────────────────────────
 
     [HttpGet("students/search")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> SearchStudents([FromQuery] string q = "")
     {
         if (string.IsNullOrWhiteSpace(q))
@@ -131,6 +175,7 @@ public class ClassesController(ClassService classService) : ControllerBase
     // ── GET /api/classes/teachers/search?q= ──────────────────────────────────
 
     [HttpGet("teachers/search")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> SearchTeachers([FromQuery] string q = "")
     {
         var results = await classService.SearchTeachersAsync(q);
@@ -140,6 +185,7 @@ public class ClassesController(ClassService classService) : ControllerBase
     // ── POST /api/classes/{id}/invite ─────────────────────────────────────────
 
     [HttpPost("{id:guid}/invite")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> CreateInvite(Guid id, [FromBody] CreateInviteRequest req)
     {
         var link = await classService.CreateInviteAsync(id, req.ExpiryDays);
@@ -147,6 +193,7 @@ public class ClassesController(ClassService classService) : ControllerBase
     }
 
     [HttpGet("{id:guid}/invite")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> GetActiveInvite(Guid id)
     {
         var link = await classService.GetActiveInviteAsync(id);
@@ -154,6 +201,7 @@ public class ClassesController(ClassService classService) : ControllerBase
     }
 
     [HttpDelete("{id:guid}/invite")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> RevokeInvite(Guid id)
     {
         var ok = await classService.RevokeInviteAsync(id);

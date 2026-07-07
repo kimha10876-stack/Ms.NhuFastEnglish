@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Users, Clock, BookOpen, ChevronRight, Search, ChevronLeft } from 'lucide-react'
+import { Plus, Users, Clock, BookOpen, ChevronRight, Search, ChevronLeft, MapPin } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useAuthStore } from '@/features/auth/auth.store'
@@ -8,6 +8,9 @@ import { useClasses, useCreateClass, useClassCategories } from './useClasses'
 import type { CreateClassRequest } from './classes.types'
 import TeacherSelect from './TeacherSelect'
 import { CustomDropdown } from '@/shared/components/ui/CustomDropdown'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/shared/api/client'
+import type { ApiResponse } from '@/shared/api/types'
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'Đang hoạt động',
@@ -38,6 +41,97 @@ export default function ClassesPage() {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
   const isAdmin  = user?.roles.includes('Admin') ?? false
+
+  const isStudent = user?.roles.includes('Student') ?? false
+
+  const { data: myClassesData, isLoading: loadingMyClasses } = useQuery<any[]>({
+    queryKey: ['my-classes'],
+    queryFn: () => api.get<ApiResponse<any[]>>('/classes/my-classes').then((r) => r.data.data!),
+    enabled: isStudent,
+  })
+
+  if (isStudent) {
+    const studentClasses = myClassesData ?? []
+    return (
+      <div className="p-6 space-y-6 max-w-5xl mx-auto">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">Học tập</p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
+            <BookOpen className="h-6 w-6 text-amber-500" />
+            Lớp học của tôi
+          </h1>
+        </div>
+
+        {loadingMyClasses ? (
+          <div className="bg-white border rounded-2xl p-20 flex justify-center items-center shadow-sm">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+          </div>
+        ) : studentClasses.length === 0 ? (
+          <div className="bg-white border border-gray-200 border-dashed rounded-2xl p-16 text-center shadow-sm">
+            <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="font-semibold text-gray-900">Chưa tham gia lớp học nào</h3>
+            <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
+              Bạn chưa có danh sách lớp học nào trên hệ thống. Hãy liên hệ với phòng tuyển sinh hoặc dùng link mời tham gia lớp học để đăng ký.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 animate-in fade-in duration-200">
+            {studentClasses.map((cls) => (
+              <div
+                key={cls.classId}
+                onClick={() => navigate(`/classes/${cls.classId}`)}
+                className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:border-amber-400 hover:shadow-md transition-all flex flex-col gap-4 group cursor-pointer"
+              >
+                <div className="flex items-start justify-between">
+                  <span
+                    className="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full text-white uppercase tracking-wider"
+                    style={{ backgroundColor: cls.categoryColorHex || '#6B7280' }}
+                  >
+                    {cls.categoryName}
+                  </span>
+                  <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold px-2 py-0.5 rounded-md">
+                    Đang tham gia
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-gray-900 group-hover:text-amber-600 transition-colors text-base line-clamp-1 leading-snug">
+                    {cls.className}
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5 shrink-0" />
+                    Giảng viên: <strong className="text-gray-700 font-semibold">{cls.teacherName}</strong>
+                  </p>
+                </div>
+
+                <div className="border-t border-gray-50 pt-4 mt-auto space-y-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                    Lịch học: {cls.scheduleDays || 'Chưa cập nhật'}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                    Thời gian: {cls.scheduleTime || 'Chưa cập nhật'}
+                  </div>
+                  {cls.room && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                      Phòng học: {cls.room}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end pt-2 text-xs font-bold text-amber-600 group-hover:text-amber-700 transition-colors gap-0.5 items-center">
+                  Vào lớp học
+                  <ChevronRight className="h-4 w-4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm]             = useState<CreateClassRequest>({
