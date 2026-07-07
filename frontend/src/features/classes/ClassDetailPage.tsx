@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Users, Info, Trash2, Plus, Copy, Link2,
   Loader2, Check, AlertTriangle, Search, Edit2,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -46,6 +47,7 @@ export default function ClassDetailPage() {
   const [showInvite, setShowInvite] = useState(false)
   const [copied, setCopied]         = useState(false)
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false)
+  const [memberPage, setMemberPage] = useState(1)
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -65,6 +67,15 @@ export default function ClassDetailPage() {
   const { data: searchResults = [] }                 = useSearchStudents(searchQ)
   const { data: activeInvite }                       = useActiveInvite(id)
   const { mutate: revokeInvite, isPending: revokingInvite } = useRevokeInvite(id)
+
+  const MEMBER_PAGE_SIZE = 10
+  const totalMembers = cls?.members.length ?? 0
+  const totalMemberPages = Math.ceil(totalMembers / MEMBER_PAGE_SIZE)
+  const activeMemberPage = Math.min(Math.max(1, memberPage), Math.max(1, totalMemberPages))
+  const paginatedMembers = cls?.members.slice(
+    (activeMemberPage - 1) * MEMBER_PAGE_SIZE,
+    activeMemberPage * MEMBER_PAGE_SIZE
+  ) ?? []
 
   const handleDelete = () => {
     if (!window.confirm('Bạn có chắc muốn xoá lớp học này?')) return
@@ -134,7 +145,7 @@ export default function ClassDetailPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl">
+    <div className="p-6">
 
       {/* ── Header ── */}
       <div className="flex items-start gap-3 mb-6">
@@ -266,53 +277,115 @@ export default function ClassDetailPage() {
               <p className="text-gray-400 text-xs mt-0.5">Thêm học viên hoặc chia sẻ link mời</p>
             </div>
           ) : (
-            <div className="overflow-x-auto border border-gray-200 rounded-2xl">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Học viên</th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400 hidden sm:table-cell">Ngày tham gia</th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400 hidden md:table-cell">Trạng thái</th>
-                    <th className="w-12 px-4 py-2.5"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cls.members.map((m) => (
-                    <tr key={m.memberId} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                            <span className="text-xs font-bold text-amber-700">
-                              {m.fullName[0]?.toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 truncate">{m.fullName}</p>
-                            <p className="text-xs text-gray-500 truncate">{m.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs hidden sm:table-cell">
-                        {new Date(m.joinedAt).toLocaleDateString('vi-VN')}
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell">
-                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold px-2 py-0.5 rounded-md">
-                          Đang học
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => removeMember(m.memberId)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
+            <>
+              <div className="overflow-x-auto border border-gray-200 rounded-2xl">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Học viên</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400 hidden sm:table-cell">Ngày tham gia</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400 hidden md:table-cell">Trạng thái</th>
+                      <th className="w-12 px-4 py-2.5"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {paginatedMembers.map((m) => (
+                      <tr key={m.memberId} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                              <span className="text-xs font-bold text-amber-700">
+                                {m.fullName[0]?.toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-gray-900 truncate">{m.fullName}</p>
+                              <p className="text-xs text-gray-500 truncate">{m.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 text-xs hidden sm:table-cell">
+                          {new Date(m.joinedAt).toLocaleDateString('vi-VN')}
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold px-2 py-0.5 rounded-md">
+                            Đang học
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => removeMember(m.memberId)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {totalMemberPages > 1 && (
+                <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 pt-4">
+                  <p className="text-xs font-semibold text-gray-500">
+                    Hiển thị học viên từ <span className="font-bold text-gray-900">{((activeMemberPage - 1) * MEMBER_PAGE_SIZE) + 1}</span> đến{' '}
+                    <span className="font-bold text-gray-900">
+                      {Math.min(activeMemberPage * MEMBER_PAGE_SIZE, totalMembers)}
+                    </span>{' '}
+                    trong tổng số <span className="font-bold text-gray-900">{totalMembers}</span> học viên
+                  </p>
+
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMemberPage(p => Math.max(p - 1, 1))}
+                      disabled={activeMemberPage === 1}
+                      className="h-8 w-8 p-0 rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+
+                    {Array.from({ length: totalMemberPages }).map((_, idx) => {
+                      const pNum = idx + 1
+                      if (totalMemberPages > 5 && Math.abs(pNum - activeMemberPage) > 1 && pNum !== 1 && pNum !== totalMemberPages) {
+                        if (pNum === 2 || pNum === totalMemberPages - 1) {
+                          return <span key={pNum} className="text-xs text-gray-400 px-1 font-bold">...</span>
+                        }
+                        return null
+                      }
+
+                      return (
+                        <Button
+                          key={pNum}
+                          variant={activeMemberPage === pNum ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setMemberPage(pNum)}
+                          className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold transition-all ${
+                            activeMemberPage === pNum
+                              ? 'bg-amber-500 border-amber-600 text-white hover:bg-amber-600 hover:text-white'
+                              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pNum}
+                        </Button>
+                      )
+                    })}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMemberPage(p => Math.min(p + 1, totalMemberPages))}
+                      disabled={activeMemberPage === totalMemberPages}
+                      className="h-8 w-8 p-0 rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -442,7 +515,7 @@ export default function ClassDetailPage() {
               </div>
             </form>
           ) : (
-            <div className="space-y-6 max-w-4xl animate-in fade-in duration-200">
+            <div className="space-y-6 animate-in fade-in duration-200">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Card 1: Học thuật & Phụ trách */}
                 <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow transition-shadow">
