@@ -247,6 +247,17 @@ using (var scope = app.Services.CreateScope())
                 );
                 db.SaveChanges();
             }
+
+            // Gieo dữ liệu BlogCategories mặc định nếu bảng trống
+            if (!db.BlogCategories.Any())
+            {
+                db.BlogCategories.AddRange(
+                    new BlogCategory { Id = 1, Name = "Tin tức", Slug = "tin-tuc", SortOrder = 1 },
+                    new BlogCategory { Id = 2, Name = "Kinh nghiệm học", Slug = "kinh-nghiem-hoc", SortOrder = 2 },
+                    new BlogCategory { Id = 3, Name = "Thông báo", Slug = "thong-bao", SortOrder = 3 }
+                );
+                db.SaveChanges();
+            }
             break; 
         }
         catch (Exception ex)

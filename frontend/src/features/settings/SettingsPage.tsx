@@ -4,7 +4,7 @@ import {
   Check, Loader2, Sparkles, Building, Phone, MapPin, Mail,
   Globe, AlertCircle, ShieldAlert,
   MessageCircle, Award, Star, Briefcase, GraduationCap, Flame,
-  Search, ChevronLeft, ChevronRight,
+  Search, ChevronLeft, ChevronRight, FileText,
 } from 'lucide-react'
 
 const ICON_COMPONENTS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -34,8 +34,13 @@ import {
   useUpdateCategory, useDeleteCategory,
 } from '@/features/classes/useClasses'
 import type { ClassCategory } from '@/features/classes/classes.types'
+import {
+  useBlogCategories, useCreateBlogCategory,
+  useUpdateBlogCategory, useDeleteBlogCategory,
+} from '@/features/blog/useBlog'
+import type { BlogCategory } from '@/features/blog/blog.types'
 
-type ActiveTab = 'system' | 'categories' | 'roles'
+type ActiveTab = 'system' | 'categories' | 'roles' | 'blog-categories'
 
 const PRESET_COLORS = [
   '#007AFF', // Blue
@@ -81,6 +86,18 @@ export default function SettingsPage() {
   const [catIcon, setCatIcon] = useState(AVAILABLE_ICONS[0].name)
   const [catSort, setCatSort] = useState(1)
   const [catError, setCatError] = useState('')
+
+  // ── Tab 4: Blog Categories hooks ──
+  const { data: blogCats = [], isLoading: loadingBlogCats } = useBlogCategories()
+  const { mutate: createBlogCat, isPending: creatingBlogCat } = useCreateBlogCategory()
+  const { mutate: updateBlogCat, isPending: updatingBlogCat } = useUpdateBlogCategory()
+  const { mutate: deleteBlogCat } = useDeleteBlogCategory()
+
+  const [showBlogCatModal, setShowBlogCatModal] = useState(false)
+  const [selectedBlogCat, setSelectedBlogCat] = useState<BlogCategory | null>(null)
+  const [blogCatName, setBlogCatName] = useState('')
+  const [blogCatSort, setBlogCatSort] = useState(1)
+  const [blogCatError, setBlogCatError] = useState('')
 
   // ── Tab 3: User roles hooks ──
   const { data: users = [], isLoading: loadingUsers } = useSettingsUsers()
@@ -178,6 +195,74 @@ export default function SettingsPage() {
     })
   }
 
+  // ── Tab 4: Handle Blog Category CRUD ──
+  const openBlogCatDialog = (cat: BlogCategory | null) => {
+    setBlogCatError('')
+    if (cat) {
+      setSelectedBlogCat(cat)
+      setBlogCatName(cat.name)
+      setBlogCatSort(cat.sortOrder)
+    } else {
+      setSelectedBlogCat(null)
+      setBlogCatName('')
+      setBlogCatSort(blogCats.length + 1)
+    }
+    setShowBlogCatModal(true)
+  }
+
+  const handleSaveBlogCat = (e: React.FormEvent) => {
+    e.preventDefault()
+    setBlogCatError('')
+
+    if (!blogCatName.trim()) {
+      setBlogCatError('Vui lòng nhập tên danh mục')
+      return
+    }
+
+    const payload = {
+      name: blogCatName.trim(),
+      sortOrder: Number(blogCatSort),
+    }
+
+    if (selectedBlogCat) {
+      updateBlogCat(
+        {
+          id: selectedBlogCat.id,
+          body: payload,
+        },
+        {
+          onSuccess: () => setShowBlogCatModal(false),
+          onError: (err: any) => {
+            const msg = err?.response?.data?.message || 'Cập nhật danh mục thất bại'
+            setBlogCatError(msg)
+          },
+        }
+      )
+    } else {
+      createBlogCat(
+        payload,
+        {
+          onSuccess: () => setShowBlogCatModal(false),
+          onError: (err: any) => {
+            const msg = err?.response?.data?.message || 'Tạo danh mục thất bại'
+            setBlogCatError(msg)
+          },
+        }
+      )
+    }
+  }
+
+  const handleDeleteBlogCat = (cat: BlogCategory) => {
+    if (!window.confirm(`Bạn có chắc muốn xoá danh mục bài viết "${cat.name}"? Xóa danh mục sẽ gỡ phân loại của tất cả bài viết liên quan.`)) return
+    deleteBlogCat(cat.id, {
+      onSuccess: (res: any) => {
+        if (res?.message) {
+          alert(res.message)
+        }
+      },
+    })
+  }
+
 
 
   // ── Tab 3: Handle User roles update ──
@@ -253,6 +338,7 @@ export default function SettingsPage() {
         {[
           { id: 'system', label: 'Thông tin trung tâm', icon: Building },
           { id: 'categories', label: 'Danh mục lớp học', icon: BookOpen },
+          { id: 'blog-categories', label: 'Danh mục bài viết', icon: FileText },
           { id: 'roles', label: 'Phân quyền thành viên', icon: Users },
         ].map((t) => {
           const Icon = t.icon
@@ -595,6 +681,80 @@ export default function SettingsPage() {
             )}
           </div>
         )}
+
+        {/* ── Tab 4: Blog Categories ── */}
+        {activeTab === 'blog-categories' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">Danh mục bài viết (Blog)</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Quản lý danh sách các danh mục phân loại cho tin tức và bài đăng</p>
+              </div>
+              <Button onClick={() => openBlogCatDialog(null)} className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-gray-900 font-semibold">
+                <Plus className="h-4 w-4" />
+                Thêm danh mục
+              </Button>
+            </div>
+
+            {loadingBlogCats ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+              </div>
+            ) : blogCats.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-2xl">
+                Không tìm thấy danh mục nào. Hãy tạo danh mục bài viết đầu tiên!
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {blogCats.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="p-5 border border-gray-200 rounded-2xl bg-white flex flex-col gap-4 relative group hover:border-amber-300 hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-sm">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-sm leading-snug">{cat.name}</h4>
+                          <span className="text-[10px] text-gray-400 font-medium font-mono">Slug: {cat.slug}</span>
+                        </div>
+                      </div>
+
+                      {/* Controls */}
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => openBlogCatDialog(cat)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                          title="Chỉnh sửa"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBlogCat(cat)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Xoá"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-gray-50 pt-3 mt-auto text-xs">
+                      <span className="text-gray-400">Thứ tự hiển thị: <span className="font-bold text-gray-700">{cat.sortOrder}</span></span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-md uppercase tracking-wide">
+                          Blog Category
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Dialog 1: Add/Edit Category Modal ── */}
@@ -796,6 +956,71 @@ export default function SettingsPage() {
                 </Button>
                 <Button type="submit" className="flex-1" disabled={updatingUserRoles}>
                   {updatingUserRoles ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Lưu lại'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Dialog 3: Add/Edit Blog Category Modal ── */}
+      {showBlogCatModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={(e) => e.target === e.currentTarget && setShowBlogCatModal(false)}
+        >
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 shrink-0">
+              <div>
+                <h2 className="font-bold text-lg text-gray-900">
+                  {selectedBlogCat ? 'Sửa danh mục bài viết' : 'Thêm danh mục bài viết'}
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">Nhập thông tin cơ bản cho danh mục phân loại blog</p>
+              </div>
+              <button
+                onClick={() => setShowBlogCatModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBlogCat} className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Tên danh mục <span className="text-red-500">*</span></label>
+                <Input
+                  value={blogCatName}
+                  onChange={(e) => setBlogCatName(e.target.value)}
+                  placeholder="VD: Hướng dẫn IELTS, Thông báo..."
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Thứ tự sắp xếp hiển thị</label>
+                <Input
+                  type="number"
+                  value={blogCatSort}
+                  onChange={(e) => setBlogCatSort(Number(e.target.value))}
+                  placeholder="VD: 1, 2, 3..."
+                />
+              </div>
+
+              {blogCatError && (
+                <div className="bg-red-50 border-l-4 border-red-500 px-4 py-2.5 rounded-r-xl">
+                  <p className="text-[13px] text-red-700 flex items-center gap-1.5">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {blogCatError}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowBlogCatModal(false)}>
+                  Huỷ bỏ
+                </Button>
+                <Button type="submit" className="flex-1 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold" disabled={creatingBlogCat || updatingBlogCat}>
+                  {creatingBlogCat || updatingBlogCat ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Lưu lại'}
                 </Button>
               </div>
             </form>

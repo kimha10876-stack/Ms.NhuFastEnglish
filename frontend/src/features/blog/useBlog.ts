@@ -87,10 +87,10 @@ export function useCreateBlogCategory() {
   })
 }
 
-export function useUpdateBlogCategory(id: number) {
+export function useUpdateBlogCategory() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: UpdateBlogCategoryRequest) => blogApi.updateCategory(id, body),
+    mutationFn: ({ id, body }: { id: number; body: UpdateBlogCategoryRequest }) => blogApi.updateCategory(id, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: BLOG_CATEGORIES_KEY })
       queryClient.invalidateQueries({ queryKey: BLOG_POSTS_KEY })

@@ -71,7 +71,7 @@ export default function BlogManagementPage() {
   const deletePostMutation = useDeleteBlogPost()
 
   const createCatMutation = useCreateBlogCategory()
-  const updateCatMutation = useUpdateBlogCategory(editingCatId ?? 0)
+  const updateCatMutation = useUpdateBlogCategory()
   const deleteCatMutation = useDeleteBlogCategory()
 
   // Actions
@@ -148,7 +148,7 @@ export default function BlogManagementPage() {
     }
 
     if (editingCatId) {
-      updateCatMutation.mutate(payload, callbacks)
+      updateCatMutation.mutate({ id: editingCatId, body: payload }, callbacks)
     } else {
       createCatMutation.mutate(payload, callbacks)
     }
