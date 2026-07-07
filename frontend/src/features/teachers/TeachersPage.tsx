@@ -339,7 +339,6 @@ export default function TeachersPage() {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-gray-900 truncate leading-snug">{te.fullName}</p>
-                          <p className="text-xs text-gray-400 mt-0.5 truncate">{te.email}</p>
                         </div>
                       </div>
                     </td>
