@@ -97,16 +97,7 @@ export default function BlogPostDetailPage() {
               </span>
             </div>
 
-            {/* Cover image */}
-            {post.thumbnailUrl && (
-              <div className="rounded-xl overflow-hidden aspect-[16/9] border border-gray-200">
-                <img
-                  src={post.thumbnailUrl}
-                  alt={post.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
+
 
             {/* Summary Block */}
             <div className="bg-gray-50 border-l-4 border-amber-500 p-4 rounded-r-xl">
