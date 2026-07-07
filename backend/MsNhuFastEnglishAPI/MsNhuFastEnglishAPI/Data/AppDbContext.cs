@@ -17,6 +17,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ClassDocument> ClassDocuments => Set<ClassDocument>();
     public DbSet<ConsultationRequest> ConsultationRequests => Set<ConsultationRequest>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<BlogCategory> BlogCategories => Set<BlogCategory>();
+    public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -148,6 +150,33 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             new SystemSetting { Key = "Address", Value = "123 Đường Ba Tháng Hai, Đà Nẵng", Description = "Địa chỉ trung tâm" },
             new SystemSetting { Key = "FacebookUrl", Value = "https://facebook.com/msnhu.fastenglish", Description = "Liên kết trang Facebook" },
             new SystemSetting { Key = "Email", Value = "contact@msnhufastenglish.com", Description = "Email liên hệ" }
+        );
+
+        // ── BlogCategory ──────────────────────────────────────────────────
+        mb.Entity<BlogCategory>(e =>
+        {
+            e.HasIndex(bc => bc.Slug).IsUnique();
+        });
+
+        // ── BlogPost ──────────────────────────────────────────────────────
+        mb.Entity<BlogPost>(e =>
+        {
+            e.HasIndex(bp => bp.Slug).IsUnique();
+            e.HasOne(bp => bp.Author)
+             .WithMany()
+             .HasForeignKey(bp => bp.AuthorId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(bp => bp.Category)
+             .WithMany(bc => bc.BlogPosts)
+             .HasForeignKey(bp => bp.CategoryId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ── Seed BlogCategories ──────────────────────────────────────────
+        mb.Entity<BlogCategory>().HasData(
+            new BlogCategory { Id = 1, Name = "Tin tức", Slug = "tin-tuc", SortOrder = 1 },
+            new BlogCategory { Id = 2, Name = "Kinh nghiệm học", Slug = "kinh-nghiem-hoc", SortOrder = 2 },
+            new BlogCategory { Id = 3, Name = "Thông báo", Slug = "thong-bao", SortOrder = 3 }
         );
     }
 }

@@ -14,7 +14,7 @@ const navItems = [
   { to: '/teachers',      icon: Users,            label: 'Giáo viên' },
   { to: '/tuition',       icon: CreditCard,       label: 'Học phí' },
   { to: '/consultations', icon: MessageSquare,    label: 'Tư vấn', badge: 2 },
-  { to: '/blog',          icon: FileText,         label: 'Blog' },
+  { to: '/blog-management', icon: FileText,         label: 'Blog' },
 ]
 
 interface SidebarProps {

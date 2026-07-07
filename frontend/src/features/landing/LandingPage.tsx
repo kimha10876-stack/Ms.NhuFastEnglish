@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Target, GraduationCap, TrendingUp, ChevronRight, BookOpen } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { useAuthStore } from '@/features/auth/auth.store'
+import { useBlogPosts } from '@/features/blog/useBlog'
 
 const features = [
   {
@@ -33,6 +34,9 @@ export default function LandingPage() {
   }, [])
 
   const isStaff = isHydrated && user && (user.roles.includes('Admin') || user.roles.includes('Teacher'))
+  
+  const { data: blogData } = useBlogPosts({ page: 1, pageSize: 3 })
+  const latestPosts = blogData?.items ?? []
 
   return (
     <div className="min-h-svh flex flex-col bg-white">
@@ -140,6 +144,68 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Latest Blog Posts ─────────────────────────────────────────────────── */}
+      {latestPosts.length > 0 && (
+        <section className="py-16 px-5 bg-gray-50 border-t">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-between items-end mb-10">
+              <div>
+                <h2 className="text-[26px] font-bold text-gray-900 leading-tight">
+                  Bài viết mới nhất
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Cập nhật các phương pháp học và tin tức mới nhất từ trung tâm.
+                </p>
+              </div>
+              <Link
+                to="/blog"
+                className="text-sm font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 shrink-0"
+              >
+                Xem tất cả blog
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {latestPosts.map((post) => (
+                <article
+                  key={post.id}
+                  className="bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-gray-300 transition-all flex flex-col group"
+                >
+                  {post.thumbnailUrl && (
+                    <div className="aspect-[16/10] rounded-xl overflow-hidden mb-4 border bg-gray-50">
+                      <img
+                        src={post.thumbnailUrl}
+                        alt=""
+                        className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+                      />
+                    </div>
+                  )}
+                  {post.categoryName && (
+                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2 block">
+                      {post.categoryName}
+                    </span>
+                  )}
+                  <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-snug group-hover:text-amber-600 transition-colors mb-2">
+                    <Link to={`/blog/${post.slug}`}>{post.title}</Link>
+                  </h3>
+                  <p className="text-xs text-muted-foreground line-clamp-3 mb-4 leading-relaxed flex-1">
+                    {post.summary}
+                  </p>
+                  <Link
+                    to={`/blog/${post.slug}`}
+                    className="text-xs font-bold text-gray-900 group-hover:text-amber-600 transition-colors flex items-center gap-1 mt-auto"
+                  >
+                    Đọc tiếp
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── CTA ────────────────────────────────────────────────────────────── */}
       <section className="py-10 px-5 mb-10">

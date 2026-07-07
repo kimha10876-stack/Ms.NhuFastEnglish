@@ -139,6 +139,65 @@ using (var scope = app.Services.CreateScope())
                 );
             ");
 
+            // Khởi tạo bảng BlogCategories và BlogPosts nếu chưa tồn tại
+            if (db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            {
+                db.Database.ExecuteSqlRaw(@"
+                    CREATE TABLE IF NOT EXISTS ""BlogCategories"" (
+                        ""Id"" SERIAL PRIMARY KEY,
+                        ""Name"" VARCHAR(255) NOT NULL,
+                        ""Slug"" VARCHAR(255) NOT NULL,
+                        ""SortOrder"" INT NOT NULL DEFAULT 0
+                    );
+
+                    CREATE TABLE IF NOT EXISTS ""BlogPosts"" (
+                        ""Id"" UUID PRIMARY KEY,
+                        ""Title"" VARCHAR(500) NOT NULL,
+                        ""Slug"" VARCHAR(500) NOT NULL,
+                        ""ThumbnailUrl"" VARCHAR(1000),
+                        ""Summary"" TEXT NOT NULL,
+                        ""Content"" TEXT NOT NULL,
+                        ""IsPublished"" BOOLEAN NOT NULL DEFAULT FALSE,
+                        ""CreatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+                        ""UpdatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+                        ""ViewCount"" INT NOT NULL DEFAULT 0,
+                        ""AuthorId"" UUID NOT NULL REFERENCES ""Users""(""Id"") ON DELETE CASCADE,
+                        ""CategoryId"" INTEGER REFERENCES ""BlogCategories""(""Id"") ON DELETE SET NULL
+                    );
+                ");
+            }
+            else
+            {
+                try
+                {
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS BlogCategories (
+                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            Name TEXT NOT NULL,
+                            Slug TEXT NOT NULL,
+                            SortOrder INTEGER NOT NULL DEFAULT 0
+                        );
+                    ");
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS BlogPosts (
+                            Id TEXT PRIMARY KEY,
+                            Title TEXT NOT NULL,
+                            Slug TEXT NOT NULL,
+                            ThumbnailUrl TEXT,
+                            Summary TEXT NOT NULL,
+                            Content TEXT NOT NULL,
+                            IsPublished INTEGER NOT NULL DEFAULT 0,
+                            CreatedAt TEXT NOT NULL,
+                            UpdatedAt TEXT NOT NULL,
+                            ViewCount INTEGER NOT NULL DEFAULT 0,
+                            AuthorId TEXT NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+                            CategoryId INTEGER REFERENCES BlogCategories(Id) ON DELETE SET NULL
+                        );
+                    ");
+                }
+                catch { }
+            }
+
             // Migration: Thêm cột MustChangePassword vào bảng Users nếu chưa có
             if (db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
             {

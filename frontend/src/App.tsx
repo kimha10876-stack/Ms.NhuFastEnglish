@@ -16,6 +16,9 @@ const JoinClassPage     = lazy(() => import('@/features/classes/JoinClassPage'))
 const TeachersPage      = lazy(() => import('@/features/teachers/TeachersPage'))
 const ConsultationsPage = lazy(() => import('@/features/consultations/ConsultationsPage'))
 const SettingsPage      = lazy(() => import('@/features/settings/SettingsPage'))
+const BlogManagementPage = lazy(() => import('@/features/blog/BlogManagementPage'))
+const PublicBlogPage     = lazy(() => import('@/features/blog/PublicBlogPage'))
+const BlogPostDetailPage = lazy(() => import('@/features/blog/BlogPostDetailPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -41,6 +44,8 @@ export default function App() {
             <Route path="/dang-ky"       element={<RegisterPage />} />
             <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
             <Route path="/tham-gia/:token" element={<JoinClassPage />} />
+            <Route path="/blog"          element={<PublicBlogPage />} />
+            <Route path="/blog/:slug"    element={<BlogPostDetailPage />} />
 
             {/* Protected */}
             <Route element={<AuthGuard />}>
@@ -52,6 +57,7 @@ export default function App() {
                 <Route path="teachers"         element={<TeachersPage />} />
                 <Route path="consultations"    element={<ConsultationsPage />} />
                 <Route path="settings"         element={<SettingsPage />} />
+                <Route path="blog-management"  element={<BlogManagementPage />} />
               </Route>
             </Route>
 
