@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Target, GraduationCap, TrendingUp, ChevronRight, BookOpen } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
+import { useAuthStore } from '@/features/auth/auth.store'
 
 const features = [
   {
@@ -23,6 +25,15 @@ const features = [
 const levels = ['Giao tiếp', 'IELTS', 'Thiếu nhi', 'Luyện thi', 'Mất gốc', 'Doanh nghiệp']
 
 export default function LandingPage() {
+  const [isHydrated, setIsHydrated] = useState(false)
+  const user = useAuthStore((s) => s.user)
+
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
+
+  const isStaff = isHydrated && user && (user.roles.includes('Admin') || user.roles.includes('Teacher'))
+
   return (
     <div className="min-h-svh flex flex-col bg-white">
 
@@ -35,9 +46,15 @@ export default function LandingPage() {
             </div>
             <span className="font-bold text-[17px] tracking-tight">Ms. Nhụ Fast English</span>
           </div>
-          <Link to="/login">
-            <Button size="sm">Đăng nhập</Button>
-          </Link>
+          {isStaff ? (
+            <Link to="/dashboard">
+              <Button size="sm" variant="outline">Trang quản lý</Button>
+            </Link>
+          ) : (
+            <Link to="/login">
+              <Button size="sm">Đăng nhập</Button>
+            </Link>
+          )}
         </div>
       </header>
 
@@ -56,17 +73,28 @@ export default function LandingPage() {
             hiện đại và giáo viên tận tâm.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/dang-ky">
-              <Button size="lg" className="w-full sm:w-auto px-8">
-                Đăng ký tư vấn miễn phí
-                <ChevronRight className="h-4 w-4 ml-0.5" />
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto px-8">
-                Học viên / Giáo viên
-              </Button>
-            </Link>
+            {isStaff ? (
+              <Link to="/dashboard">
+                <Button size="lg" className="w-full sm:w-auto px-8">
+                  Vào trang quản lý
+                  <ChevronRight className="h-4 w-4 ml-0.5" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/dang-ky">
+                  <Button size="lg" className="w-full sm:w-auto px-8">
+                    Đăng ký tư vấn miễn phí
+                    <ChevronRight className="h-4 w-4 ml-0.5" />
+                  </Button>
+                </Link>
+                <Link to="/login">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto px-8">
+                    Học viên / Giáo viên
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -122,14 +150,25 @@ export default function LandingPage() {
           <p className="text-white/70 mb-6 text-sm">
             Tư vấn miễn phí · Không cam kết · Không áp lực
           </p>
-          <Link to="/dang-ky">
-            <Button
-              size="lg"
-              className="bg-white text-primary hover:bg-white/90 font-semibold px-8"
-            >
-              Đăng ký ngay
-            </Button>
-          </Link>
+          {isStaff ? (
+            <Link to="/dashboard">
+              <Button
+                size="lg"
+                className="bg-white text-primary hover:bg-white/90 font-semibold px-8"
+              >
+                Vào trang quản lý
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/dang-ky">
+              <Button
+                size="lg"
+                className="bg-white text-primary hover:bg-white/90 font-semibold px-8"
+              >
+                Đăng ký ngay
+              </Button>
+            </Link>
+          )}
         </div>
       </section>
 

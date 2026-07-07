@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { BookOpen, ArrowLeft } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useRegisterStudent } from './useAuth'
+import { useAuthStore } from './auth.store'
 
 export default function RegisterPage() {
   const [searchParams] = useSearchParams()
@@ -18,6 +19,15 @@ export default function RegisterPage() {
   const [passwordError, setPasswordError] = useState('')
 
   const { mutate: register, isPending, error } = useRegisterStudent(inviteToken ?? undefined)
+
+  const user = useAuthStore((s) => s.user)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, navigate])
 
   const set = (field: string) => (e: { target: { value: string } }) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }))

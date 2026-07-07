@@ -1,5 +1,6 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios'
 import type { ApiResponse } from './types'
+import { useAuthStore } from '@/features/auth/auth.store'
 
 export const api = axios.create({
   baseURL: '/api',
@@ -52,8 +53,7 @@ api.interceptors.response.use(
       original.headers.Authorization = `Bearer ${tokens.accessToken}`
       return api(original)
     } catch {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
+      useAuthStore.getState().logout()
       window.location.href = '/login'
       return Promise.reject(error)
     } finally {

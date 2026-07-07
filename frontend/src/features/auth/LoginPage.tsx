@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { BookOpen, ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useLogin } from './useAuth'
+import { useAuthStore } from './auth.store'
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
@@ -12,6 +13,15 @@ export default function LoginPage() {
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const { mutate: login, isPending, error } = useLogin(redirectTo)
+
+  const user = useAuthStore((s) => s.user)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (user) {
+      navigate(redirectTo ?? '/dashboard', { replace: true })
+    }
+  }, [user, navigate, redirectTo])
 
   const handleSubmit = (e: { preventDefault(): void }) => {
     e.preventDefault()
