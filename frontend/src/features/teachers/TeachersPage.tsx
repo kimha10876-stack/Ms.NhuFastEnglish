@@ -66,8 +66,10 @@ export default function TeachersPage() {
   const totalCount = data?.totalCount ?? 0
   const totalPages = data?.totalPages ?? 1
 
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+
   const { mutate: createTeacher, isPending: creating } = useCreateTeacher()
-  const { mutate: updateTeacher, isPending: updating } = useUpdateTeacher(selectedTeacher?.teacherId ?? '')
+  const { mutate: updateTeacher, isPending: updating } = useUpdateTeacher()
   const { mutate: deleteTeacher, isPending: deleting } = useDeleteTeacher()
 
   // Actions
@@ -148,7 +150,7 @@ export default function TeachersPage() {
       payload.contractEnd = undefined
     }
 
-    updateTeacher(payload, {
+    updateTeacher({ id: selectedTeacher.teacherId, body: payload }, {
       onSuccess: () => {
         setShowEdit(false)
         setSelectedTeacher(null)
@@ -158,6 +160,20 @@ export default function TeachersPage() {
         setErrorMsg(msg)
       }
     })
+  }
+
+  const handleToggleActive = (teacher: TeacherDetail) => {
+    setTogglingId(teacher.teacherId)
+    updateTeacher(
+      {
+        id: teacher.teacherId,
+        body: { isActive: !teacher.isActive }
+      },
+      {
+        onSuccess: () => setTogglingId(null),
+        onError: () => setTogglingId(null)
+      }
+    )
   }
 
   const handleDelete = () => {
@@ -309,7 +325,7 @@ export default function TeachersPage() {
                   <th className="px-6 py-4">Phân loại</th>
                   <th className="px-6 py-4">Thời hạn hợp đồng</th>
                   <th className="px-6 py-4">Lớp phụ trách</th>
-                  <th className="px-6 py-4">Trạng thái</th>
+                  <th className="px-6 py-4">Kích hoạt</th>
                   <th className="px-6 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
@@ -359,15 +375,26 @@ export default function TeachersPage() {
                       </button>
                     </td>
                     <td className="px-6 py-4">
-                      {te.isActive ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700">
-                          Đang hoạt động
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActive(te)}
+                          disabled={togglingId === te.teacherId}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                            te.isActive ? 'bg-emerald-500' : 'bg-gray-200'
+                          } ${togglingId === te.teacherId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          title={te.isActive ? "Bấm để khóa tài khoản" : "Bấm để kích hoạt tài khoản"}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              te.isActive ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                        <span className={`text-xs font-semibold ${te.isActive ? 'text-emerald-700' : 'text-red-700'}`}>
+                          {te.isActive ? 'Hoạt động' : 'Bị khóa'}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-red-50 border border-red-200 text-red-700">
-                          Đã khóa
-                        </span>
-                      )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end items-center gap-2">

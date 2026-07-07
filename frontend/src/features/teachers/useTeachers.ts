@@ -27,13 +27,13 @@ export function useCreateTeacher() {
   })
 }
 
-export function useUpdateTeacher(id: string) {
+export function useUpdateTeacher() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: UpdateTeacherRequest) => teachersApi.update(id, body),
-    onSuccess: () => {
+    mutationFn: ({ id, body }: { id: string; body: UpdateTeacherRequest }) => teachersApi.update(id, body),
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: TEACHERS_KEY })
-      qc.invalidateQueries({ queryKey: [...TEACHERS_KEY, 'detail', id] })
+      qc.invalidateQueries({ queryKey: [...TEACHERS_KEY, 'detail', variables.id] })
     },
   })
 }
