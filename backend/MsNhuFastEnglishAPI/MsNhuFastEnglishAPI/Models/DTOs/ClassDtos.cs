@@ -129,3 +129,112 @@ public record PaginatedListDto<T>(
     int PageSize,
     int TotalPages
 );
+
+// ── Session DTOs ─────────────────────────────────────────────────────────────
+public record CreateSessionRequest(
+    int SessionNumber,
+    DateOnly SessionDate,
+    string StartTime,
+    string EndTime,
+    string? Topic,
+    string? Note,
+    Guid? GuestTeacherId
+);
+
+public record UpdateSessionRequest(
+    int? SessionNumber,
+    DateOnly? SessionDate,
+    string? StartTime,
+    string? EndTime,
+    string? Topic,
+    string? Note,
+    Guid? GuestTeacherId
+);
+
+public record ClassSessionDto(
+    Guid Id,
+    Guid ClassId,
+    int SessionNumber,
+    DateOnly SessionDate,
+    string StartTime,
+    string EndTime,
+    string? Topic,
+    string? Note,
+    Guid? GuestTeacherId,
+    string? GuestTeacherName,
+    IList<ClassDocumentDto> Documents
+);
+
+// ── Document DTOs ────────────────────────────────────────────────────────────
+public record CreateDocumentRequest(
+    Guid? SessionId,
+    string Title,
+    string FileUrl,
+    string FileType,
+    int FileSizeKb
+);
+
+public record ClassDocumentDto(
+    Guid Id,
+    Guid ClassId,
+    Guid? SessionId,
+    string Title,
+    string FileUrl,
+    string FileType,
+    int FileSizeKb,
+    Guid UploadedBy,
+    string UploadedByName,
+    DateTime CreatedAt
+);
+
+// ── Assignment DTOs ──────────────────────────────────────────────────────────
+public record CreateAssignmentRequest(
+    string Title,
+    string Description,
+    DateTime? DueDate
+);
+
+public record UpdateAssignmentRequest(
+    string? Title,
+    string? Description,
+    DateTime? DueDate
+);
+
+public record ClassAssignmentDto(
+    Guid Id,
+    Guid ClassId,
+    string Title,
+    string Description,
+    DateTime? DueDate,
+    DateTime CreatedAt,
+    AssignmentSubmissionDto? Submission,
+    int SubmissionsCount
+);
+
+// ── Submission DTOs ──────────────────────────────────────────────────────────
+public record SubmitAssignmentRequest(
+    string? SubmissionText,
+    string? FileUrl,
+    string? FileName
+);
+
+public record GradeSubmissionRequest(
+    float Grade,
+    string? TeacherFeedback
+);
+
+public record AssignmentSubmissionDto(
+    Guid Id,
+    Guid AssignmentId,
+    string? AssignmentTitle,
+    Guid StudentId,
+    string StudentName,
+    string StudentEmail,
+    string? SubmissionText,
+    string? FileUrl,
+    string? FileName,
+    DateTime SubmittedAt,
+    float? Grade,
+    string? TeacherFeedback
+);
+

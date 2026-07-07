@@ -15,6 +15,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ClassMember> ClassMembers => Set<ClassMember>();
     public DbSet<ClassSession> ClassSessions => Set<ClassSession>();
     public DbSet<ClassDocument> ClassDocuments => Set<ClassDocument>();
+    public DbSet<ClassAssignment> ClassAssignments => Set<ClassAssignment>();
+    public DbSet<AssignmentSubmission> AssignmentSubmissions => Set<AssignmentSubmission>();
     public DbSet<ConsultationRequest> ConsultationRequests => Set<ConsultationRequest>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<BlogCategory> BlogCategories => Set<BlogCategory>();
@@ -120,10 +122,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // ── ConsultationRequest ───────────────────────────────────────────
-        mb.Entity<ConsultationRequest>(e =>
+        // ── ClassAssignment ───────────────────────────────────────────────
+        mb.Entity<ClassAssignment>(e =>
         {
-            e.Property(cr => cr.CreatedAt).HasDefaultValueSql("NOW()");
+            e.Property(ca => ca.CreatedAt).HasDefaultValueSql("NOW()");
+            e.HasOne(ca => ca.Class)
+             .WithMany(c => c.Assignments)
+             .HasForeignKey(ca => ca.ClassId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── AssignmentSubmission ──────────────────────────────────────────
+        mb.Entity<AssignmentSubmission>(e =>
+        {
+            e.Property(asb => asb.SubmittedAt).HasDefaultValueSql("NOW()");
+            e.HasOne(asb => asb.Assignment)
+             .WithMany(ca => ca.Submissions)
+             .HasForeignKey(asb => asb.AssignmentId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(asb => asb.Student)
+             .WithMany()
+             .HasForeignKey(asb => asb.StudentId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // ── Seed Roles ────────────────────────────────────────────────────

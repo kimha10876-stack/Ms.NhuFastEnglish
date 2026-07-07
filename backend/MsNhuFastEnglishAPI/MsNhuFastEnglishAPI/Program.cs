@@ -164,6 +164,27 @@ using (var scope = app.Services.CreateScope())
                         ""AuthorId"" UUID NOT NULL REFERENCES ""Users""(""Id"") ON DELETE CASCADE,
                         ""CategoryId"" INTEGER REFERENCES ""BlogCategories""(""Id"") ON DELETE SET NULL
                     );
+
+                    CREATE TABLE IF NOT EXISTS ""ClassAssignments"" (
+                        ""Id"" UUID PRIMARY KEY,
+                        ""ClassId"" UUID NOT NULL REFERENCES ""Classes""(""Id"") ON DELETE CASCADE,
+                        ""Title"" VARCHAR(255) NOT NULL,
+                        ""Description"" TEXT NOT NULL,
+                        ""DueDate"" TIMESTAMP WITHOUT TIME ZONE,
+                        ""CreatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+                    );
+
+                    CREATE TABLE IF NOT EXISTS ""AssignmentSubmissions"" (
+                        ""Id"" UUID PRIMARY KEY,
+                        ""AssignmentId"" UUID NOT NULL REFERENCES ""ClassAssignments""(""Id"") ON DELETE CASCADE,
+                        ""StudentId"" UUID NOT NULL REFERENCES ""StudentProfiles""(""Id"") ON DELETE CASCADE,
+                        ""SubmissionText"" TEXT,
+                        ""FileUrl"" VARCHAR(1000),
+                        ""FileName"" VARCHAR(255),
+                        ""SubmittedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+                        ""Grade"" REAL,
+                        ""TeacherFeedback"" TEXT
+                    );
                 ");
             }
             else
@@ -192,6 +213,29 @@ using (var scope = app.Services.CreateScope())
                             ViewCount INTEGER NOT NULL DEFAULT 0,
                             AuthorId TEXT NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
                             CategoryId INTEGER REFERENCES BlogCategories(Id) ON DELETE SET NULL
+                        );
+                    ");
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS ClassAssignments (
+                            Id TEXT PRIMARY KEY,
+                            ClassId TEXT NOT NULL REFERENCES Classes(Id) ON DELETE CASCADE,
+                            Title TEXT NOT NULL,
+                            Description TEXT NOT NULL,
+                            DueDate TEXT,
+                            CreatedAt TEXT NOT NULL
+                        );
+                    ");
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS AssignmentSubmissions (
+                            Id TEXT PRIMARY KEY,
+                            AssignmentId TEXT NOT NULL REFERENCES ClassAssignments(Id) ON DELETE CASCADE,
+                            StudentId TEXT NOT NULL REFERENCES StudentProfiles(Id) ON DELETE CASCADE,
+                            SubmissionText TEXT,
+                            FileUrl TEXT,
+                            FileName TEXT,
+                            SubmittedAt TEXT NOT NULL,
+                            Grade REAL,
+                            TeacherFeedback TEXT
                         );
                     ");
                 }
@@ -400,6 +444,37 @@ using (var scope = app.Services.CreateScope())
                         Status = "active"
                     });
                 }
+
+                // Seed Sessions
+                var s1 = new ClassSession { Id = Guid.NewGuid(), ClassId = cls.Id, SessionNumber = 1, SessionDate = cls.StartDate, StartTime = "18:00", EndTime = "19:30", Topic = "Unit 1: Pronunciation & Phonics Guide", Note = "Luyện phát âm chuẩn IPA và cách nhận biết các âm cơ bản." };
+                var s2 = new ClassSession { Id = Guid.NewGuid(), ClassId = cls.Id, SessionNumber = 2, SessionDate = cls.StartDate.AddDays(2), StartTime = "18:00", EndTime = "19:30", Topic = "Unit 2: Greeting & Small Talk", Note = "Cách bắt đầu một cuộc hội thoại cơ bản với người nước ngoài." };
+                var s3 = new ClassSession { Id = Guid.NewGuid(), ClassId = cls.Id, SessionNumber = 3, SessionDate = cls.StartDate.AddDays(4), StartTime = "18:00", EndTime = "19:30", Topic = "Unit 3: Simple Present & Daily Routines", Note = "Sử dụng thì hiện tại đơn để mô tả các hoạt động hàng ngày." };
+                db.ClassSessions.AddRange(s1, s2, s3);
+
+                // Seed Class Documents
+                db.ClassDocuments.Add(new ClassDocument { Id = Guid.NewGuid(), ClassId = cls.Id, Title = "Đề cương chi tiết khóa học.pdf", FileUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", FileType = "pdf", FileSizeKb = 120, UploadedBy = teacherUser.Id, CreatedAt = DateTime.UtcNow });
+                db.ClassDocuments.Add(new ClassDocument { Id = Guid.NewGuid(), ClassId = cls.Id, SessionId = s1.Id, Title = "Bảng phiên âm quốc tế IPA.pdf", FileUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", FileType = "pdf", FileSizeKb = 250, UploadedBy = teacherUser.Id, CreatedAt = DateTime.UtcNow });
+                db.ClassDocuments.Add(new ClassDocument { Id = Guid.NewGuid(), ClassId = cls.Id, SessionId = s2.Id, Title = "Greeting Vocabulary Worksheet.docx", FileUrl = "https://calibre-ebook.com/downloads/demos/demo.docx", FileType = "word", FileSizeKb = 95, UploadedBy = teacherUser.Id, CreatedAt = DateTime.UtcNow });
+                
+                // Seed Class Assignments
+                db.ClassAssignments.Add(new ClassAssignment 
+                { 
+                    Id = Guid.NewGuid(), 
+                    ClassId = cls.Id, 
+                    Title = "Bài tập Unit 1: Ghi âm đoạn hội thoại tự giới thiệu bản thân", 
+                    Description = "Học sinh tự thiết kế một kịch bản giới thiệu bản thân tối thiểu 5 câu và thực hiện ghi âm/quay video rồi nộp link drive bài làm lên đây.", 
+                    DueDate = DateTime.UtcNow.AddDays(7),
+                    CreatedAt = DateTime.UtcNow
+                });
+                db.ClassAssignments.Add(new ClassAssignment 
+                { 
+                    Id = Guid.NewGuid(), 
+                    ClassId = cls.Id, 
+                    Title = "Bài tập Unit 3: Trắc nghiệm & viết lại câu với Thì hiện tại đơn", 
+                    Description = "Hoàn thành file bài tập worksheet đính kèm (hoặc trả lời trực tiếp trong phần bài làm).", 
+                    DueDate = DateTime.UtcNow.AddDays(14),
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             db.SaveChanges();
         }

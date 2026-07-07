@@ -1,6 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { classesApi } from './classes.api'
-import type { CreateClassRequest, UpdateClassRequest, CreateCategoryRequest, UpdateCategoryRequest } from './classes.types'
+import type {
+  CreateClassRequest,
+  UpdateClassRequest,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  CreateSessionRequest,
+  UpdateSessionRequest,
+  CreateDocumentRequest,
+  CreateAssignmentRequest,
+  UpdateAssignmentRequest,
+  SubmitAssignmentRequest,
+  GradeSubmissionRequest,
+} from './classes.types'
 
 export const CLASSES_KEY = ['classes'] as const
 
@@ -155,3 +167,133 @@ export function useRevokeInvite(classId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['classes', classId, 'invite'] }),
   })
 }
+
+// ── SESSIONS HOOKS ──
+export function useClassSessions(classId: string) {
+  return useQuery({
+    queryKey: ['classes', classId, 'sessions'],
+    queryFn: () => classesApi.getSessions(classId),
+    enabled: !!classId,
+  })
+}
+
+export function useCreateSession(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateSessionRequest) => classesApi.createSession(classId, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['classes', classId, 'sessions'] }),
+  })
+}
+
+export function useUpdateSession(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ sessionId, body }: { sessionId: string; body: UpdateSessionRequest }) =>
+      classesApi.updateSession(sessionId, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['classes', classId, 'sessions'] }),
+  })
+}
+
+export function useDeleteSession(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (sessionId: string) => classesApi.deleteSession(sessionId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['classes', classId, 'sessions'] }),
+  })
+}
+
+// ── DOCUMENTS HOOKS ──
+export function useCreateDocument(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateDocumentRequest) => classesApi.createDocument(classId, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['classes', classId, 'sessions'] }),
+  })
+}
+
+export function useDeleteDocument(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (documentId: string) => classesApi.deleteDocument(documentId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['classes', classId, 'sessions'] }),
+  })
+}
+
+// ── ASSIGNMENTS HOOKS ──
+export function useClassAssignments(classId: string) {
+  return useQuery({
+    queryKey: ['classes', classId, 'assignments'],
+    queryFn: () => classesApi.getAssignments(classId),
+    enabled: !!classId,
+  })
+}
+
+export function useAssignmentDetail(assignmentId: string) {
+  return useQuery({
+    queryKey: ['assignments', assignmentId],
+    queryFn: () => classesApi.getAssignmentDetail(assignmentId),
+    enabled: !!assignmentId,
+  })
+}
+
+export function useCreateAssignment(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateAssignmentRequest) => classesApi.createAssignment(classId, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['classes', classId, 'assignments'] }),
+  })
+}
+
+export function useUpdateAssignment(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ assignmentId, body }: { assignmentId: string; body: UpdateAssignmentRequest }) =>
+      classesApi.updateAssignment(assignmentId, body),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ['classes', classId, 'assignments'] })
+      qc.invalidateQueries({ queryKey: ['assignments', variables.assignmentId] })
+    },
+  })
+}
+
+export function useDeleteAssignment(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (assignmentId: string) => classesApi.deleteAssignment(assignmentId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['classes', classId, 'assignments'] }),
+  })
+}
+
+// ── SUBMISSIONS HOOKS ──
+export function useAssignmentSubmissions(assignmentId: string) {
+  return useQuery({
+    queryKey: ['assignments', assignmentId, 'submissions'],
+    queryFn: () => classesApi.getAssignmentSubmissions(assignmentId),
+    enabled: !!assignmentId,
+  })
+}
+
+export function useSubmitAssignment(classId: string, assignmentId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: SubmitAssignmentRequest) => classesApi.submitAssignment(assignmentId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', classId, 'assignments'] })
+      qc.invalidateQueries({ queryKey: ['assignments', assignmentId] })
+    },
+  })
+}
+
+export function useGradeSubmission(classId: string, assignmentId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ submissionId, body }: { submissionId: string; body: GradeSubmissionRequest }) =>
+      classesApi.gradeSubmission(submissionId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', classId, 'assignments'] })
+      qc.invalidateQueries({ queryKey: ['assignments', assignmentId] })
+      qc.invalidateQueries({ queryKey: ['assignments', assignmentId, 'submissions'] })
+    },
+  })
+}
+

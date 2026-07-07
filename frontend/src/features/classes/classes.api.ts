@@ -13,6 +13,17 @@ import type {
   CreateCategoryRequest,
   UpdateCategoryRequest,
   PaginatedResponse,
+  ClassSession,
+  ClassDocument,
+  ClassAssignment,
+  AssignmentSubmission,
+  CreateSessionRequest,
+  UpdateSessionRequest,
+  CreateDocumentRequest,
+  CreateAssignmentRequest,
+  UpdateAssignmentRequest,
+  SubmitAssignmentRequest,
+  GradeSubmissionRequest,
 } from './classes.types'
 
 export const classesApi = {
@@ -75,4 +86,50 @@ export const classesApi = {
 
   revokeInvite: (classId: string) =>
     api.delete<ApiResponse<null>>(`/classes/${classId}/invite`).then((r) => r.data),
+
+  // ── SESSIONS ──
+  getSessions: (classId: string) =>
+    api.get<ApiResponse<{ sessions: ClassSession[]; generalDocuments: ClassDocument[] }>>(`/classes/${classId}/sessions`).then((r) => r.data.data!),
+
+  createSession: (classId: string, body: CreateSessionRequest) =>
+    api.post<ApiResponse<{ id: string }>>(`/classes/${classId}/sessions`, body).then((r) => r.data.data!),
+
+  updateSession: (sessionId: string, body: UpdateSessionRequest) =>
+    api.put<ApiResponse<null>>(`/classes/sessions/${sessionId}`, body).then((r) => r.data),
+
+  deleteSession: (sessionId: string) =>
+    api.delete<ApiResponse<null>>(`/classes/sessions/${sessionId}`).then((r) => r.data),
+
+  // ── DOCUMENTS ──
+  createDocument: (classId: string, body: CreateDocumentRequest) =>
+    api.post<ApiResponse<{ id: string }>>(`/classes/${classId}/documents`, body).then((r) => r.data.data!),
+
+  deleteDocument: (documentId: string) =>
+    api.delete<ApiResponse<null>>(`/classes/documents/${documentId}`).then((r) => r.data),
+
+  // ── ASSIGNMENTS ──
+  getAssignments: (classId: string) =>
+    api.get<ApiResponse<ClassAssignment[]>>(`/classes/${classId}/assignments`).then((r) => r.data.data!),
+
+  getAssignmentDetail: (assignmentId: string) =>
+    api.get<ApiResponse<ClassAssignment>>(`/classes/assignments/${assignmentId}`).then((r) => r.data.data!),
+
+  createAssignment: (classId: string, body: CreateAssignmentRequest) =>
+    api.post<ApiResponse<{ id: string }>>(`/classes/${classId}/assignments`, body).then((r) => r.data.data!),
+
+  updateAssignment: (assignmentId: string, body: UpdateAssignmentRequest) =>
+    api.put<ApiResponse<null>>(`/classes/assignments/${assignmentId}`, body).then((r) => r.data),
+
+  deleteAssignment: (assignmentId: string) =>
+    api.delete<ApiResponse<null>>(`/classes/assignments/${assignmentId}`).then((r) => r.data),
+
+  // ── SUBMISSIONS ──
+  getAssignmentSubmissions: (assignmentId: string) =>
+    api.get<ApiResponse<AssignmentSubmission[]>>(`/classes/assignments/${assignmentId}/submissions`).then((r) => r.data.data!),
+
+  submitAssignment: (assignmentId: string, body: SubmitAssignmentRequest) =>
+    api.post<ApiResponse<{ id: string }>>(`/classes/assignments/${assignmentId}/submit`, body).then((r) => r.data.data!),
+
+  gradeSubmission: (submissionId: string, body: GradeSubmissionRequest) =>
+    api.post<ApiResponse<null>>(`/classes/assignments/submissions/${submissionId}/grade`, body).then((r) => r.data),
 }

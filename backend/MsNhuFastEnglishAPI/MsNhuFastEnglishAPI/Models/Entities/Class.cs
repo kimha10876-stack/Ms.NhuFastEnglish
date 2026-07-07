@@ -24,4 +24,5 @@ public class Class
     public ICollection<ClassMember> ClassMembers { get; set; } = new List<ClassMember>();
     public ICollection<ClassSession> Sessions { get; set; } = new List<ClassSession>();
     public ICollection<ClassDocument> Documents { get; set; } = new List<ClassDocument>();
+    public ICollection<ClassAssignment> Assignments { get; set; } = new List<ClassAssignment>();
 }

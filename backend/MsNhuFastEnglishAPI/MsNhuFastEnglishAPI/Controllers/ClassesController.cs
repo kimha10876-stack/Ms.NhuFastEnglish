@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using MsNhuFastEnglishAPI.Data;
 using MsNhuFastEnglishAPI.Models.DTOs;
 using MsNhuFastEnglishAPI.Services;
+using MsNhuFastEnglishAPI.Models.Entities;
 using MsNhuFastEnglishAPI.Shared;
 
 namespace MsNhuFastEnglishAPI.Controllers;
@@ -230,5 +231,422 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
         var (ok, error) = await classService.JoinByInviteAsync(token, UserId);
         if (!ok) return BadRequest(ApiResponse.BadRequest(error!));
         return Ok(ApiResponse.Ok<object?>(null, "Tham gia lớp học thành công"));
+    }
+
+    // ── SESSIONS ENDPOINTS ───────────────────────────────────────────────────
+
+    [HttpGet("{id:guid}/sessions")]
+    public async Task<IActionResult> GetSessions(Guid id)
+    {
+        var sessions = await db.ClassSessions
+            .Include(s => s.GuestTeacher)
+            .Include(s => s.Documents)
+                .ThenInclude(d => d.Uploader)
+            .Where(s => s.ClassId == id)
+            .OrderBy(s => s.SessionNumber)
+            .ToListAsync();
+
+        var generalDocuments = await db.ClassDocuments
+            .Include(d => d.Uploader)
+            .Where(d => d.ClassId == id && d.SessionId == null)
+            .OrderByDescending(d => d.CreatedAt)
+            .ToListAsync();
+
+        var sessionDtos = sessions.Select(s => new ClassSessionDto(
+            Id: s.Id,
+            ClassId: s.ClassId,
+            SessionNumber: s.SessionNumber,
+            SessionDate: s.SessionDate,
+            StartTime: s.StartTime,
+            EndTime: s.EndTime,
+            Topic: s.Topic,
+            Note: s.Note,
+            GuestTeacherId: s.GuestTeacherId,
+            GuestTeacherName: s.GuestTeacher?.FullName,
+            Documents: s.Documents.Select(d => new ClassDocumentDto(
+                Id: d.Id,
+                ClassId: d.ClassId,
+                SessionId: d.SessionId,
+                Title: d.Title,
+                FileUrl: d.FileUrl,
+                FileType: d.FileType,
+                FileSizeKb: d.FileSizeKb,
+                UploadedBy: d.UploadedBy,
+                UploadedByName: d.Uploader.FullName,
+                CreatedAt: d.CreatedAt
+            )).ToList()
+        )).ToList();
+
+        var generalDocDtos = generalDocuments.Select(d => new ClassDocumentDto(
+            Id: d.Id,
+            ClassId: d.ClassId,
+            SessionId: d.SessionId,
+            Title: d.Title,
+            FileUrl: d.FileUrl,
+            FileType: d.FileType,
+            FileSizeKb: d.FileSizeKb,
+            UploadedBy: d.UploadedBy,
+            UploadedByName: d.Uploader.FullName,
+            CreatedAt: d.CreatedAt
+        )).ToList();
+
+        return Ok(ApiResponse.Ok(new {
+            Sessions = sessionDtos,
+            GeneralDocuments = generalDocDtos
+        }));
+    }
+
+    [HttpPost("{id:guid}/sessions")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> CreateSession(Guid id, [FromBody] CreateSessionRequest req)
+    {
+        var cls = await db.Classes.FindAsync(id);
+        if (cls == null) return NotFound(ApiResponse.NotFound("Lớp học không tồn tại"));
+
+        var session = new ClassSession
+        {
+            Id = Guid.NewGuid(),
+            ClassId = id,
+            SessionNumber = req.SessionNumber,
+            SessionDate = req.SessionDate,
+            StartTime = req.StartTime,
+            EndTime = req.EndTime,
+            Topic = req.Topic,
+            Note = req.Note,
+            GuestTeacherId = req.GuestTeacherId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        db.ClassSessions.Add(session);
+        await db.SaveChangesAsync();
+
+        return StatusCode(201, ApiResponse.Created(new { session.Id }, "Tạo buổi học thành công"));
+    }
+
+    [HttpPut("sessions/{sessionId:guid}")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> UpdateSession(Guid sessionId, [FromBody] UpdateSessionRequest req)
+    {
+        var session = await db.ClassSessions.FindAsync(sessionId);
+        if (session == null) return NotFound(ApiResponse.NotFound("Buổi học không tồn tại"));
+
+        if (req.SessionNumber.HasValue) session.SessionNumber = req.SessionNumber.Value;
+        if (req.SessionDate.HasValue) session.SessionDate = req.SessionDate.Value;
+        if (req.StartTime != null) session.StartTime = req.StartTime;
+        if (req.EndTime != null) session.EndTime = req.EndTime;
+        if (req.Topic != null) session.Topic = req.Topic;
+        if (req.Note != null) session.Note = req.Note;
+        session.GuestTeacherId = req.GuestTeacherId;
+
+        await db.SaveChangesAsync();
+        return Ok(ApiResponse.Ok<object?>(null, "Cập nhật buổi học thành công"));
+    }
+
+    [HttpDelete("sessions/{sessionId:guid}")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> DeleteSession(Guid sessionId)
+    {
+        var session = await db.ClassSessions.FindAsync(sessionId);
+        if (session == null) return NotFound(ApiResponse.NotFound("Buổi học không tồn tại"));
+
+        db.ClassSessions.Remove(session);
+        await db.SaveChangesAsync();
+        return Ok(ApiResponse.Ok<object?>(null, "Xóa buổi học thành công"));
+    }
+
+    // ── DOCUMENTS ENDPOINTS ──────────────────────────────────────────────────
+
+    [HttpPost("{id:guid}/documents")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> CreateDocument(Guid id, [FromBody] CreateDocumentRequest req)
+    {
+        var cls = await db.Classes.FindAsync(id);
+        if (cls == null) return NotFound(ApiResponse.NotFound("Lớp học không tồn tại"));
+
+        if (req.SessionId.HasValue)
+        {
+            var sessionExists = await db.ClassSessions.AnyAsync(s => s.Id == req.SessionId.Value);
+            if (!sessionExists) return BadRequest(ApiResponse.BadRequest("Buổi học không tồn tại"));
+        }
+
+        var doc = new ClassDocument
+        {
+            Id = Guid.NewGuid(),
+            ClassId = id,
+            SessionId = req.SessionId,
+            Title = req.Title,
+            FileUrl = req.FileUrl,
+            FileType = req.FileType,
+            FileSizeKb = req.FileSizeKb,
+            UploadedBy = UserId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        db.ClassDocuments.Add(doc);
+        await db.SaveChangesAsync();
+
+        return StatusCode(201, ApiResponse.Created(new { doc.Id }, "Thêm tài liệu thành công"));
+    }
+
+    [HttpDelete("documents/{documentId:guid}")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> DeleteDocument(Guid documentId)
+    {
+        var doc = await db.ClassDocuments.FindAsync(documentId);
+        if (doc == null) return NotFound(ApiResponse.NotFound("Tài liệu không tồn tại"));
+
+        db.ClassDocuments.Remove(doc);
+        await db.SaveChangesAsync();
+        return Ok(ApiResponse.Ok<object?>(null, "Xóa tài liệu thành công"));
+    }
+
+    // ── ASSIGNMENTS ENDPOINTS ────────────────────────────────────────────────
+
+    [HttpGet("{id:guid}/assignments")]
+    public async Task<IActionResult> GetAssignments(Guid id)
+    {
+        var isStudent = User.IsInRole("Student");
+        Guid? studentId = null;
+
+        if (isStudent)
+        {
+            var profile = await db.StudentProfiles.FirstOrDefaultAsync(sp => sp.UserId == UserId);
+            if (profile != null) studentId = profile.Id;
+        }
+
+        var assignments = await db.ClassAssignments
+            .Include(a => a.Submissions)
+                .ThenInclude(s => s.Student)
+                    .ThenInclude(st => st.User)
+            .Where(a => a.ClassId == id)
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync();
+
+        var dtos = assignments.Select(a => {
+            AssignmentSubmissionDto? submissionDto = null;
+            if (isStudent && studentId.HasValue)
+            {
+                var sub = a.Submissions.FirstOrDefault(s => s.StudentId == studentId.Value);
+                if (sub != null)
+                {
+                    submissionDto = new AssignmentSubmissionDto(
+                        Id: sub.Id,
+                        AssignmentId: sub.AssignmentId,
+                        AssignmentTitle: a.Title,
+                        StudentId: sub.StudentId,
+                        StudentName: sub.Student.User.FullName,
+                        StudentEmail: sub.Student.User.Email,
+                        SubmissionText: sub.SubmissionText,
+                        FileUrl: sub.FileUrl,
+                        FileName: sub.FileName,
+                        SubmittedAt: sub.SubmittedAt,
+                        Grade: sub.Grade,
+                        TeacherFeedback: sub.TeacherFeedback
+                    );
+                }
+            }
+
+            return new ClassAssignmentDto(
+                Id: a.Id,
+                ClassId: a.ClassId,
+                Title: a.Title,
+                Description: a.Description,
+                DueDate: a.DueDate,
+                CreatedAt: a.CreatedAt,
+                Submission: submissionDto,
+                SubmissionsCount: a.Submissions.Count
+            );
+        }).ToList();
+
+        return Ok(ApiResponse.Ok(dtos));
+    }
+
+    [HttpGet("assignments/{assignmentId:guid}")]
+    public async Task<IActionResult> GetAssignmentDetail(Guid assignmentId)
+    {
+        var a = await db.ClassAssignments
+            .Include(a => a.Submissions)
+                .ThenInclude(s => s.Student)
+                    .ThenInclude(st => st.User)
+            .FirstOrDefaultAsync(x => x.Id == assignmentId);
+
+        if (a == null) return NotFound(ApiResponse.NotFound("Bài tập không tồn tại"));
+
+        var isStudent = User.IsInRole("Student");
+        AssignmentSubmissionDto? submissionDto = null;
+
+        if (isStudent)
+        {
+            var profile = await db.StudentProfiles.FirstOrDefaultAsync(sp => sp.UserId == UserId);
+            if (profile != null)
+            {
+                var sub = a.Submissions.FirstOrDefault(s => s.StudentId == profile.Id);
+                if (sub != null)
+                {
+                    submissionDto = new AssignmentSubmissionDto(
+                        Id: sub.Id,
+                        AssignmentId: sub.AssignmentId,
+                        AssignmentTitle: a.Title,
+                        StudentId: sub.StudentId,
+                        StudentName: sub.Student.User.FullName,
+                        StudentEmail: sub.Student.User.Email,
+                        SubmissionText: sub.SubmissionText,
+                        FileUrl: sub.FileUrl,
+                        FileName: sub.FileName,
+                        SubmittedAt: sub.SubmittedAt,
+                        Grade: sub.Grade,
+                        TeacherFeedback: sub.TeacherFeedback
+                    );
+                }
+            }
+        }
+
+        var dto = new ClassAssignmentDto(
+            Id: a.Id,
+            ClassId: a.ClassId,
+            Title: a.Title,
+            Description: a.Description,
+            DueDate: a.DueDate,
+            CreatedAt: a.CreatedAt,
+            Submission: submissionDto,
+            SubmissionsCount: a.Submissions.Count
+        );
+
+        return Ok(ApiResponse.Ok(dto));
+    }
+
+    [HttpPost("{id:guid}/assignments")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> CreateAssignment(Guid id, [FromBody] CreateAssignmentRequest req)
+    {
+        var cls = await db.Classes.FindAsync(id);
+        if (cls == null) return NotFound(ApiResponse.NotFound("Lớp học không tồn tại"));
+
+        var assignment = new ClassAssignment
+        {
+            Id = Guid.NewGuid(),
+            ClassId = id,
+            Title = req.Title,
+            Description = req.Description,
+            DueDate = req.DueDate,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        db.ClassAssignments.Add(assignment);
+        await db.SaveChangesAsync();
+
+        return StatusCode(201, ApiResponse.Created(new { assignment.Id }, "Giao bài tập thành công"));
+    }
+
+    [HttpPut("assignments/{assignmentId:guid}")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> UpdateAssignment(Guid assignmentId, [FromBody] UpdateAssignmentRequest req)
+    {
+        var a = await db.ClassAssignments.FindAsync(assignmentId);
+        if (a == null) return NotFound(ApiResponse.NotFound("Bài tập không tồn tại"));
+
+        if (req.Title != null) a.Title = req.Title;
+        if (req.Description != null) a.Description = req.Description;
+        a.DueDate = req.DueDate;
+
+        await db.SaveChangesAsync();
+        return Ok(ApiResponse.Ok<object?>(null, "Cập nhật bài tập thành công"));
+    }
+
+    [HttpDelete("assignments/{assignmentId:guid}")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> DeleteAssignment(Guid assignmentId)
+    {
+        var a = await db.ClassAssignments.FindAsync(assignmentId);
+        if (a == null) return NotFound(ApiResponse.NotFound("Bài tập không tồn tại"));
+
+        db.ClassAssignments.Remove(a);
+        await db.SaveChangesAsync();
+        return Ok(ApiResponse.Ok<object?>(null, "Xóa bài tập thành công"));
+    }
+
+    // ── SUBMISSIONS ENDPOINTS ────────────────────────────────────────────────
+
+    [HttpGet("assignments/{assignmentId:guid}/submissions")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> GetAssignmentSubmissions(Guid assignmentId)
+    {
+        var submissions = await db.AssignmentSubmissions
+            .Include(s => s.Student)
+                .ThenInclude(st => st.User)
+            .Include(s => s.Assignment)
+            .Where(s => s.AssignmentId == assignmentId)
+            .OrderByDescending(s => s.SubmittedAt)
+            .ToListAsync();
+
+        var dtos = submissions.Select(s => new AssignmentSubmissionDto(
+            Id: s.Id,
+            AssignmentId: s.AssignmentId,
+            AssignmentTitle: s.Assignment.Title,
+            StudentId: s.StudentId,
+            StudentName: s.Student.User.FullName,
+            StudentEmail: s.Student.User.Email,
+            SubmissionText: s.SubmissionText,
+            FileUrl: s.FileUrl,
+            FileName: s.FileName,
+            SubmittedAt: s.SubmittedAt,
+            Grade: s.Grade,
+            TeacherFeedback: s.TeacherFeedback
+        )).ToList();
+
+        return Ok(ApiResponse.Ok(dtos));
+    }
+
+    [HttpPost("assignments/{assignmentId:guid}/submit")]
+    [Authorize(Roles = "Student")]
+    public async Task<IActionResult> SubmitAssignment(Guid assignmentId, [FromBody] SubmitAssignmentRequest req)
+    {
+        var a = await db.ClassAssignments.FindAsync(assignmentId);
+        if (a == null) return NotFound(ApiResponse.NotFound("Bài tập không tồn tại"));
+
+        var profile = await db.StudentProfiles.FirstOrDefaultAsync(sp => sp.UserId == UserId);
+        if (profile == null) return BadRequest(ApiResponse.BadRequest("Không tìm thấy hồ sơ học viên"));
+
+        var sub = await db.AssignmentSubmissions
+            .FirstOrDefaultAsync(s => s.AssignmentId == assignmentId && s.StudentId == profile.Id);
+
+        if (sub != null)
+        {
+            sub.SubmissionText = req.SubmissionText;
+            sub.FileUrl = req.FileUrl;
+            sub.FileName = req.FileName;
+            sub.SubmittedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            sub = new AssignmentSubmission
+            {
+                Id = Guid.NewGuid(),
+                AssignmentId = assignmentId,
+                StudentId = profile.Id,
+                SubmissionText = req.SubmissionText,
+                FileUrl = req.FileUrl,
+                FileName = req.FileName,
+                SubmittedAt = DateTime.UtcNow
+            };
+            db.AssignmentSubmissions.Add(sub);
+        }
+
+        await db.SaveChangesAsync();
+        return Ok(ApiResponse.Ok(new { sub.Id }, "Nộp bài tập thành công"));
+    }
+
+    [HttpPost("assignments/submissions/{submissionId:guid}/grade")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> GradeSubmission(Guid submissionId, [FromBody] GradeSubmissionRequest req)
+    {
+        var sub = await db.AssignmentSubmissions.FindAsync(submissionId);
+        if (sub == null) return NotFound(ApiResponse.NotFound("Không tìm thấy bài nộp"));
+
+        sub.Grade = req.Grade;
+        sub.TeacherFeedback = req.TeacherFeedback;
+
+        await db.SaveChangesAsync();
+        return Ok(ApiResponse.Ok<object?>(null, "Chấm điểm bài nộp thành công"));
     }
 }

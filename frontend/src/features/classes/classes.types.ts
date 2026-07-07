@@ -128,3 +128,109 @@ export interface PaginatedResponse<T> {
   pageSize: number
   totalPages: number
 }
+
+export interface ClassDocument {
+  id: string
+  classId: string
+  sessionId: string | null
+  title: string
+  fileUrl: string
+  fileType: string
+  fileSizeKb: number
+  uploadedBy: string
+  uploadedByName: string
+  createdAt: string
+}
+
+export interface ClassSession {
+  id: string
+  classId: string
+  sessionNumber: number
+  sessionDate: string
+  startTime: string
+  endTime: string
+  topic: string | null
+  note: string | null
+  guestTeacherId: string | null
+  guestTeacherName: string | null
+  documents: ClassDocument[]
+}
+
+export interface AssignmentSubmission {
+  id: string
+  assignmentId: string
+  assignmentTitle?: string
+  studentId: string
+  studentName: string
+  studentEmail: string
+  submissionText: string | null
+  fileUrl: string | null
+  fileName: string | null
+  submittedAt: string
+  grade: number | null
+  teacherFeedback: string | null
+}
+
+export interface ClassAssignment {
+  id: string
+  classId: string
+  title: string
+  description: string
+  dueDate: string | null
+  createdAt: string
+  submission: AssignmentSubmission | null
+  submissionsCount: number
+}
+
+// Request payloads
+export interface CreateSessionRequest {
+  sessionNumber: number
+  sessionDate: string
+  startTime: string
+  endTime: string
+  topic?: string
+  note?: string
+  guestTeacherId?: string
+}
+
+export interface UpdateSessionRequest {
+  sessionNumber?: number
+  sessionDate?: string
+  startTime?: string
+  endTime?: string
+  topic?: string
+  note?: string
+  guestTeacherId?: string
+}
+
+export interface CreateDocumentRequest {
+  sessionId?: string
+  title: string
+  fileUrl: string
+  fileType: string
+  fileSizeKb: number
+}
+
+export interface CreateAssignmentRequest {
+  title: string
+  description: string
+  dueDate?: string
+}
+
+export interface UpdateAssignmentRequest {
+  title?: string
+  description?: string
+  dueDate?: string | null
+}
+
+export interface SubmitAssignmentRequest {
+  submissionText?: string
+  fileUrl?: string
+  fileName?: string
+}
+
+export interface GradeSubmissionRequest {
+  grade: number
+  teacherFeedback?: string
+}
+
