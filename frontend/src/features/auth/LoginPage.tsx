@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { BookOpen, ArrowLeft } from 'lucide-react'
+import { BookOpen, ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useLogin } from './useAuth'
@@ -112,10 +112,17 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full h-11 text-[15px] font-semibold mt-1"
+                className="w-full h-11 text-[15px] font-semibold mt-1 gap-2 flex items-center justify-center"
                 disabled={isPending}
               >
-                {isPending ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                {isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Đang đăng nhập...
+                  </>
+                ) : (
+                  'Đăng nhập'
+                )}
               </Button>
             </form>
 

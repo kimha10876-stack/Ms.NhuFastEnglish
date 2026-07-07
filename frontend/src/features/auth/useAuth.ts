@@ -9,7 +9,25 @@ export function useLogin(redirectTo?: string) {
   const navigate = useNavigate()
 
   return useMutation({
-    mutationFn: (body: LoginRequest) => authApi.login(body),
+    mutationFn: async (body: LoginRequest) => {
+      const startTime = Date.now();
+      try {
+        const res = await authApi.login(body);
+        const elapsedTime = Date.now() - startTime;
+        const delay = 1200 - elapsedTime;
+        if (delay > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+        return res;
+      } catch (err) {
+        const elapsedTime = Date.now() - startTime;
+        const delay = 1200 - elapsedTime;
+        if (delay > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+        throw err;
+      }
+    },
     onSuccess: (data) => {
       localStorage.setItem('access_token', data.accessToken)
       localStorage.setItem('refresh_token', data.refreshToken)
