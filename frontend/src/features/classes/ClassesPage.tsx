@@ -43,6 +43,8 @@ export default function ClassesPage() {
   const isAdmin  = user?.roles.includes('Admin') ?? false
 
   const isStudent = user?.roles.includes('Student') ?? false
+  const [studentPage, setStudentPage] = useState(1)
+  const studentPageSize = 9
 
   const { data: myClassesData, isLoading: loadingMyClasses } = useQuery<any[]>({
     queryKey: ['my-classes'],
@@ -52,6 +54,14 @@ export default function ClassesPage() {
 
   if (isStudent) {
     const studentClasses = myClassesData ?? []
+    const totalStudentCount = studentClasses.length
+    const totalStudentPages = Math.ceil(totalStudentCount / studentPageSize) || 1
+    const activeStudentPage = Math.min(studentPage, totalStudentPages)
+    const paginatedStudentClasses = studentClasses.slice(
+      (activeStudentPage - 1) * studentPageSize,
+      activeStudentPage * studentPageSize
+    )
+
     return (
       <div className="p-6 space-y-6 max-w-5xl mx-auto">
         <div>
@@ -75,58 +85,114 @@ export default function ClassesPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 animate-in fade-in duration-200">
-            {studentClasses.map((cls) => (
-              <div
-                key={cls.classId}
-                onClick={() => navigate(`/classes/${cls.classId}`)}
-                className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:border-amber-400 hover:shadow-md transition-all flex flex-col gap-4 group cursor-pointer"
-              >
-                <div className="flex items-start justify-between">
-                  <span
-                    className="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full text-white uppercase tracking-wider"
-                    style={{ backgroundColor: cls.categoryColorHex || '#6B7280' }}
-                  >
-                    {cls.categoryName}
-                  </span>
-                  <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold px-2 py-0.5 rounded-md">
-                    Đang tham gia
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-gray-900 group-hover:text-amber-600 transition-colors text-base line-clamp-1 leading-snug">
-                    {cls.className}
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5 shrink-0" />
-                    Giảng viên: <strong className="text-gray-700 font-semibold">{cls.teacherName}</strong>
-                  </p>
-                </div>
-
-                <div className="border-t border-gray-50 pt-4 mt-auto space-y-2 text-xs text-gray-500">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                    Lịch học: {cls.scheduleDays || 'Chưa cập nhật'}
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 animate-in fade-in duration-200">
+              {paginatedStudentClasses.map((cls) => (
+                <div
+                  key={cls.classId}
+                  onClick={() => navigate(`/classes/${cls.classId}`)}
+                  className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:border-amber-400 hover:shadow-md transition-all flex flex-col gap-4 group cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <span
+                      className="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full text-white uppercase tracking-wider"
+                      style={{ backgroundColor: cls.categoryColorHex || '#6B7280' }}
+                    >
+                      {cls.categoryName}
+                    </span>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold px-2 py-0.5 rounded-md">
+                      Đang tham gia
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                    Thời gian: {cls.scheduleTime || 'Chưa cập nhật'}
+
+                  <div>
+                    <h3 className="font-bold text-gray-900 group-hover:text-amber-600 transition-colors text-base line-clamp-1 leading-snug">
+                      {cls.className}
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5 shrink-0" />
+                      Giảng viên: <strong className="text-gray-700 font-semibold">{cls.teacherName}</strong>
+                    </p>
                   </div>
-                  {cls.room && (
+
+                  <div className="border-t border-gray-50 pt-4 mt-auto space-y-2 text-xs text-gray-500">
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                      Phòng học: {cls.room}
+                      <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                      Lịch học: {cls.scheduleDays || 'Chưa cập nhật'}
                     </div>
-                  )}
-                </div>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                      Thời gian: {cls.scheduleTime || 'Chưa cập nhật'}
+                    </div>
+                    {cls.room && (
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                        Phòng học: {cls.room}
+                      </div>
+                    )}
+                  </div>
 
-                <div className="flex justify-end pt-2 text-xs font-bold text-amber-600 group-hover:text-amber-700 transition-colors gap-0.5 items-center">
-                  Vào lớp học
-                  <ChevronRight className="h-4 w-4" />
+                  <div className="flex justify-end pt-2 text-xs font-bold text-amber-600 group-hover:text-amber-700 transition-colors gap-0.5 items-center">
+                    Vào lớp học
+                    <ChevronRight className="h-4 w-4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalStudentPages > 1 && (
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 pt-6">
+                <p className="text-xs font-semibold text-gray-500">
+                  Hiển thị lớp học từ <span className="font-bold text-gray-900">{((activeStudentPage - 1) * studentPageSize) + 1}</span> đến{' '}
+                  <span className="font-bold text-gray-900">
+                    {Math.min(activeStudentPage * studentPageSize, totalStudentCount)}
+                  </span>{' '}
+                  trong tổng số <span className="font-bold text-gray-900">{totalStudentCount}</span> lớp
+                </p>
+
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStudentPage(p => Math.max(p - 1, 1))}
+                    disabled={activeStudentPage === 1}
+                    className="h-8 w-8 p-0 rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  {Array.from({ length: totalStudentPages }).map((_, idx) => {
+                    const pNum = idx + 1
+                    return (
+                      <Button
+                        key={pNum}
+                        variant={activeStudentPage === pNum ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setStudentPage(pNum)}
+                        className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold transition-all ${
+                          activeStudentPage === pNum
+                            ? 'bg-amber-500 border-amber-600 text-white hover:bg-amber-600 hover:text-white'
+                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pNum}
+                      </Button>
+                    )
+                  })}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStudentPage(p => Math.min(p + 1, totalStudentPages))}
+                    disabled={activeStudentPage === totalStudentPages}
+                    className="h-8 w-8 p-0 rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
