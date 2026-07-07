@@ -88,6 +88,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ClassService>();
 builder.Services.AddScoped<SettingsService>();
 builder.Services.AddScoped<StudentService>();
+builder.Services.AddScoped<TeacherService>();
 
 // ── Controllers + Swagger ─────────────────────────────────────────────────────
 builder.Services.AddControllers();
