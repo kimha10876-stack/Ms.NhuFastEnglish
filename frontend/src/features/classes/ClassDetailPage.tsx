@@ -514,276 +514,6 @@ export default function ClassDetailPage() {
     return <File className="h-5 w-5 text-gray-500" />
   }
 
-  const renderStudentView = (isPreview = false) => {
-    if (!selectedAssignment) return null
-
-    const questions = selectedAssignment.questionsJson ? JSON.parse(selectedAssignment.questionsJson) : []
-    const hasSubmitted = isPreview ? false : !!selectedAssignment.submission
-    const isOverdue = isPreview ? false : !!(selectedAssignment.dueDate && new Date(selectedAssignment.dueDate) < new Date())
-    const isBlocked = isPreview ? false : !!(isOverdue && !selectedAssignment.allowLateSubmission && !hasSubmitted)
-    const isGraded = isPreview ? false : selectedAssignment.submission?.grade !== null && selectedAssignment.submission?.grade !== undefined
-
-    const submissionAnswers = (!isPreview && selectedAssignment.submission?.answersJson)
-      ? JSON.parse(selectedAssignment.submission.answersJson) 
-      : []
-
-    const onFormSubmit = (e) => {
-      e.preventDefault()
-      if (isPreview) {
-        alert('Xem trước: Nộp bài thành công! Điểm của bạn sẽ tự động được chấm nếu đây là bài thi thật.')
-        return
-      }
-      handleSubmitWork(e)
-    }
-
-    return (
-      <div className="space-y-4 animate-in fade-in duration-300">
-        {selectedAssignment.assignmentType === 'Quiz' ? (
-          <form onSubmit={onFormSubmit} className="space-y-4 bg-gray-50/50 p-5 border border-gray-100 rounded-2xl">
-            <div className="space-y-6">
-              {questions.map((q, idx) => {
-                const studentAns = quizAnswers[q.id] ?? ''
-                const savedAnsObj = submissionAnswers.find(sa => sa.questionId === q.id)
-                const isCorrect = savedAnsObj?.isCorrect
-                const questionGrade = savedAnsObj?.grade
-
-                return (
-                  <div key={q.id} className="p-4 bg-white border border-gray-200 rounded-xl space-y-3 shadow-sm text-left">
-                    <div className="flex items-start justify-between gap-3">
-                      <h4 className="text-xs font-bold text-gray-800">
-                        Câu {idx + 1} ({q.points} điểm): {q.questionText}
-                      </h4>
-                      {hasSubmitted && (
-                        <div className="shrink-0 text-[10px] font-bold">
-                          {isCorrect === true && (
-                            <span className="text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                              Đúng (+{q.points}đ)
-                            </span>
-                          )}
-                          {isCorrect === false && (
-                            <span className="text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
-                              Sai (0đ)
-                            </span>
-                          )}
-                          {isCorrect === undefined && (
-                            <span className="text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
-                              {isGraded ? `Chấm điểm: ${questionGrade ?? 0}/${q.points}đ` : 'Chờ chấm'}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {q.type === 'MultipleChoice' && q.options && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {['A', 'B', 'C', 'D'].map((choice, oIdx) => {
-                          const optionText = q.options?.[oIdx] || ''
-                          const isSelected = studentAns === choice
-                          const optionId = `q-${q.id}-${choice}-${isPreview ? 'preview' : 'real'}`
-                          return (
-                            <label
-                              key={choice}
-                              htmlFor={optionId}
-                              className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
-                                isSelected
-                                  ? 'bg-amber-50 border-amber-500 text-amber-700'
-                                  : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                id={optionId}
-                                name={`q-${q.id}-${isPreview ? 'preview' : 'real'}`}
-                                value={choice}
-                                checked={isSelected}
-                                disabled={hasSubmitted || isBlocked}
-                                onChange={() => setQuizAnswers({ ...quizAnswers, [q.id]: choice })}
-                                className="accent-amber-500"
-                              />
-                              <span className="font-bold">{choice}.</span>
-                              <span>{optionText}</span>
-                            </label>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {q.type === 'TrueFalse' && (
-                      <div className="flex gap-4">
-                        {['True', 'False'].map((choice) => {
-                          const isSelected = studentAns === choice
-                          const optionId = `q-${q.id}-${choice}-${isPreview ? 'preview' : 'real'}`
-                          return (
-                            <label
-                              key={choice}
-                              htmlFor={optionId}
-                              className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
-                                isSelected
-                                  ? choice === 'True' 
-                                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                                    : 'bg-red-50 border-red-500 text-red-700'
-                                  : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                id={optionId}
-                                name={`q-${q.id}-${isPreview ? 'preview' : 'real'}`}
-                                value={choice}
-                                checked={isSelected}
-                                disabled={hasSubmitted || isBlocked}
-                                onChange={() => setQuizAnswers({ ...quizAnswers, [q.id]: choice })}
-                                className="accent-amber-500"
-                              />
-                              {choice === 'True' ? 'Đúng' : 'Sai'}
-                            </label>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {q.type === 'FillInTheBlank' && (
-                      <Input
-                        value={studentAns}
-                        onChange={(e) => setQuizAnswers({ ...quizAnswers, [q.id]: e.target.value })}
-                        disabled={hasSubmitted || isBlocked}
-                        placeholder="Nhập từ cần điền..."
-                        className="rounded-xl h-9 text-xs bg-white border border-gray-200"
-                      />
-                    )}
-
-                    {q.type === 'ShortAnswer' && (
-                      <Input
-                        value={studentAns}
-                        onChange={(e) => setQuizAnswers({ ...quizAnswers, [q.id]: e.target.value })}
-                        disabled={hasSubmitted || isBlocked}
-                        placeholder="Nhập câu trả lời ngắn..."
-                        className="rounded-xl h-9 text-xs bg-white border border-gray-200"
-                      />
-                    )}
-
-                    {q.type === 'Writing' && (
-                      <textarea
-                        value={studentAns}
-                        onChange={(e) => setQuizAnswers({ ...quizAnswers, [q.id]: e.target.value })}
-                        disabled={hasSubmitted || isBlocked}
-                        placeholder="Viết bài làm của bạn tại đây..."
-                        className="w-full min-h-[80px] p-3 text-xs rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 bg-white"
-                      />
-                    )}
-
-                    {savedAnsObj?.teacherFeedback && (
-                      <div className="bg-amber-50/30 border border-amber-200/20 p-2.5 rounded-lg text-[11px] text-gray-500 font-semibold italic text-left">
-                        Giáo viên nhận xét: {savedAnsObj.teacherFeedback}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-
-              {hasSubmitted && (
-                <p className="text-[10px] text-gray-400 font-bold text-left">
-                  Đã nộp lúc: {new Date(selectedAssignment.submission.submittedAt).toLocaleString('vi-VN')}
-                </p>
-              )}
-
-              {(!hasSubmitted || selectedAssignment.submission?.grade === null) && !isBlocked && (
-                <Button type="submit" disabled={submitAssignmentMutation.isPending} className="w-full gap-1.5 rounded-xl font-bold py-2.5 shadow-sm shadow-amber-500/10">
-                  {submitAssignmentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  {hasSubmitted ? 'Cập nhật bài nộp Quiz' : 'Nộp bài làm Quiz'}
-                </Button>
-              )}
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={onFormSubmit} className="space-y-4 bg-gray-50/50 p-4 border border-gray-100 rounded-2xl text-left">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nội dung bài làm / Link Google Drive</label>
-              <textarea
-                value={submitForm.submissionText}
-                onChange={(e) => setSubmitForm({ ...submitForm, submissionText: e.target.value })}
-                placeholder="Nhập nội dung trả lời hoặc dán link Google Drive/Dropbox chứa bài làm của bạn..."
-                className="w-full min-h-[100px] p-3 text-sm bg-white rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20"
-                required
-                disabled={hasSubmitted || isBlocked}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tải tệp từ thiết bị (Ảnh/PDF/Word)</label>
-                <div className="flex items-center gap-2">
-                  <label
-                    className={`flex items-center gap-1.5 px-3 h-[38px] rounded-xl border border-gray-200 text-xs font-semibold cursor-pointer select-none transition-all ${
-                      uploadingFile || hasSubmitted || isBlocked
-                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                      disabled={uploadingFile || hasSubmitted || isBlocked}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-                        setUploadingFile(true)
-                        try {
-                          const res = await classesApi.uploadFile(file)
-                          setSubmitForm((prev) => ({
-                            ...prev,
-                            fileUrl: res.fileUrl,
-                            fileName: res.fileName
-                          }))
-                          alert('Tải tệp lên thành công!')
-                        } catch {
-                          alert('Tải tệp thất bại, vui lòng thử lại!')
-                        } finally {
-                          setUploadingFile(false)
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    {uploadingFile ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
-                    ) : (
-                      <Upload className="h-4 w-4 text-gray-500" />
-                    )}
-                    Chọn tệp đính kèm
-                  </label>
-                  {submitForm.fileName && (
-                    <span className="text-[10px] text-gray-500 font-bold truncate max-w-[150px]">
-                      {submitForm.fileName}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Đường dẫn tệp đính kèm (URL)</label>
-                <Input
-                  value={submitForm.fileUrl}
-                  onChange={(e) => setSubmitForm({ ...submitForm, fileUrl: e.target.value })}
-                  placeholder="https://..."
-                  className="rounded-xl bg-white border border-gray-200"
-                  disabled={hasSubmitted || isBlocked}
-                />
-              </div>
-            </div>
-
-            {hasSubmitted && selectedAssignment.submission?.submittedAt && (
-              <p className="text-[10px] text-gray-400 font-bold text-left">
-                Đã nộp lúc: {new Date(selectedAssignment.submission.submittedAt).toLocaleString('vi-VN')}
-              </p>
-            )}
-
-            {(!hasSubmitted || selectedAssignment.submission?.grade === null) && !isBlocked && (
-              <Button type="submit" disabled={submitAssignmentMutation.isPending || uploadingFile} className="w-full gap-1.5 rounded-xl font-bold py-2.5 shadow-sm shadow-amber-500/10">
-                {submitAssignmentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
-                {hasSubmitted ? 'Cập nhật bài nộp' : 'Nộp bài làm'}
-              </Button>
-            )}
-          </form>
         )}
       </div>
     )
@@ -2293,7 +2023,16 @@ export default function ClassDetailPage() {
                       </div>
                     </div>
                   )}
-                  {renderStudentView(false)}
+                  <Button
+                    onClick={() => {
+                      const url = `/classes/${id}/assignments/${selectedAssignment.id}/do`
+                      window.open(url, '_blank')
+                    }}
+                    className="w-full gap-1.5 rounded-xl font-extrabold py-3 shadow-md shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {selectedAssignment.submission ? 'Xem chi tiết bài làm & Kết quả' : 'Bắt đầu làm bài (Tab mới)'}
+                  </Button>
                 </div>
               )}
 
@@ -2334,7 +2073,16 @@ export default function ClassDetailPage() {
                           Giao diện Xem trước: Giáo viên có thể làm thử Quiz/bài tập ở đây (không lưu kết quả thật).
                         </p>
                       </div>
-                      {renderStudentView(true)}
+                      <Button
+                        onClick={() => {
+                          const url = `/classes/${id}/assignments/${selectedAssignment.id}/do?preview=true`
+                          window.open(url, '_blank')
+                        }}
+                        className="w-full gap-1.5 rounded-xl font-extrabold py-3 shadow-md shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Làm thử bài tập (Tab mới)
+                      </Button>
                     </div>
                   )}
 

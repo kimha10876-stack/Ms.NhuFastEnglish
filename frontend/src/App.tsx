@@ -12,6 +12,7 @@ const DashboardPage     = lazy(() => import('@/features/dashboard/DashboardPage'
 const StudentsPage      = lazy(() => import('@/features/students/StudentsPage'))
 const ClassesPage       = lazy(() => import('@/features/classes/ClassesPage'))
 const ClassDetailPage   = lazy(() => import('@/features/classes/ClassDetailPage'))
+const DoAssignmentPage   = lazy(() => import('@/features/classes/DoAssignmentPage'))
 const JoinClassPage     = lazy(() => import('@/features/classes/JoinClassPage'))
 const TeachersPage      = lazy(() => import('@/features/teachers/TeachersPage'))
 const ConsultationsPage = lazy(() => import('@/features/consultations/ConsultationsPage'))
@@ -59,6 +60,9 @@ export default function App() {
                 <Route path="settings"         element={<SettingsPage />} />
                 <Route path="blog-management"  element={<BlogManagementPage />} />
               </Route>
+              
+              {/* Fullscreen pages (no AppShell) */}
+              <Route path="classes/:classId/assignments/:assignmentId/do" element={<DoAssignmentPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
