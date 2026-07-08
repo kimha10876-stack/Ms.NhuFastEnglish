@@ -820,7 +820,7 @@ export default function ClassDetailPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {assignments.map((a) => {
-                const isOverdue = a.dueDate && new Date(a.dueDate) < new Date()
+                const isOverdue = !!(a.dueDate && new Date(a.dueDate) < new Date())
                 let statusBadge = null
                 
                 if (isStudent) {
@@ -1972,8 +1972,8 @@ export default function ClassDetailPage() {
 
                   {/* Warning if overdue and late submission is blocked */}
                   {(() => {
-                    const isOverdue = selectedAssignment.dueDate && new Date(selectedAssignment.dueDate) < new Date()
-                    const isBlocked = isOverdue && !selectedAssignment.allowLateSubmission
+                    const isOverdue = !!(selectedAssignment.dueDate && new Date(selectedAssignment.dueDate) < new Date())
+                    const isBlocked = !!(isOverdue && !selectedAssignment.allowLateSubmission)
                     const hasSubmitted = !!selectedAssignment.submission
                     
                     if (isBlocked && !hasSubmitted) {
@@ -2024,8 +2024,8 @@ export default function ClassDetailPage() {
                       {(() => {
                         const questions: AssignmentQuestion[] = selectedAssignment.questionsJson ? JSON.parse(selectedAssignment.questionsJson) : []
                         const hasSubmitted = !!selectedAssignment.submission
-                        const isOverdue = selectedAssignment.dueDate && new Date(selectedAssignment.dueDate) < new Date()
-                        const isBlocked = isOverdue && !selectedAssignment.allowLateSubmission && !hasSubmitted
+                        const isOverdue = !!(selectedAssignment.dueDate && new Date(selectedAssignment.dueDate) < new Date())
+                        const isBlocked = !!(isOverdue && !selectedAssignment.allowLateSubmission && !hasSubmitted)
                         const isGraded = selectedAssignment.submission?.grade !== null && selectedAssignment.submission?.grade !== undefined
 
                         const submissionAnswers: StudentAnswer[] = selectedAssignment.submission?.answersJson 
@@ -2197,8 +2197,8 @@ export default function ClassDetailPage() {
                     <form onSubmit={handleSubmitWork} className="space-y-4 bg-gray-50/50 p-4 border border-gray-100 rounded-2xl">
                       {(() => {
                         const hasSubmitted = !!selectedAssignment.submission
-                        const isOverdue = selectedAssignment.dueDate && new Date(selectedAssignment.dueDate) < new Date()
-                        const isBlocked = isOverdue && !selectedAssignment.allowLateSubmission && !hasSubmitted
+                        const isOverdue = !!(selectedAssignment.dueDate && new Date(selectedAssignment.dueDate) < new Date())
+                        const isBlocked = !!(isOverdue && !selectedAssignment.allowLateSubmission && !hasSubmitted)
                         if (isBlocked) return null;
 
                         return (
