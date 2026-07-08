@@ -10,6 +10,7 @@ public class AssignmentSubmission
     public string? SubmissionText { get; set; }
     public string? FileUrl { get; set; }
     public string? FileName { get; set; }
+    public string? AnswersJson { get; set; }
     public DateTime SubmittedAt { get; set; }
     public float? Grade { get; set; }
     public string? TeacherFeedback { get; set; }

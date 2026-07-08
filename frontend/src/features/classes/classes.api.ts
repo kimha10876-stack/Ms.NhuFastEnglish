@@ -132,4 +132,12 @@ export const classesApi = {
 
   gradeSubmission: (submissionId: string, body: GradeSubmissionRequest) =>
     api.post<ApiResponse<null>>(`/classes/assignments/submissions/${submissionId}/grade`, body).then((r) => r.data),
+
+  uploadFile: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post<ApiResponse<{ fileUrl: string; fileName: string }>>('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then((r) => r.data.data!)
+  }
 }

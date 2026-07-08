@@ -191,13 +191,19 @@ public record ClassDocumentDto(
 public record CreateAssignmentRequest(
     string Title,
     string Description,
-    DateTime? DueDate
+    DateTime? DueDate,
+    string? AssignmentType = "Upload",
+    bool? AllowLateSubmission = true,
+    string? QuestionsJson = null
 );
 
 public record UpdateAssignmentRequest(
     string? Title,
     string? Description,
-    DateTime? DueDate
+    DateTime? DueDate,
+    string? AssignmentType = null,
+    bool? AllowLateSubmission = null,
+    string? QuestionsJson = null
 );
 
 public record ClassAssignmentDto(
@@ -207,6 +213,9 @@ public record ClassAssignmentDto(
     string Description,
     DateTime? DueDate,
     DateTime CreatedAt,
+    string AssignmentType,
+    bool AllowLateSubmission,
+    string? QuestionsJson,
     AssignmentSubmissionDto? Submission,
     int SubmissionsCount
 );
@@ -215,12 +224,14 @@ public record ClassAssignmentDto(
 public record SubmitAssignmentRequest(
     string? SubmissionText,
     string? FileUrl,
-    string? FileName
+    string? FileName,
+    string? AnswersJson = null
 );
 
 public record GradeSubmissionRequest(
     float Grade,
-    string? TeacherFeedback
+    string? TeacherFeedback,
+    string? AnswersJson = null
 );
 
 public record AssignmentSubmissionDto(
@@ -233,7 +244,25 @@ public record AssignmentSubmissionDto(
     string? SubmissionText,
     string? FileUrl,
     string? FileName,
+    string? AnswersJson,
     DateTime SubmittedAt,
+    float? Grade,
+    string? TeacherFeedback
+);
+
+public record AssignmentQuestionDto(
+    string Id,
+    string Type,
+    string QuestionText,
+    string[]? Options,
+    string? CorrectAnswer,
+    float Points
+);
+
+public record StudentAnswerDto(
+    string QuestionId,
+    string? AnswerText,
+    bool? IsCorrect,
     float? Grade,
     string? TeacherFeedback
 );

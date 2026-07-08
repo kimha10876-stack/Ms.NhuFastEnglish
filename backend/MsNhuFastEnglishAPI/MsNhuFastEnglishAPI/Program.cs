@@ -279,6 +279,24 @@ using (var scope = app.Services.CreateScope())
                 }
             }
 
+            // Migration: Thêm các cột mới cho Assignment và Submission nếu chưa có
+            if (db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            {
+                db.Database.ExecuteSqlRaw(@"
+                    ALTER TABLE ""ClassAssignments"" ADD COLUMN IF NOT EXISTS ""AssignmentType"" VARCHAR(50) NOT NULL DEFAULT 'Upload';
+                    ALTER TABLE ""ClassAssignments"" ADD COLUMN IF NOT EXISTS ""AllowLateSubmission"" BOOLEAN NOT NULL DEFAULT TRUE;
+                    ALTER TABLE ""ClassAssignments"" ADD COLUMN IF NOT EXISTS ""QuestionsJson"" TEXT;
+                    ALTER TABLE ""AssignmentSubmissions"" ADD COLUMN IF NOT EXISTS ""AnswersJson"" TEXT;
+                ");
+            }
+            else
+            {
+                try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""ClassAssignments"" ADD COLUMN ""AssignmentType"" TEXT NOT NULL DEFAULT 'Upload';"); } catch {}
+                try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""ClassAssignments"" ADD COLUMN ""AllowLateSubmission"" INTEGER NOT NULL DEFAULT 1;"); } catch {}
+                try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""ClassAssignments"" ADD COLUMN ""QuestionsJson"" TEXT;"); } catch {}
+                try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""AssignmentSubmissions"" ADD COLUMN ""AnswersJson"" TEXT;"); } catch {}
+            }
+
             // Gieo dữ liệu SystemSettings mặc định nếu bảng trống
             if (!db.SystemSettings.Any())
             {
@@ -482,6 +500,21 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseExceptionHandler();
+
+// Khởi tạo thư mục uploads nếu chưa có
+var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads");
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+}
+
+// Serve file tĩnh của thư mục uploads qua đường dẫn /api/uploads
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
+    RequestPath = "/api/uploads"
+});
+
 app.UseRateLimiter();
 app.UseSwagger();
 app.UseSwaggerUI();

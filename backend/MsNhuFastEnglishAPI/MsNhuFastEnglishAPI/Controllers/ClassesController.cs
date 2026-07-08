@@ -439,6 +439,7 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
                         SubmissionText: sub.SubmissionText,
                         FileUrl: sub.FileUrl,
                         FileName: sub.FileName,
+                        AnswersJson: sub.AnswersJson,
                         SubmittedAt: sub.SubmittedAt,
                         Grade: sub.Grade,
                         TeacherFeedback: sub.TeacherFeedback
@@ -453,6 +454,9 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
                 Description: a.Description,
                 DueDate: a.DueDate,
                 CreatedAt: a.CreatedAt,
+                AssignmentType: a.AssignmentType,
+                AllowLateSubmission: a.AllowLateSubmission,
+                QuestionsJson: a.QuestionsJson,
                 Submission: submissionDto,
                 SubmissionsCount: a.Submissions.Count
             );
@@ -493,6 +497,7 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
                         SubmissionText: sub.SubmissionText,
                         FileUrl: sub.FileUrl,
                         FileName: sub.FileName,
+                        AnswersJson: sub.AnswersJson,
                         SubmittedAt: sub.SubmittedAt,
                         Grade: sub.Grade,
                         TeacherFeedback: sub.TeacherFeedback
@@ -508,6 +513,9 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
             Description: a.Description,
             DueDate: a.DueDate,
             CreatedAt: a.CreatedAt,
+            AssignmentType: a.AssignmentType,
+            AllowLateSubmission: a.AllowLateSubmission,
+            QuestionsJson: a.QuestionsJson,
             Submission: submissionDto,
             SubmissionsCount: a.Submissions.Count
         );
@@ -529,6 +537,9 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
             Title = req.Title,
             Description = req.Description,
             DueDate = req.DueDate,
+            AssignmentType = req.AssignmentType ?? "Upload",
+            AllowLateSubmission = req.AllowLateSubmission ?? true,
+            QuestionsJson = req.QuestionsJson,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -547,6 +558,9 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
 
         if (req.Title != null) a.Title = req.Title;
         if (req.Description != null) a.Description = req.Description;
+        if (req.AssignmentType != null) a.AssignmentType = req.AssignmentType;
+        if (req.AllowLateSubmission.HasValue) a.AllowLateSubmission = req.AllowLateSubmission.Value;
+        if (req.QuestionsJson != null) a.QuestionsJson = req.QuestionsJson;
         a.DueDate = req.DueDate;
 
         await db.SaveChangesAsync();
@@ -589,6 +603,7 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
             SubmissionText: s.SubmissionText,
             FileUrl: s.FileUrl,
             FileName: s.FileName,
+            AnswersJson: s.AnswersJson,
             SubmittedAt: s.SubmittedAt,
             Grade: s.Grade,
             TeacherFeedback: s.TeacherFeedback
@@ -604,6 +619,12 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
         var a = await db.ClassAssignments.FindAsync(assignmentId);
         if (a == null) return NotFound(ApiResponse.NotFound("Bài tập không tồn tại"));
 
+        // Kiểm tra chặn nộp trễ nếu quá hạn
+        if (a.DueDate.HasValue && !a.AllowLateSubmission && DateTime.UtcNow > a.DueDate.Value)
+        {
+            return BadRequest(ApiResponse.BadRequest("Đã quá hạn nộp bài. Lớp học không cho phép nộp trễ."));
+        }
+
         var profile = await db.StudentProfiles.FirstOrDefaultAsync(sp => sp.UserId == UserId);
         if (profile == null) return BadRequest(ApiResponse.BadRequest("Không tìm thấy hồ sơ học viên"));
 
@@ -616,6 +637,7 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
             sub.FileUrl = req.FileUrl;
             sub.FileName = req.FileName;
             sub.SubmittedAt = DateTime.UtcNow;
+            sub.AnswersJson = req.AnswersJson;
         }
         else
         {
@@ -627,9 +649,120 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
                 SubmissionText = req.SubmissionText,
                 FileUrl = req.FileUrl,
                 FileName = req.FileName,
+                AnswersJson = req.AnswersJson,
                 SubmittedAt = DateTime.UtcNow
             };
             db.AssignmentSubmissions.Add(sub);
+        }
+
+        // Tự động chấm điểm cho loại bài tập Quiz
+        if (a.AssignmentType == "Quiz" && !string.IsNullOrWhiteSpace(req.AnswersJson))
+        {
+            try
+            {
+                var questions = string.IsNullOrWhiteSpace(a.QuestionsJson)
+                    ? new List<AssignmentQuestionDto>()
+                    : System.Text.Json.JsonSerializer.Deserialize<List<AssignmentQuestionDto>>(
+                        a.QuestionsJson, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                var answers = System.Text.Json.JsonSerializer.Deserialize<List<StudentAnswerDto>>(
+                    req.AnswersJson, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (questions != null && answers != null)
+                {
+                    var gradedAnswers = new List<StudentAnswerDto>();
+                    float autoGradedTotalScore = 0;
+                    bool hasWritingQuestions = false;
+
+                    foreach (var answer in answers)
+                    {
+                        var question = questions.FirstOrDefault(q => q.Id == answer.QuestionId);
+                        if (question != null)
+                        {
+                            var qType = question.Type;
+                            if (qType == "MultipleChoice" || qType == "TrueFalse" || qType == "FillInTheBlank")
+                            {
+                                var studentAns = (answer.AnswerText ?? "").Trim().ToLowerInvariant();
+                                var correctAns = (question.CorrectAnswer ?? "").Trim().ToLowerInvariant();
+                                bool isCorrect = studentAns == correctAns;
+
+                                gradedAnswers.Add(new StudentAnswerDto(
+                                    QuestionId: answer.QuestionId,
+                                    AnswerText: answer.AnswerText,
+                                    IsCorrect: isCorrect,
+                                    Grade: isCorrect ? question.Points : 0,
+                                    TeacherFeedback: null
+                                ));
+
+                                if (isCorrect)
+                                {
+                                    autoGradedTotalScore += question.Points;
+                                }
+                            }
+                            else if (qType == "ShortAnswer")
+                            {
+                                if (!string.IsNullOrWhiteSpace(question.CorrectAnswer))
+                                {
+                                    var studentAns = (answer.AnswerText ?? "").Trim().ToLowerInvariant();
+                                    var correctAns = (question.CorrectAnswer ?? "").Trim().ToLowerInvariant();
+                                    bool isCorrect = studentAns == correctAns;
+
+                                    gradedAnswers.Add(new StudentAnswerDto(
+                                        QuestionId: answer.QuestionId,
+                                        AnswerText: answer.AnswerText,
+                                        IsCorrect: isCorrect,
+                                        Grade: isCorrect ? question.Points : 0,
+                                        TeacherFeedback: null
+                                    ));
+
+                                    if (isCorrect)
+                                    {
+                                        autoGradedTotalScore += question.Points;
+                                    }
+                                }
+                                else
+                                {
+                                    hasWritingQuestions = true;
+                                    gradedAnswers.Add(new StudentAnswerDto(
+                                        QuestionId: answer.QuestionId,
+                                        AnswerText: answer.AnswerText,
+                                        IsCorrect: null,
+                                        Grade: null,
+                                        TeacherFeedback: null
+                                    ));
+                                }
+                            }
+                            else // Writing
+                            {
+                                hasWritingQuestions = true;
+                                gradedAnswers.Add(new StudentAnswerDto(
+                                    QuestionId: answer.QuestionId,
+                                    AnswerText: answer.AnswerText,
+                                    IsCorrect: null,
+                                    Grade: null,
+                                    TeacherFeedback: null
+                                ));
+                            }
+                        }
+                    }
+
+                    sub.AnswersJson = System.Text.Json.JsonSerializer.Serialize(gradedAnswers);
+
+                    if (!hasWritingQuestions)
+                    {
+                        sub.Grade = autoGradedTotalScore;
+                    }
+                    else
+                    {
+                        sub.Grade = null; // Chờ giáo viên chấm điểm phần tự luận
+                    }
+                }
+            }
+            catch
+            {
+                // Bỏ qua nếu có lỗi parse JSON và lưu chuỗi thô
+                sub.AnswersJson = req.AnswersJson;
+            }
         }
 
         await db.SaveChangesAsync();
@@ -645,6 +778,10 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
 
         sub.Grade = req.Grade;
         sub.TeacherFeedback = req.TeacherFeedback;
+        if (!string.IsNullOrWhiteSpace(req.AnswersJson))
+        {
+            sub.AnswersJson = req.AnswersJson;
+        }
 
         await db.SaveChangesAsync();
         return Ok(ApiResponse.Ok<object?>(null, "Chấm điểm bài nộp thành công"));

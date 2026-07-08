@@ -156,6 +156,23 @@ export interface ClassSession {
   documents: ClassDocument[]
 }
 
+export interface AssignmentQuestion {
+  id: string
+  type: 'MultipleChoice' | 'TrueFalse' | 'FillInTheBlank' | 'ShortAnswer' | 'Writing'
+  questionText: string
+  options?: string[]
+  correctAnswer?: string
+  points: number
+}
+
+export interface StudentAnswer {
+  questionId: string
+  answerText: string
+  isCorrect?: boolean
+  grade?: number
+  teacherFeedback?: string
+}
+
 export interface AssignmentSubmission {
   id: string
   assignmentId: string
@@ -166,6 +183,7 @@ export interface AssignmentSubmission {
   submissionText: string | null
   fileUrl: string | null
   fileName: string | null
+  answersJson: string | null
   submittedAt: string
   grade: number | null
   teacherFeedback: string | null
@@ -177,6 +195,9 @@ export interface ClassAssignment {
   title: string
   description: string
   dueDate: string | null
+  assignmentType: 'Upload' | 'Quiz'
+  allowLateSubmission: boolean
+  questionsJson: string | null
   createdAt: string
   submission: AssignmentSubmission | null
   submissionsCount: number
@@ -215,22 +236,30 @@ export interface CreateAssignmentRequest {
   title: string
   description: string
   dueDate?: string
+  assignmentType?: 'Upload' | 'Quiz'
+  allowLateSubmission?: boolean
+  questionsJson?: string
 }
 
 export interface UpdateAssignmentRequest {
   title?: string
   description?: string
   dueDate?: string | null
+  assignmentType?: 'Upload' | 'Quiz'
+  allowLateSubmission?: boolean
+  questionsJson?: string
 }
 
 export interface SubmitAssignmentRequest {
   submissionText?: string
   fileUrl?: string
   fileName?: string
+  answersJson?: string
 }
 
 export interface GradeSubmissionRequest {
   grade: number
   teacherFeedback?: string
+  answersJson?: string
 }
 
