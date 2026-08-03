@@ -274,7 +274,7 @@ export default function ClassDetailPage() {
       status: cls.status, scheduleDays: cls.scheduleDays ?? '', scheduleTime: cls.scheduleTime ?? '',
       room: cls.room ?? '', note: cls.note ?? '', maxStudents: cls.maxStudents ?? undefined,
       endDate: cls.endDate ?? undefined,
-      startDate: cls.startDate ? new Date(cls.startDate).toISOString().split('T')[0] : undefined,
+      startDate: cls.startDate ? cls.startDate.split('T')[0] : undefined,
     })
   }
 
@@ -1291,7 +1291,7 @@ export default function ClassDetailPage() {
                 {/* Giáo viên */}
                 <div className="flex items-center justify-between text-xs gap-3">
                   <span className="text-gray-400 font-bold uppercase tracking-wider">Giáo viên phụ trách</span>
-                  {editForm && isAdmin ? (
+                  {editForm && isStaff ? (
                     <div className="w-56 shrink-0">
                       <TeacherSelect
                         value={editForm.teacherId ?? ''}
