@@ -139,5 +139,11 @@ export const classesApi = {
     return api.post<ApiResponse<{ fileUrl: string; fileName: string }>>('/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }).then((r) => r.data.data!)
-  }
+  },
+
+  getCurriculumTemplates: () =>
+    api.get<ApiResponse<any[]>>('/curriculum-templates').then((r) => r.data.data!),
+
+  importCurriculum: (classId: string, body: { templateId: string; startDate: string; weekdays: number[] }) =>
+    api.post<ApiResponse<any>>(`/classes/${classId}/import-curriculum`, body).then((r) => r.data)
 }

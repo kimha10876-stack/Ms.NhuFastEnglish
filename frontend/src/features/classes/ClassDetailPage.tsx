@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Users, Info, Trash2, Plus, Copy, Link2,
@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, ChevronDown, BookOpen, FileText, Calendar,
   Clock, Sparkles,
   Paperclip, ExternalLink, Send, Download, PlusCircle,
-  GraduationCap, File, CheckSquare
+  GraduationCap, File, CheckSquare, XCircle
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -18,7 +18,8 @@ import {
   useClassSessions, useCreateSession, useUpdateSession, useDeleteSession,
   useCreateDocument, useDeleteDocument,
   useClassAssignments, useCreateAssignment, useUpdateAssignment, useDeleteAssignment,
-  useAssignmentSubmissions, useGradeSubmission
+  useAssignmentSubmissions, useGradeSubmission,
+  useCurriculumTemplates, useImportCurriculum
 } from './useClasses'
 import type { UpdateClassRequest, ClassSession, ClassAssignment, AssignmentSubmission, AssignmentQuestion, StudentAnswer } from './classes.types'
 import TeacherSelect from './TeacherSelect'
@@ -120,6 +121,7 @@ export default function ClassDetailPage() {
   const [selectedAssignment, setSelectedAssignment] = useState<ClassAssignment | null>(null)
   const [staffViewTab, setStaffViewTab] = useState<'submissions' | 'preview'>('submissions')
   const [expandedSessions, setExpandedSessions] = useState<Record<string, boolean>>({})
+  const [showImportModal, setShowImportModal] = useState(false)
 
   const toggleSession = (sessionId: string) => {
     setExpandedSessions(prev => ({
@@ -172,6 +174,8 @@ export default function ClassDetailPage() {
   const deleteAssignmentMutation = useDeleteAssignment(id)
   
   const gradeSubmissionMutation = useGradeSubmission(id, selectedAssignment?.id ?? '')
+  const { data: templates = [] } = useCurriculumTemplates()
+  const importCurriculumMutation = useImportCurriculum(id)
   
   const { data: submissions = [], isLoading: loadingSubmissions } = useAssignmentSubmissions(selectedAssignment?.id ?? '')
 
@@ -673,10 +677,16 @@ export default function ClassDetailPage() {
                     </button>
                   )}
                   {isStaff && (
-                    <Button size="sm" onClick={handleOpenAddSession} className="gap-1.5 text-xs font-semibold rounded-xl">
-                      <Plus className="h-4 w-4" />
-                      Thêm buổi học (Unit)
-                    </Button>
+                    <>
+                      <Button size="sm" variant="secondary" onClick={() => setShowImportModal(true)} className="gap-1.5 text-xs font-semibold rounded-xl">
+                        <BookOpen className="h-4 w-4 text-amber-600" />
+                        Nhập từ Khung giáo trình
+                      </Button>
+                      <Button size="sm" onClick={handleOpenAddSession} className="gap-1.5 text-xs font-semibold rounded-xl">
+                        <Plus className="h-4 w-4" />
+                        Thêm buổi học (Unit)
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -2299,6 +2309,181 @@ export default function ClassDetailPage() {
           </div>
         </div>
       )}
+      {/* ── Modal Nhập Khung Giáo Trình ── */}
+      {showImportModal && (
+        <ImportCurriculumModal
+          cls={cls}
+          templates={templates}
+          onClose={() => setShowImportModal(false)}
+          onImport={(templateId, startDate, weekdays) => {
+            importCurriculumMutation.mutate({
+              templateId,
+              startDate,
+              weekdays
+            }, {
+              onSuccess: () => {
+                setShowImportModal(false)
+                alert('Nhập khung giáo trình thành công!')
+              },
+              onError: (err: any) => {
+                alert(err?.response?.data?.message || 'Có lỗi xảy ra khi nhập khung giáo trình')
+              }
+            })
+          }}
+          isPending={importCurriculumMutation.isPending}
+        />
+      )}
+    </div>
+  )
+}
+
+interface ImportCurriculumModalProps {
+  cls: any
+  templates: any[]
+  onClose: () => void
+  onImport: (templateId: string, startDate: string, weekdays: number[]) => void
+  isPending: boolean
+}
+
+function ImportCurriculumModal({ cls, templates, onClose, onImport, isPending }: ImportCurriculumModalProps) {
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
+  const [startDate, setStartDate] = useState(cls?.startDate || new Date().toISOString().split('T')[0])
+  const [weekdays, setWeekdays] = useState<number[]>([])
+
+  // Pre-fill weekdays based on class schedule days (ScheduleDays is e.g. "T2,T4,T6")
+  useEffect(() => {
+    if (cls?.scheduleDays) {
+      const days: number[] = []
+      const scheduleLower = cls.scheduleDays.toLowerCase()
+      if (scheduleLower.includes('t2') || scheduleLower.includes('2') || scheduleLower.includes('monday')) days.push(1)
+      if (scheduleLower.includes('t3') || scheduleLower.includes('3') || scheduleLower.includes('tuesday')) days.push(2)
+      if (scheduleLower.includes('t4') || scheduleLower.includes('4') || scheduleLower.includes('wednesday')) days.push(3)
+      if (scheduleLower.includes('t5') || scheduleLower.includes('5') || scheduleLower.includes('thursday')) days.push(4)
+      if (scheduleLower.includes('t6') || scheduleLower.includes('6') || scheduleLower.includes('friday')) days.push(5)
+      if (scheduleLower.includes('t7') || scheduleLower.includes('7') || scheduleLower.includes('saturday')) days.push(6)
+      if (scheduleLower.includes('cn') || scheduleLower.includes('chủ nhật') || scheduleLower.includes('sunday')) days.push(7)
+      setWeekdays(days)
+    }
+  }, [cls])
+
+  const handleToggleWeekday = (day: number) => {
+    setWeekdays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedTemplateId) {
+      alert('Vui lòng chọn một khung giáo trình mẫu')
+      return
+    }
+    if (weekdays.length === 0) {
+      alert('Vui lòng chọn ít nhất một thứ trong tuần để xếp lịch học')
+      return
+    }
+    onImport(selectedTemplateId, startDate, weekdays)
+  }
+
+  const weekdayLabels = [
+    { label: 'Thứ 2', value: 1 },
+    { label: 'Thứ 3', value: 2 },
+    { label: 'Thứ 4', value: 3 },
+    { label: 'Thứ 5', value: 4 },
+    { label: 'Thứ 6', value: 5 },
+    { label: 'Thứ 7', value: 6 },
+    { label: 'Chủ Nhật', value: 7 },
+  ]
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200" onClick={onClose}>
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100 flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+          <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-1.5">
+            <BookOpen className="h-5 w-5 text-amber-500" />
+            Nhập Khung Giáo Trình Mẫu
+          </h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+            <XCircle className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1 text-left">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Khung giáo trình mẫu</label>
+            <select
+              value={selectedTemplateId}
+              onChange={(e) => setSelectedTemplateId(e.target.value)}
+              required
+              className="w-full p-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:border-amber-500 focus:ring-amber-500/20 font-medium"
+            >
+              <option value="">-- Chọn một khung mẫu --</option>
+              {templates.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            {selectedTemplateId && (
+              <p className="text-[11px] text-gray-400 leading-normal font-semibold bg-gray-50 p-2.5 rounded-lg">
+                {templates.find((t: any) => t.id == selectedTemplateId)?.description || 'Không có mô tả.'}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ngày bắt đầu học</label>
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
+              className="rounded-xl"
+            />
+            <p className="text-[10px] text-gray-400 font-semibold leading-normal">
+              Các buổi học sẽ được tự động xếp lịch bắt đầu từ ngày này.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Lịch học hàng tuần</label>
+            <div className="flex flex-wrap gap-2">
+              {weekdayLabels.map((wd) => {
+                const isSelected = weekdays.includes(wd.value)
+                return (
+                  <button
+                    key={wd.value}
+                    type="button"
+                    onClick={() => handleToggleWeekday(wd.value)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+                      isSelected
+                        ? 'bg-amber-500 text-white shadow-sm'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    {wd.label}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[10px] text-gray-400 font-semibold leading-normal mt-1">
+              (Hệ thống tự động tích sẵn dựa trên lịch học hiện tại của lớp)
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-100 mt-6">
+            <Button type="button" variant="secondary" className="flex-1 rounded-xl text-xs font-semibold h-11" onClick={onClose}>
+              Huỷ
+            </Button>
+            <Button type="submit" disabled={isPending} className="flex-1 rounded-xl text-xs font-semibold h-11">
+              {isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  Đang nhập...
+                </>
+              ) : (
+                'Xác nhận nhập'
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

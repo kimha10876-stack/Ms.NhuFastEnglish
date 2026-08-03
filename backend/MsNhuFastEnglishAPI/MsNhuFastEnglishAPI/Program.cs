@@ -185,6 +185,23 @@ using (var scope = app.Services.CreateScope())
                         ""Grade"" REAL,
                         ""TeacherFeedback"" TEXT
                     );
+
+                    CREATE TABLE IF NOT EXISTS ""CurriculumTemplates"" (
+                        ""Id"" UUID PRIMARY KEY,
+                        ""Name"" VARCHAR(255) NOT NULL,
+                        ""Description"" TEXT,
+                        ""CreatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+                        ""UpdatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+                    );
+
+                    CREATE TABLE IF NOT EXISTS ""CurriculumTemplateUnits"" (
+                        ""Id"" UUID PRIMARY KEY,
+                        ""TemplateId"" UUID NOT NULL REFERENCES ""CurriculumTemplates""(""Id"") ON DELETE CASCADE,
+                        ""SessionNumber"" INT NOT NULL,
+                        ""Topic"" VARCHAR(255),
+                        ""Note"" TEXT,
+                        ""DocumentsJson"" TEXT
+                    );
                 ");
             }
             else
@@ -236,6 +253,25 @@ using (var scope = app.Services.CreateScope())
                             SubmittedAt TEXT NOT NULL,
                             Grade REAL,
                             TeacherFeedback TEXT
+                        );
+                    ");
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS CurriculumTemplates (
+                            Id TEXT PRIMARY KEY,
+                            Name TEXT NOT NULL,
+                            Description TEXT,
+                            CreatedAt TEXT NOT NULL,
+                            UpdatedAt TEXT NOT NULL
+                        );
+                    ");
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS CurriculumTemplateUnits (
+                            Id TEXT PRIMARY KEY,
+                            TemplateId TEXT NOT NULL REFERENCES CurriculumTemplates(Id) ON DELETE CASCADE,
+                            SessionNumber INTEGER NOT NULL,
+                            Topic TEXT,
+                            Note TEXT,
+                            DocumentsJson TEXT
                         );
                     ");
                 }
@@ -517,6 +553,60 @@ using (var scope = app.Services.CreateScope())
                     DueDate = DateTime.UtcNow.AddDays(14),
                     CreatedAt = DateTime.UtcNow
                 });
+            }
+            
+            // Seed Curriculum Templates
+            if (!db.CurriculumTemplates.Any())
+            {
+                var template1 = new CurriculumTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Chương trình Giao tiếp tiếng Anh cơ bản (Ms. Nhụ Fast English)",
+                    Description = "Lộ trình học giao tiếp 12 buổi thiết kế dành riêng cho học viên mất gốc tiếng Anh, tập trung phát âm chuẩn IPA và phản xạ giao tiếp tự nhiên.",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                db.CurriculumTemplates.Add(template1);
+
+                var t1Units = new List<CurriculumTemplateUnit>
+                {
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 1, Topic = "Unit 1: Pronunciation & Phonics Guide", Note = "Luyện phát âm chuẩn IPA và cách nhận biết các âm cơ bản." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 2, Topic = "Unit 2: Greeting & Small Talk", Note = "Cách bắt đầu một cuộc hội thoại cơ bản với người nước ngoài." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 3, Topic = "Unit 3: Simple Present & Daily Routines", Note = "Sử dụng thì hiện tại đơn để mô tả các hoạt động hàng ngày." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 4, Topic = "Unit 4: Directions & Travel Vocabulary", Note = "Học từ vựng và cấu trúc hỏi đường, đi du lịch." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 5, Topic = "Unit 5: Shopping & Price Negotiation", Note = "Cách mặc cả và mua sắm trong tiếng Anh." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 6, Topic = "Unit 6: Ordering Food at a Restaurant", Note = "Cách gọi món và tương tác tại nhà hàng." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 7, Topic = "Unit 7: Past Simple & Talking about the Past", Note = "Kể về các sự kiện đã qua bằng thì quá khứ đơn." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 8, Topic = "Unit 8: Future Plans & Intentions", Note = "Cách diễn tả dự định tương lai với 'be going to' và 'will'." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 9, Topic = "Unit 9: Describing People & Personalities", Note = "Cách mô tả ngoại hình và tính cách của một người." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 10, Topic = "Unit 10: Talking about Hobbies & Free Time", Note = "Các chủ đề yêu thích và cách thể hiện sở thích cá nhân." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 11, Topic = "Unit 11: Workplace English Basics", Note = "Tiếng Anh giao tiếp cơ bản trong văn phòng." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template1.Id, SessionNumber = 12, Topic = "Unit 12: Final Review & Interactive Speaking", Note = "Tổng kết khóa học, thực hành đối thoại phản xạ trực tiếp." }
+                };
+                db.CurriculumTemplateUnits.AddRange(t1Units);
+
+                var template2 = new CurriculumTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Lộ trình luyện thi IELTS Starter 5.0 (Ms. Nhụ Fast English)",
+                    Description = "Khung giáo trình luyện thi IELTS giai đoạn khởi động (24 buổi), giúp học viên xây dựng nền tảng từ vựng, ngữ pháp cốt lõi và làm quen 4 kỹ năng theo format đề thi chuẩn.",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                db.CurriculumTemplates.Add(template2);
+
+                var t2Units = new List<CurriculumTemplateUnit>
+                {
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template2.Id, SessionNumber = 1, Topic = "Unit 1: Intro to IELTS Listening & Reading", Note = "Làm quen với cấu trúc đề và các chiến thuật làm bài cơ bản." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template2.Id, SessionNumber = 2, Topic = "Unit 2: IELTS Writing Task 1 - Chart & Graph Basics", Note = "Cách phân tích biểu đồ cột, biểu đồ đường đơn giản." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template2.Id, SessionNumber = 3, Topic = "Unit 3: IELTS Speaking Part 1 Strategy", Note = "Mẹo trả lời tự nhiên và trôi chảy cho các chủ đề thường gặp." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template2.Id, SessionNumber = 4, Topic = "Unit 4: Grammatical Accuracy: Tenses Overview", Note = "Ôn tập các thì động từ trọng tâm thường dùng trong IELTS." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template2.Id, SessionNumber = 5, Topic = "Unit 5: Reading Skill: True/False/Not Given", Note = "Cách xác định thông tin và mẹo phân biệt False vs Not Given." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template2.Id, SessionNumber = 6, Topic = "Unit 6: Writing Task 2 - Essay Structure", Note = "Cấu trúc bài viết nghị luận xã hội IELTS chuẩn." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template2.Id, SessionNumber = 7, Topic = "Unit 7: Listening: Section 1 Strategies", Note = "Luyện tập nghe thông tin số, tên riêng và biểu mẫu." },
+                    new CurriculumTemplateUnit { Id = Guid.NewGuid(), TemplateId = template2.Id, SessionNumber = 8, Topic = "Unit 8: Speaking Part 2 - Cue Card Preparation", Note = "Cách chuẩn bị ý tưởng trong 1 phút cho bài nói Part 2." }
+                };
+                db.CurriculumTemplateUnits.AddRange(t2Units);
             }
             db.SaveChanges();
         }

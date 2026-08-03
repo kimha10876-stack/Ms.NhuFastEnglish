@@ -297,3 +297,21 @@ export function useGradeSubmission(classId: string, assignmentId: string) {
   })
 }
 
+export function useCurriculumTemplates() {
+  return useQuery({
+    queryKey: ['curriculum-templates'],
+    queryFn: () => classesApi.getCurriculumTemplates(),
+  })
+}
+
+export function useImportCurriculum(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { templateId: string; startDate: string; weekdays: number[] }) =>
+      classesApi.importCurriculum(classId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', classId, 'sessions'] })
+    },
+  })
+}
+

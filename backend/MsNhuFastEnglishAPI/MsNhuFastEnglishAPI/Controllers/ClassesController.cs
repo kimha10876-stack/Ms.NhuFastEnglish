@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -321,6 +323,131 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
         await db.SaveChangesAsync();
 
         return StatusCode(201, ApiResponse.Created(new { session.Id }, "Tạo buổi học thành công"));
+    }
+
+    [HttpPost("{id:guid}/import-curriculum")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> ImportCurriculum(Guid id, [FromBody] ImportCurriculumRequest req)
+    {
+        var cls = await db.Classes.FindAsync(id);
+        if (cls == null) return NotFound(ApiResponse.NotFound("Lớp học không tồn tại"));
+
+        var template = await db.CurriculumTemplates
+            .Include(t => t.Units)
+            .FirstOrDefaultAsync(t => t.Id == req.TemplateId);
+        if (template == null) return NotFound(ApiResponse.NotFound("Khung chương trình mẫu không tồn tại"));
+
+        if (!template.Units.Any())
+            return BadRequest(ApiResponse.BadRequest("Khung chương trình mẫu này không có Unit nào"));
+
+        // 1. Parse class schedule time (ScheduleTime is e.g. "18:00-19:30")
+        var startTime = "18:00";
+        var endTime = "20:00";
+        if (!string.IsNullOrWhiteSpace(cls.ScheduleTime) && cls.ScheduleTime.Contains('-'))
+        {
+            var parts = cls.ScheduleTime.Split('-');
+            if (parts.Length == 2)
+            {
+                startTime = parts[0].Trim();
+                endTime = parts[1].Trim();
+            }
+        }
+
+        // 2. Map weekdays integers (1=Monday, 2=Tuesday ... 7=Sunday) to C# DayOfWeek
+        var scheduledDays = new List<DayOfWeek>();
+        foreach (var w in req.Weekdays)
+        {
+            if (w == 7) scheduledDays.Add(DayOfWeek.Sunday);
+            else if (w >= 1 && w <= 6) scheduledDays.Add((DayOfWeek)w);
+        }
+
+        if (!scheduledDays.Any())
+            return BadRequest(ApiResponse.BadRequest("Lịch học trong tuần không hợp lệ"));
+
+        // 3. Get currently existing session count
+        var currentMaxNumber = await db.ClassSessions
+            .Where(s => s.ClassId == id)
+            .Select(s => (int?)s.SessionNumber)
+            .MaxAsync() ?? 0;
+
+        var currentDate = req.StartDate;
+        var isFirst = true;
+
+        var unitsSorted = template.Units.OrderBy(u => u.SessionNumber).ToList();
+
+        foreach (var u in unitsSorted)
+        {
+            currentDate = GetNextSessionDate(currentDate, scheduledDays, isFirst);
+            isFirst = false;
+
+            var session = new ClassSession
+            {
+                Id = Guid.NewGuid(),
+                ClassId = id,
+                SessionNumber = ++currentMaxNumber,
+                SessionDate = currentDate,
+                StartTime = startTime,
+                EndTime = endTime,
+                Topic = u.Topic,
+                Note = u.Note,
+                CreatedAt = DateTime.UtcNow
+            };
+            db.ClassSessions.Add(session);
+
+            if (!string.IsNullOrEmpty(u.DocumentsJson))
+            {
+                try
+                {
+                    var docs = JsonSerializer.Deserialize<List<TemplateDocumentDto>>(u.DocumentsJson);
+                    if (docs != null)
+                    {
+                        foreach (var docDto in docs)
+                        {
+                            var doc = new ClassDocument
+                            {
+                                Id = Guid.NewGuid(),
+                                ClassId = id,
+                                SessionId = session.Id,
+                                Title = docDto.Title,
+                                FileUrl = docDto.FileUrl,
+                                FileType = docDto.FileType,
+                                FileSizeKb = docDto.FileSizeKb,
+                                UploadedBy = cls.TeacherId,
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            db.ClassDocuments.Add(doc);
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        await db.SaveChangesAsync();
+        return Ok(ApiResponse.Ok(new { Count = unitsSorted.Count }, "Nhập khung chương trình thành công"));
+    }
+
+    private static DateOnly GetNextSessionDate(DateOnly currentDate, List<DayOfWeek> scheduledDays, bool includeCurrent)
+    {
+        if (scheduledDays == null || !scheduledDays.Any())
+            return currentDate.AddDays(1);
+
+        var date = currentDate;
+        if (!includeCurrent)
+        {
+            date = date.AddDays(1);
+        }
+
+        for (int i = 0; i < 30; i++)
+        {
+            if (scheduledDays.Contains(date.DayOfWeek))
+            {
+                return date;
+            }
+            date = date.AddDays(1);
+        }
+
+        return currentDate;
     }
 
     [HttpPut("sessions/{sessionId:guid}")]

@@ -21,6 +21,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<BlogCategory> BlogCategories => Set<BlogCategory>();
     public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
+    public DbSet<CurriculumTemplate> CurriculumTemplates => Set<CurriculumTemplate>();
+    public DbSet<CurriculumTemplateUnit> CurriculumTemplateUnits => Set<CurriculumTemplateUnit>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -191,6 +193,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .WithMany(bc => bc.BlogPosts)
              .HasForeignKey(bp => bp.CategoryId)
              .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ── CurriculumTemplate ───────────────────────────────────────────
+        mb.Entity<CurriculumTemplateUnit>(e =>
+        {
+            e.HasOne(ctu => ctu.Template)
+             .WithMany(ct => ct.Units)
+             .HasForeignKey(ctu => ctu.TemplateId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // ── Seed BlogCategories ──────────────────────────────────────────
