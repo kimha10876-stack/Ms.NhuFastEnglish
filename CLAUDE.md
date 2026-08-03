@@ -150,5 +150,5 @@ Data/          Middleware/  Shared/ApiResponse.cs
 ```
 
 ## Seeded accounts
-- Admin: `kimha10876@gmail.com` / `123456`
-- Teacher: `nampnhse173502@fpt.edu.vn` / `123456`
+- Admin: `admin` / `123456`
+- Teacher: `teacher` / `123456` (and `nampnhse173502@fpt.edu.vn` / `123456`)

@@ -76,20 +76,20 @@ export default function LoginPage() {
             <div className="mb-6">
               <h1 className="text-[22px] font-bold tracking-tight">Đăng nhập</h1>
               <p className="text-muted-foreground text-sm mt-1">
-                Nhập email và mật khẩu của bạn
+                Nhập tài khoản và mật khẩu của bạn
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Email</label>
+                <label className="text-sm font-medium">Tài khoản</label>
                 <Input
-                  type="email"
-                  placeholder="email@example.com"
+                  type="text"
+                  placeholder="Email hoặc tên đăng nhập"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  autoComplete="email"
+                  autoComplete="username"
                   autoFocus
                 />
               </div>

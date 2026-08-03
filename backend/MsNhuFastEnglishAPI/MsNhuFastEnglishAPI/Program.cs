@@ -330,14 +330,14 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // Seed Admin — kimha10876@gmail.com
-    if (!db.Users.Any(u => u.Email == "kimha10876@gmail.com"))
+    // Seed Admin — admin
+    if (!db.Users.Any(u => u.Email == "admin"))
     {
         var admin = new User
         {
             Id           = Guid.NewGuid(),
             FullName     = "Kim Hà",
-            Email        = "kimha10876@gmail.com",
+            Email        = "admin",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
             IsActive     = true,
         };
@@ -354,6 +354,30 @@ using (var scope = app.Services.CreateScope())
             Id           = Guid.NewGuid(),
             FullName     = "Nam Phan",
             Email        = "nampnhse173502@fpt.edu.vn",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
+            IsActive     = true,
+        };
+        teacher.UserRoles.Add(new UserRole { UserId = teacher.Id, RoleId = 2, AssignedAt = DateTime.UtcNow });
+        db.Users.Add(teacher);
+        db.TeacherProfiles.Add(new TeacherProfile
+        {
+            Id            = Guid.NewGuid(),
+            UserId        = teacher.Id,
+            Phone         = "",
+            Type          = "permanent",
+            ContractStart = DateOnly.FromDateTime(DateTime.UtcNow),
+        });
+        db.SaveChanges();
+    }
+
+    // Seed Teacher — teacher
+    if (!db.Users.Any(u => u.Email == "teacher"))
+    {
+        var teacher = new User
+        {
+            Id           = Guid.NewGuid(),
+            FullName     = "Giáo viên",
+            Email        = "teacher",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
             IsActive     = true,
         };
