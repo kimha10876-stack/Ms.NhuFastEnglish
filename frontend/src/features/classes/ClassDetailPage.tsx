@@ -122,6 +122,17 @@ export default function ClassDetailPage() {
   const [staffViewTab, setStaffViewTab] = useState<'submissions' | 'preview'>('submissions')
   const [expandedSessions, setExpandedSessions] = useState<Record<string, boolean>>({})
   const [showImportModal, setShowImportModal] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    show: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  })
 
   const toggleSession = (sessionId: string) => {
     setExpandedSessions(prev => ({
@@ -192,8 +203,15 @@ export default function ClassDetailPage() {
   ) ?? []
 
   const handleDelete = () => {
-    if (!window.confirm('Bạn có chắc muốn xoá lớp học này?')) return
-    deleteClass(id, { onSuccess: () => navigate('/classes') })
+    setDeleteConfirm({
+      show: true,
+      title: 'Xóa lớp học?',
+      message: 'Bạn có chắc chắn muốn xoá lớp học này? Hành động này sẽ không thể khôi phục.',
+      onConfirm: () => {
+        deleteClass(id, { onSuccess: () => navigate('/classes') })
+        setDeleteConfirm(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   const handleAddMember = (studentId: string) => {
@@ -294,8 +312,15 @@ export default function ClassDetailPage() {
   }
 
   const handleDeleteSession = (sessionId: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa buổi học này và tất cả tài liệu đính kèm?')) return
-    deleteSessionMutation.mutate(sessionId)
+    setDeleteConfirm({
+      show: true,
+      title: 'Xóa buổi học?',
+      message: 'Bạn có chắc muốn xóa buổi học này và tất cả tài liệu đính kèm?',
+      onConfirm: () => {
+        deleteSessionMutation.mutate(sessionId)
+        setDeleteConfirm(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   // Document handlers
@@ -318,8 +343,15 @@ export default function ClassDetailPage() {
   }
 
   const handleDeleteDoc = (docId: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa tài liệu này?')) return
-    deleteDocMutation.mutate(docId)
+    setDeleteConfirm({
+      show: true,
+      title: 'Xóa tài liệu?',
+      message: 'Bạn có chắc muốn xóa tài liệu này?',
+      onConfirm: () => {
+        deleteDocMutation.mutate(docId)
+        setDeleteConfirm(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   // Assignment handlers
@@ -389,8 +421,15 @@ export default function ClassDetailPage() {
 
   const handleDeleteAssignment = (assignmentId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!window.confirm('Bạn có chắc muốn xóa bài tập này?')) return
-    deleteAssignmentMutation.mutate(assignmentId)
+    setDeleteConfirm({
+      show: true,
+      title: 'Xóa bài tập?',
+      message: 'Bạn có chắc muốn xóa bài tập này?',
+      onConfirm: () => {
+        deleteAssignmentMutation.mutate(assignmentId)
+        setDeleteConfirm(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
 
@@ -1031,9 +1070,15 @@ export default function ClassDetailPage() {
                           <td className="px-4 py-3">
                             <button
                               onClick={() => {
-                                if (window.confirm(`Bạn có chắc muốn xóa học viên ${m.fullName} khỏi lớp?`)) {
-                                  removeMember(m.memberId)
-                                }
+                                setDeleteConfirm({
+                                  show: true,
+                                  title: 'Xóa học viên khỏi lớp?',
+                                  message: `Bạn có chắc muốn xóa học viên ${m.fullName} khỏi lớp học này không?`,
+                                  onConfirm: () => {
+                                    removeMember(m.memberId)
+                                    setDeleteConfirm(prev => ({ ...prev, show: false }))
+                                  }
+                                })
                               }}
                               className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                             >
@@ -2334,6 +2379,46 @@ export default function ClassDetailPage() {
           }}
           isPending={importCurriculumMutation.isPending}
         />
+      )}
+
+      {/* ── Custom Deletion Confirmation Modal ── */}
+      {deleteConfirm.show && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 animate-in fade-in duration-200"
+          onClick={() => setDeleteConfirm(prev => ({ ...prev, show: false }))}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col p-6 animate-in zoom-in-95 duration-200 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-50 text-red-600 mb-4 mx-auto">
+              <AlertTriangle className="h-6 w-6 shrink-0" />
+            </div>
+            
+            <h3 className="font-bold text-lg text-gray-900 mb-2">{deleteConfirm.title}</h3>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed font-semibold">
+              {deleteConfirm.message}
+            </p>
+
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1 rounded-xl text-xs font-semibold"
+                onClick={() => setDeleteConfirm(prev => ({ ...prev, show: false }))}
+              >
+                Quay lại
+              </Button>
+              <Button
+                type="button"
+                className="flex-1 rounded-xl text-xs font-semibold bg-red-500 hover:bg-red-600 text-white font-semibold shadow-sm"
+                onClick={deleteConfirm.onConfirm}
+              >
+                Xác nhận xóa
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
