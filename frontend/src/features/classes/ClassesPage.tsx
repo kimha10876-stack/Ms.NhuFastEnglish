@@ -369,23 +369,7 @@ export default function ClassesPage() {
         )}
       </form>
 
-      {/* ── Stats row ── */}
-      {!isLoading && totalCount > 0 && (
-        <div className="flex gap-3 mb-6 flex-wrap animate-in fade-in duration-200">
-          {[
-            { label: 'Tổng lớp tìm thấy', value: totalCount },
-            { label: 'Số lớp trang này', value: classes.length },
-            { label: 'Sĩ số hiển thị', value: classes.reduce((s, c) => s + c.memberCount, 0) },
-          ].map((s) => (
-            <div key={s.label} className="bg-white border border-gray-200 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-sm">
-              <div>
-                <p className="text-xl font-bold text-gray-900">{s.value}</p>
-                <p className="text-xs text-gray-500">{s.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+
 
       {/* ── Grid ── */}
       {isLoading ? (

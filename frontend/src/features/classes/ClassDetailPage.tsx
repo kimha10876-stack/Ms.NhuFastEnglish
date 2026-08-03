@@ -678,10 +678,12 @@ export default function ClassDetailPage() {
                   )}
                   {isStaff && (
                     <>
-                      <Button size="sm" variant="secondary" onClick={() => setShowImportModal(true)} className="gap-1.5 text-xs font-semibold rounded-xl">
-                        <BookOpen className="h-4 w-4 text-amber-600" />
-                        Nhập từ Khung giáo trình
-                      </Button>
+                      {sortedSessions.length === 0 && (
+                        <Button size="sm" variant="secondary" onClick={() => setShowImportModal(true)} className="gap-1.5 text-xs font-semibold rounded-xl">
+                          <BookOpen className="h-4 w-4 text-amber-600" />
+                          Nhập từ Khung giáo trình
+                        </Button>
+                      )}
                       <Button size="sm" onClick={handleOpenAddSession} className="gap-1.5 text-xs font-semibold rounded-xl">
                         <Plus className="h-4 w-4" />
                         Thêm buổi học (Unit)
