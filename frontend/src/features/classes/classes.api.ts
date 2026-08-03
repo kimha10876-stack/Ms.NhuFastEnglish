@@ -151,5 +151,11 @@ export const classesApi = {
     api.delete<ApiResponse<any>>(`/curriculum-templates/${id}`).then((r) => r.data),
 
   importCurriculum: (classId: string, body: { templateId: string; startDate: string; weekdays: number[] }) =>
-    api.post<ApiResponse<any>>(`/classes/${classId}/import-curriculum`, body).then((r) => r.data)
+    api.post<ApiResponse<any>>(`/classes/${classId}/import-curriculum`, body).then((r) => r.data),
+
+  getAttendance: (classId: string, sessionId: string) =>
+    api.get<ApiResponse<{ studentId: string; fullName: string; email: string; status: string | null }[]>>(`/classes/${classId}/attendance/${sessionId}`).then((r) => r.data.data!),
+
+  updateAttendance: (classId: string, sessionId: string, body: { studentId: string; status: string }) =>
+    api.post<ApiResponse<any>>(`/classes/${classId}/attendance/${sessionId}`, body).then((r) => r.data)
 }

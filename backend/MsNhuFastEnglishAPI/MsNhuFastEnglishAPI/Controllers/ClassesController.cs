@@ -942,4 +942,81 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
         await db.SaveChangesAsync();
         return Ok(ApiResponse.Ok<object?>(null, "Chấm điểm bài nộp thành công"));
     }
+
+    // ── GET /api/classes/{id}/attendance/{sessionId} ───────────────────────────
+    [HttpGet("{id:guid}/attendance/{sessionId:guid}")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> GetAttendance(Guid id, Guid sessionId)
+    {
+        var cls = await db.Classes.FindAsync(id);
+        if (cls == null) return NotFound(ApiResponse.NotFound("Lớp học không tồn tại"));
+
+        var session = await db.ClassSessions.FindAsync(sessionId);
+        if (session == null) return NotFound(ApiResponse.NotFound("Buổi học không tồn tại"));
+
+        var members = await db.ClassMembers
+            .Where(m => m.ClassId == id && m.Status == "active")
+            .Include(m => m.Student)
+            .ThenInclude(s => s.User)
+            .OrderBy(m => m.Student.User.FullName)
+            .ToListAsync();
+
+        var attendances = await db.ClassAttendances
+            .Where(a => a.ClassId == id && a.SessionId == sessionId)
+            .ToDictionaryAsync(a => a.StudentId, a => a.Status);
+
+        var result = members.Select(m => new StudentAttendanceDto(
+            m.StudentId,
+            m.Student.User.FullName,
+            m.Student.User.Email,
+            attendances.TryGetValue(m.StudentId, out var status) ? status : null
+        )).ToList();
+
+        return Ok(ApiResponse.Ok(result, "Lấy danh sách điểm danh thành công"));
+    }
+
+    // ── POST /api/classes/{id}/attendance/{sessionId} ──────────────────────────
+    [HttpPost("{id:guid}/attendance/{sessionId:guid}")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> UpdateAttendance(Guid id, Guid sessionId, [FromBody] UpdateAttendanceRequest req)
+    {
+        var cls = await db.Classes.FindAsync(id);
+        if (cls == null) return NotFound(ApiResponse.NotFound("Lớp học không tồn tại"));
+
+        var session = await db.ClassSessions.FindAsync(sessionId);
+        if (session == null) return NotFound(ApiResponse.NotFound("Buổi học không tồn tại"));
+
+        var memberExists = await db.ClassMembers.AnyAsync(m => m.ClassId == id && m.StudentId == req.StudentId && m.Status == "active");
+        if (!memberExists) return BadRequest(ApiResponse.BadRequest("Học viên không thuộc lớp này hoặc đã rời lớp"));
+
+        var status = req.Status.ToLower().Trim();
+        if (status != "present" && status != "absent")
+            return BadRequest(ApiResponse.BadRequest("Trạng thái điểm danh không hợp lệ. Chỉ chấp nhận 'present' hoặc 'absent'"));
+
+        var record = await db.ClassAttendances
+            .FirstOrDefaultAsync(a => a.ClassId == id && a.SessionId == sessionId && a.StudentId == req.StudentId);
+
+        if (record == null)
+        {
+            record = new ClassAttendance
+            {
+                Id = Guid.NewGuid(),
+                ClassId = id,
+                SessionId = sessionId,
+                StudentId = req.StudentId,
+                Status = status,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            db.ClassAttendances.Add(record);
+        }
+        else
+        {
+            record.Status = status;
+            record.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await db.SaveChangesAsync();
+        return Ok(ApiResponse.Ok(new { record.Id, record.Status }, "Cập nhật điểm danh thành công"));
+    }
 }

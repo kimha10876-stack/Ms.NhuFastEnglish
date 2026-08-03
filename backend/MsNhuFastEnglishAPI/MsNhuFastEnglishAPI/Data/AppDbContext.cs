@@ -23,6 +23,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
     public DbSet<CurriculumTemplate> CurriculumTemplates => Set<CurriculumTemplate>();
     public DbSet<CurriculumTemplateUnit> CurriculumTemplateUnits => Set<CurriculumTemplateUnit>();
+    public DbSet<ClassAttendance> ClassAttendances => Set<ClassAttendance>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -201,6 +202,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(ctu => ctu.Template)
              .WithMany(ct => ct.Units)
              .HasForeignKey(ctu => ctu.TemplateId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── ClassAttendance ──────────────────────────────────────────────
+        mb.Entity<ClassAttendance>(e =>
+        {
+            e.HasOne(ca => ca.Class)
+             .WithMany()
+             .HasForeignKey(ca => ca.ClassId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(ca => ca.Session)
+             .WithMany()
+             .HasForeignKey(ca => ca.SessionId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(ca => ca.Student)
+             .WithMany()
+             .HasForeignKey(ca => ca.StudentId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 

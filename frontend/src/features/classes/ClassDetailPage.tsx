@@ -19,7 +19,8 @@ import {
   useCreateDocument, useDeleteDocument,
   useClassAssignments, useCreateAssignment, useUpdateAssignment, useDeleteAssignment,
   useAssignmentSubmissions, useGradeSubmission,
-  useCurriculumTemplates, useImportCurriculum
+  useCurriculumTemplates, useImportCurriculum,
+  useClassAttendance, useUpdateAttendance
 } from './useClasses'
 import type { UpdateClassRequest, ClassSession, ClassAssignment, AssignmentSubmission, AssignmentQuestion, StudentAnswer } from './classes.types'
 import TeacherSelect from './TeacherSelect'
@@ -192,6 +193,38 @@ export default function ClassDetailPage() {
 
   const sessions = sessionData?.sessions ?? []
   const generalDocuments = sessionData?.generalDocuments ?? []
+
+  const sortedSessions = [...sessions].sort((a, b) => {
+    const dateDiff = new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
+    if (dateDiff !== 0) return dateDiff
+    return b.sessionNumber - a.sessionNumber
+  })
+
+  const [selectedSessionForAttendance, setSelectedSessionForAttendance] = useState<string>('')
+  const [savingAttendanceStudentId, setSavingAttendanceStudentId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (sortedSessions.length > 0 && !selectedSessionForAttendance) {
+      setSelectedSessionForAttendance(sortedSessions[0].id)
+    }
+  }, [sortedSessions, selectedSessionForAttendance])
+
+  const { data: attendanceList = [], isLoading: loadingAttendance } = useClassAttendance(id, selectedSessionForAttendance)
+  const updateAttendanceMutation = useUpdateAttendance(id, selectedSessionForAttendance)
+
+  const handleToggleAttendance = (studentId: string, currentStatus: string | null, targetStatus: string) => {
+    if (currentStatus === targetStatus) return
+    setSavingAttendanceStudentId(studentId)
+    updateAttendanceMutation.mutate({ studentId, status: targetStatus }, {
+      onSuccess: () => {
+        setSavingAttendanceStudentId(null)
+      },
+      onError: () => {
+        setSavingAttendanceStudentId(null)
+        alert('Cập nhật điểm danh thất bại!')
+      }
+    })
+  }
 
   const MEMBER_PAGE_SIZE = 10
   const totalMembers = cls?.members.length ?? 0
@@ -620,7 +653,7 @@ export default function ClassDetailPage() {
           }`}
         >
           <Users className="h-4 w-4" />
-          Thành viên
+          Điểm danh & Thành viên
           <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${tab === 'members' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
             {cls.members.length}
           </span>
@@ -965,194 +998,236 @@ export default function ClassDetailPage() {
         </div>
       )}
 
-      {/* ── 3. Members tab ── */}
       {tab === 'members' && (
-        <div>
-          {/* Actions - Chỉ hiển thị cho Admin và Giáo viên */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* CỘT TRÁI: ĐIỂM DANH (Chỉ dành cho Giáo viên/Admin) */}
           {isStaff && (
-            <div className="flex flex-wrap gap-3 mb-4">
-              <Button onClick={() => setShowAdd(true)} className="gap-1.5 rounded-xl font-semibold text-xs h-9">
-                <Plus className="h-4 w-4" />
-                Thêm học viên
-              </Button>
-
-              {activeInvite ? (
-                <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0 max-w-xl animate-in fade-in duration-200">
-                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm flex-1 min-w-0">
-                    <Link2 className="h-4 w-4 text-amber-500 shrink-0" />
-                    <span className="truncate text-gray-600 flex-1 text-xs font-mono">{activeInvite.inviteUrl}</span>
-                    <button
-                      onClick={() => handleCopy(activeInvite.inviteUrl)}
-                      className="shrink-0 p-1 rounded-lg hover:bg-amber-100 transition-colors"
-                      title="Sao chép link"
+            <div className="lg:col-span-7 bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-150 pb-3 flex-wrap gap-2 text-left">
+                <div>
+                  <h3 className="font-extrabold text-gray-900 text-base">Điểm danh theo buổi học</h3>
+                  <p className="text-xs text-gray-400 font-semibold mt-0.5">Chọn buổi học để theo dõi và tích điểm danh</p>
+                </div>
+                
+                {sortedSessions.length > 0 && (
+                  <div className="w-56">
+                    <select
+                      value={selectedSessionForAttendance}
+                      onChange={(e) => setSelectedSessionForAttendance(e.target.value)}
+                      className="w-full text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl p-2.5 focus:border-amber-500 focus:ring-amber-500/20"
                     >
-                      {copied ? (
-                        <Check className="h-4 w-4 text-emerald-600 animate-in zoom-in duration-200" />
-                      ) : (
-                        <Copy className="h-4 w-4 text-amber-600" />
-                      )}
-                    </button>
+                      {sortedSessions.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          Buổi {s.sessionNumber}: {s.topic || 'Chưa có tiêu đề'}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  
-                  <Button
-                    variant="secondary"
-                    onClick={() => setShowInvite(true)}
-                    className="h-[38px] text-xs font-semibold px-3 rounded-xl"
-                    title="Tạo lại link mới (thu hồi link cũ)"
-                  >
-                    Tạo mới link
-                  </Button>
+                )}
+              </div>
 
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowRevokeConfirm(true)}
-                    className="h-[38px] px-3 border border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 font-semibold rounded-xl"
-                    title="Hủy link mời"
-                  >
-                    Hủy link
-                  </Button>
+              {sortedSessions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center bg-gray-50/50 rounded-xl border border-dashed border-gray-200 p-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mb-2.5 text-amber-500">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <p className="font-bold text-gray-800 text-xs">Chưa có buổi học nào</p>
+                  <p className="text-[10px] text-gray-400 font-semibold mt-0.5">Vui lòng tạo buổi học ở tab "Bài học & Tài liệu" trước khi điểm danh</p>
+                </div>
+              ) : loadingAttendance ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
                 </div>
               ) : (
-                <Button variant="secondary" onClick={() => setShowInvite(true)} className="gap-1.5 rounded-xl font-semibold text-xs h-9">
-                  <Link2 className="h-4 w-4" />
-                  Tạo link mời
-                </Button>
-              )}
-            </div>
-          )}
+                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                  {attendanceList.map((att) => {
+                    const isPresent = att.status === 'present' || att.status === null;
+                    const isAbsent = att.status === 'absent';
+                    const isSaving = savingAttendanceStudentId === att.studentId;
 
-          {/* Member table */}
-          {cls.members.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 border border-gray-200 rounded-2xl bg-gray-50/50">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mb-3">
-                <Users className="h-6 w-6 text-amber-400" />
-              </div>
-              <p className="text-gray-600 font-bold text-sm">Chưa có học viên nào trong lớp</p>
-              {isStaff && <p className="text-gray-400 text-xs mt-0.5">Thêm học viên hoặc chia sẻ link mời để thu hút đăng ký</p>}
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto border border-gray-200/80 rounded-2xl">
-                <table className="w-full text-sm border-collapse bg-white">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="px-4 py-3 text-left text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Học viên</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-extrabold uppercase tracking-wider text-gray-400 hidden sm:table-cell">Ngày tham gia</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-extrabold uppercase tracking-wider text-gray-400 hidden md:table-cell">Trạng thái</th>
-                      {isStaff && <th className="w-12 px-4 py-3"></th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedMembers.map((m) => (
-                      <tr key={m.memberId} className="border-t border-gray-100 hover:bg-amber-50/10 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0 border border-amber-200/40">
-                              <span className="text-xs font-bold text-amber-700">
-                                {m.fullName[0]?.toUpperCase()}
-                              </span>
+                    return (
+                      <div key={att.studentId} className="flex items-center justify-between p-3 border border-gray-100 rounded-xl bg-gray-50/30 hover:bg-gray-50/70 transition-all">
+                        <div className="min-w-0 flex-1 pr-3 text-left">
+                          <p className="text-xs font-extrabold text-gray-900 truncate">{att.fullName}</p>
+                          <p className="text-[10px] text-gray-400 font-semibold truncate mt-0.5">{att.email}</p>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isSaving ? (
+                            <div className="px-6 py-1.5 flex items-center justify-center">
+                              <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
                             </div>
-                            <div className="min-w-0">
-                              <p className="font-bold text-gray-900 truncate leading-snug">{m.fullName}</p>
-                              <p className="text-xs text-gray-400 font-semibold truncate mt-0.5">{m.email}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-gray-500 font-semibold text-xs hidden sm:table-cell">
-                          {new Date(m.joinedAt).toLocaleDateString('vi-VN')}
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                            Đang học
-                          </span>
-                        </td>
-                        {isStaff && (
-                          <td className="px-4 py-3">
-                            <button
-                              onClick={() => {
-                                setDeleteConfirm({
-                                  show: true,
-                                  title: 'Xóa học viên khỏi lớp?',
-                                  message: `Bạn có chắc muốn xóa học viên ${m.fullName} khỏi lớp học này không?`,
-                                  onConfirm: () => {
-                                    removeMember(m.memberId)
-                                    setDeleteConfirm(prev => ({ ...prev, show: false }))
-                                  }
-                                })
-                              }}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {totalMemberPages > 1 && (
-                <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 pt-4">
-                  <p className="text-xs font-semibold text-gray-500">
-                    Hiển thị học viên từ <span className="font-bold text-gray-900">{((activeMemberPage - 1) * MEMBER_PAGE_SIZE) + 1}</span> đến{' '}
-                    <span className="font-bold text-gray-900">
-                      {Math.min(activeMemberPage * MEMBER_PAGE_SIZE, totalMembers)}
-                    </span>{' '}
-                    trong tổng số <span className="font-bold text-gray-900">{totalMembers}</span> học viên
-                  </p>
-
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setMemberPage(p => Math.max(p - 1, 1))}
-                      disabled={activeMemberPage === 1}
-                      className="h-8 w-8 p-0 rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-
-                    {Array.from({ length: totalMemberPages }).map((_, idx) => {
-                      const pNum = idx + 1
-                      if (totalMemberPages > 5 && Math.abs(pNum - activeMemberPage) > 1 && pNum !== 1 && pNum !== totalMemberPages) {
-                        if (pNum === 2 || pNum === totalMemberPages - 1) {
-                          return <span key={pNum} className="text-xs text-gray-400 px-1 font-bold">...</span>
-                        }
-                        return null
-                      }
-
-                      return (
-                        <Button
-                          key={pNum}
-                          variant={activeMemberPage === pNum ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setMemberPage(pNum)}
-                          className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold transition-all ${
-                            activeMemberPage === pNum
-                              ? 'bg-amber-500 border-amber-600 text-white hover:bg-amber-600 hover:text-white'
-                              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                          }`}
-                        >
-                          {pNum}
-                        </Button>
-                      )
-                    })}
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setMemberPage(p => Math.min(p + 1, totalMemberPages))}
-                      disabled={activeMemberPage === totalMemberPages}
-                      className="h-8 w-8 p-0 rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleAttendance(att.studentId, att.status, 'present')}
+                                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-xs border ${
+                                  isPresent
+                                    ? 'bg-emerald-500 border-emerald-500 text-white font-extrabold'
+                                    : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
+                                }`}
+                              >
+                                Đi học
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleAttendance(att.studentId, att.status, 'absent')}
+                                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-xs border ${
+                                  isAbsent
+                                    ? 'bg-red-500 border-red-500 text-white font-extrabold'
+                                    : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
+                                }`}
+                              >
+                                Vắng
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-            </>
+            </div>
           )}
+
+          {/* CỘT PHẢI: QUẢN LÝ THÀNH VIÊN & LINK MỜI */}
+          <div className={`${isStaff ? 'lg:col-span-5' : 'lg:col-span-12'} bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4`}>
+            <div className="border-b border-gray-150 pb-3 text-left">
+              <h3 className="font-extrabold text-gray-900 text-base">Thành viên lớp học</h3>
+              <p className="text-xs text-gray-400 font-semibold mt-0.5">Danh sách các học viên đang tham gia lớp</p>
+            </div>
+
+            {/* Link mời và nút thêm học viên */}
+            {isStaff && (
+              <div className="space-y-3">
+                <Button onClick={() => setShowAdd(true)} className="w-full gap-1.5 rounded-xl font-bold text-xs h-9 bg-amber-500 hover:bg-amber-600 text-gray-900">
+                  <Plus className="h-4 w-4" />
+                  Thêm học viên trực tiếp
+                </Button>
+
+                {activeInvite ? (
+                  <div className="space-y-2 animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm">
+                      <Link2 className="h-4 w-4 text-amber-500 shrink-0" />
+                      <span className="truncate text-gray-600 flex-1 text-[11px] font-mono">{activeInvite.inviteUrl}</span>
+                      <button
+                        onClick={() => handleCopy(activeInvite.inviteUrl)}
+                        className="shrink-0 p-1 rounded-lg hover:bg-amber-100 transition-colors"
+                        title="Sao chép link"
+                      >
+                        {copied ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-600 animate-in zoom-in duration-200" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 text-amber-600" />
+                        )}
+                      </button>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => setShowInvite(true)}
+                        className="flex-1 h-8 text-[10px] font-bold rounded-lg"
+                      >
+                        Tạo link mới
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowRevokeConfirm(true)}
+                        className="flex-1 h-8 text-[10px] font-bold border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 rounded-lg"
+                      >
+                        Hủy link
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button variant="secondary" onClick={() => setShowInvite(true)} className="w-full gap-1.5 rounded-xl font-bold text-xs h-9">
+                    <Link2 className="h-4 w-4" />
+                    Tạo link mời học viên
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {cls.members.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 border border-gray-200 border-dashed rounded-xl bg-gray-50/50">
+                <Users className="h-8 w-8 text-gray-300 mb-2" />
+                <p className="text-gray-500 font-bold text-xs">Chưa có học viên nào</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
+                  {paginatedMembers.map((m) => (
+                    <div key={m.memberId} className="flex items-center justify-between p-2.5 border border-gray-100 rounded-xl bg-gray-50/20 hover:bg-amber-50/10 transition-colors">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1 text-left">
+                        <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center shrink-0 border border-amber-200/40">
+                          <span className="text-[10px] font-bold text-amber-700">
+                            {m.fullName[0]?.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-gray-900 truncate leading-snug">{m.fullName}</p>
+                          <p className="text-[10px] text-gray-400 font-semibold truncate">{m.email}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {isStaff && (
+                          <button
+                            onClick={() => {
+                              setDeleteConfirm({
+                                show: true,
+                                title: 'Xóa học viên khỏi lớp?',
+                                message: `Bạn có chắc muốn xóa học viên ${m.fullName} khỏi lớp học này không?`,
+                                onConfirm: () => {
+                                  removeMember(m.memberId)
+                                  setDeleteConfirm(prev => ({ ...prev, show: false }))
+                                }
+                              })
+                            }}
+                            className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="Xóa khỏi lớp"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {totalMemberPages > 1 && (
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
+                    <p className="text-[10px] font-bold text-gray-400">
+                      Trang {activeMemberPage}/{totalMemberPages}
+                    </p>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMemberPage(p => Math.max(p - 1, 1))}
+                        disabled={activeMemberPage === 1}
+                        className="h-7 w-7 p-0 rounded-lg"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMemberPage(p => Math.min(p + 1, totalMemberPages))}
+                        disabled={activeMemberPage === totalMemberPages}
+                        className="h-7 w-7 p-0 rounded-lg"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

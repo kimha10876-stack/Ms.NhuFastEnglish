@@ -335,3 +335,22 @@ export function useDeleteCurriculumTemplate() {
   })
 }
 
+export function useClassAttendance(classId: string, sessionId: string) {
+  return useQuery({
+    queryKey: ['classes', classId, 'attendance', sessionId],
+    queryFn: () => classesApi.getAttendance(classId, sessionId),
+    enabled: !!classId && !!sessionId,
+  })
+}
+
+export function useUpdateAttendance(classId: string, sessionId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { studentId: string; status: string }) =>
+      classesApi.updateAttendance(classId, sessionId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', classId, 'attendance', sessionId] })
+    },
+  })
+}
+

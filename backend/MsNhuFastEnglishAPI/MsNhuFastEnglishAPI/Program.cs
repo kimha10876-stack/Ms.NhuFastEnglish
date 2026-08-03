@@ -203,6 +203,16 @@ using (var scope = app.Services.CreateScope())
                         ""Note"" TEXT,
                         ""DocumentsJson"" TEXT
                     );
+
+                    CREATE TABLE IF NOT EXISTS ""ClassAttendances"" (
+                        ""Id"" UUID PRIMARY KEY,
+                        ""ClassId"" UUID NOT NULL REFERENCES ""Classes""(""Id"") ON DELETE CASCADE,
+                        ""SessionId"" UUID NOT NULL REFERENCES ""ClassSessions""(""Id"") ON DELETE CASCADE,
+                        ""StudentId"" UUID NOT NULL REFERENCES ""StudentProfiles""(""Id"") ON DELETE CASCADE,
+                        ""Status"" VARCHAR(50) NOT NULL DEFAULT 'present',
+                        ""CreatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+                        ""UpdatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+                    );
                 ");
             }
             else
@@ -274,6 +284,17 @@ using (var scope = app.Services.CreateScope())
                             Topic TEXT,
                             Note TEXT,
                             DocumentsJson TEXT
+                        );
+                    ");
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS ClassAttendances (
+                            Id TEXT PRIMARY KEY,
+                            ClassId TEXT NOT NULL REFERENCES Classes(Id) ON DELETE CASCADE,
+                            SessionId TEXT NOT NULL REFERENCES ClassSessions(Id) ON DELETE CASCADE,
+                            StudentId TEXT NOT NULL REFERENCES StudentProfiles(Id) ON DELETE CASCADE,
+                            Status TEXT NOT NULL DEFAULT 'present',
+                            CreatedAt TEXT NOT NULL,
+                            UpdatedAt TEXT NOT NULL
                         );
                     ");
                 }
