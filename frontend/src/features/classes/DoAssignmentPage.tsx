@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   Clock, 
   ChevronLeft, 
   Send, 
   AlertTriangle, 
-  FileText, 
   CheckCircle2, 
   XCircle, 
   ExternalLink, 
@@ -14,20 +13,16 @@ import {
   Upload, 
   Loader2, 
   Sparkles, 
-  BookOpen, 
-  Award,
-  HelpCircle,
-  FileDown
+  BookOpen
 } from 'lucide-react'
-import { Button } from '@/shared/components/ui/Button'
-import { Input } from '@/shared/components/ui/Input'
+import { Button } from '@/shared/components/ui/button'
+import { Input } from '@/shared/components/ui/input'
 import { classesApi } from './classes.api'
-import type { ClassAssignment, AssignmentQuestion, StudentAnswer, AssignmentSubmission } from './classes.types'
+import type { ClassAssignment, AssignmentQuestion, StudentAnswer } from './classes.types'
 
 export default function DoAssignmentPage() {
-  const { classId, assignmentId } = useParams<{ classId: string; assignmentId: string }>()
+  const { assignmentId } = useParams<{ classId: string; assignmentId: string }>()
   const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const isPreview = searchParams.get('preview') === 'true'
 
@@ -387,7 +382,7 @@ export default function DoAssignmentPage() {
                     <div 
                       key={q.id} 
                       ref={(el) => { questionRefs.current[q.id] = el }}
-                      className={`p-5 bg-white border rounded-2xl space-y-4 shadow-sm transition-all duration-300 \${
+                      className={`p-5 bg-white border rounded-2xl space-y-4 shadow-sm transition-all duration-300 ${
                         isActive ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-gray-200'
                       }`}
                     >

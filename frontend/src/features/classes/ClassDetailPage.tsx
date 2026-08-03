@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, BookOpen, FileText, Calendar,
   Clock, Sparkles,
   Paperclip, ExternalLink, Send, Download, PlusCircle,
-  GraduationCap, File, CheckSquare, Upload
+  GraduationCap, File, CheckSquare
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -18,7 +18,7 @@ import {
   useClassSessions, useCreateSession, useUpdateSession, useDeleteSession,
   useCreateDocument, useDeleteDocument,
   useClassAssignments, useCreateAssignment, useUpdateAssignment, useDeleteAssignment,
-  useAssignmentSubmissions, useSubmitAssignment, useGradeSubmission
+  useAssignmentSubmissions, useGradeSubmission
 } from './useClasses'
 import type { UpdateClassRequest, ClassSession, ClassAssignment, AssignmentSubmission, AssignmentQuestion, StudentAnswer } from './classes.types'
 import TeacherSelect from './TeacherSelect'
@@ -119,15 +119,7 @@ export default function ClassDetailPage() {
 
   const [selectedAssignment, setSelectedAssignment] = useState<ClassAssignment | null>(null)
   const [staffViewTab, setStaffViewTab] = useState<'submissions' | 'preview'>('submissions')
-  const [submitForm, setSubmitForm] = useState({
-    submissionText: '',
-    fileUrl: '',
-    fileName: ''
-  })
-  
-  // Trạng thái làm bài Quiz
-  const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({})
-  const [uploadingFile, setUploadingFile] = useState(false)
+
 
   const [showGradeModal, setShowGradeModal] = useState(false)
   const [selectedSubmission, setSelectedSubmission] = useState<AssignmentSubmission | null>(null)
@@ -172,7 +164,6 @@ export default function ClassDetailPage() {
   const updateAssignmentMutation = useUpdateAssignment(id)
   const deleteAssignmentMutation = useDeleteAssignment(id)
   
-  const submitAssignmentMutation = useSubmitAssignment(id, selectedAssignment?.id ?? '')
   const gradeSubmissionMutation = useGradeSubmission(id, selectedAssignment?.id ?? '')
   
   const { data: submissions = [], isLoading: loadingSubmissions } = useAssignmentSubmissions(selectedAssignment?.id ?? '')
@@ -391,38 +382,7 @@ export default function ClassDetailPage() {
     deleteAssignmentMutation.mutate(assignmentId)
   }
 
-  // Student Submit handler
-  const handleSubmitWork = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedAssignment) return
 
-    let answersJson = ''
-    if (selectedAssignment.assignmentType === 'Quiz') {
-      const questions: AssignmentQuestion[] = selectedAssignment.questionsJson ? JSON.parse(selectedAssignment.questionsJson) : []
-      const studentAnswers = questions.map((q) => ({
-        questionId: q.id,
-        answerText: quizAnswers[q.id] ?? ''
-      }))
-      answersJson = JSON.stringify(studentAnswers)
-    }
-
-    submitAssignmentMutation.mutate({
-      submissionText: selectedAssignment.assignmentType === 'Quiz' ? 'Bài làm Trắc nghiệm/Quiz trực tuyến' : submitForm.submissionText,
-      fileUrl: selectedAssignment.assignmentType === 'Quiz' ? undefined : submitForm.fileUrl,
-      fileName: selectedAssignment.assignmentType === 'Quiz' ? undefined : submitForm.fileName,
-      answersJson: selectedAssignment.assignmentType === 'Quiz' ? answersJson : undefined
-    }, {
-      onSuccess: () => {
-        // Refetch chi tiết bài tập để cập nhật điểm tự chấm và kết quả nộp bài
-        classesApi.getAssignmentDetail(selectedAssignment.id).then((updatedAssign) => {
-          setSelectedAssignment(updatedAssign)
-          alert('Nộp bài làm thành công!')
-        }).catch(() => {
-          alert('Nộp bài làm thành công! (Vui lòng tải lại trang để xem kết quả)')
-        })
-      }
-    })
-  }
 
   const handleWritingGradeChange = (questionId: string, value: number) => {
     const currentAnswers = gradeForm.answersJson ? JSON.parse(gradeForm.answersJson) as StudentAnswer[] : []
@@ -512,11 +472,6 @@ export default function ClassDetailPage() {
     if (type.includes('ppt')) return <FileText className="h-5 w-5 text-orange-500" />
     if (type.includes('youtube') || type.includes('video') || type.includes('mp4')) return <File className="h-5 w-5 text-rose-600" />
     return <File className="h-5 w-5 text-gray-500" />
-  }
-
-        )}
-      </div>
-    )
   }
 
   if (loadingClass) {
@@ -866,27 +821,6 @@ export default function ClassDetailPage() {
                     onClick={() => {
                       setSelectedAssignment(a)
                       setStaffViewTab('submissions')
-                      if (isStudent) {
-                        setSubmitForm({
-                          submissionText: a.submission?.submissionText ?? '',
-                          fileUrl: a.submission?.fileUrl ?? '',
-                          fileName: a.submission?.fileName ?? ''
-                        })
-                        if (a.assignmentType === 'Quiz' && a.submission?.answersJson) {
-                          try {
-                            const answers: StudentAnswer[] = JSON.parse(a.submission.answersJson)
-                            const answerMap: Record<string, string> = {}
-                            answers.forEach((ans) => {
-                              answerMap[ans.questionId] = ans.answerText
-                            })
-                            setQuizAnswers(answerMap)
-                          } catch {
-                            setQuizAnswers({})
-                          }
-                        } else {
-                          setQuizAnswers({})
-                        }
-                      }
                     }}
                     className="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-md hover:border-gray-300 transition-all duration-300 cursor-pointer flex flex-col justify-between group"
                   >
