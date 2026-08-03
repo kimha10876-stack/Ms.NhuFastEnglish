@@ -190,6 +190,7 @@ using (var scope = app.Services.CreateScope())
                         ""Id"" UUID PRIMARY KEY,
                         ""Name"" VARCHAR(255) NOT NULL,
                         ""Description"" TEXT,
+                        ""DocumentsJson"" TEXT,
                         ""CreatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
                         ""UpdatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
                     );
@@ -260,6 +261,7 @@ using (var scope = app.Services.CreateScope())
                             Id TEXT PRIMARY KEY,
                             Name TEXT NOT NULL,
                             Description TEXT,
+                            DocumentsJson TEXT,
                             CreatedAt TEXT NOT NULL,
                             UpdatedAt TEXT NOT NULL
                         );
@@ -274,6 +276,31 @@ using (var scope = app.Services.CreateScope())
                             DocumentsJson TEXT
                         );
                     ");
+                }
+                catch { }
+            }
+
+            // Migration: Thêm cột DocumentsJson vào bảng CurriculumTemplates nếu chưa có
+            if (db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            {
+                db.Database.ExecuteSqlRaw(@"
+                    DO $$ 
+                    BEGIN 
+                        IF NOT EXISTS (
+                            SELECT 1 
+                            FROM information_schema.columns 
+                            WHERE table_name = 'CurriculumTemplates' AND column_name = 'DocumentsJson'
+                        ) THEN
+                            ALTER TABLE ""CurriculumTemplates"" ADD COLUMN ""DocumentsJson"" TEXT;
+                        END IF;
+                    END $$;
+                ");
+            }
+            else
+            {
+                try
+                {
+                    db.Database.ExecuteSqlRaw(@"ALTER TABLE CurriculumTemplates ADD COLUMN DocumentsJson TEXT;");
                 }
                 catch { }
             }

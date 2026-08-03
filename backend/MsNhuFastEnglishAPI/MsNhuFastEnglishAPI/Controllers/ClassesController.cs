@@ -423,6 +423,35 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
             }
         }
 
+        // 4. Import general template documents if any
+        if (!string.IsNullOrEmpty(template.DocumentsJson))
+        {
+            try
+            {
+                var generalDocs = JsonSerializer.Deserialize<List<TemplateDocumentDto>>(template.DocumentsJson);
+                if (generalDocs != null)
+                {
+                    foreach (var docDto in generalDocs)
+                    {
+                        var doc = new ClassDocument
+                        {
+                            Id = Guid.NewGuid(),
+                            ClassId = id,
+                            SessionId = null,
+                            Title = docDto.Title,
+                            FileUrl = docDto.FileUrl,
+                            FileType = docDto.FileType,
+                            FileSizeKb = docDto.FileSizeKb,
+                            UploadedBy = cls.TeacherId,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        db.ClassDocuments.Add(doc);
+                    }
+                }
+            }
+            catch { }
+        }
+
         await db.SaveChangesAsync();
         return Ok(ApiResponse.Ok(new { Count = unitsSorted.Count }, "Nhập khung chương trình thành công"));
     }

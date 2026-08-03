@@ -36,6 +36,7 @@ import {
   useDeleteCurriculumTemplate
 } from '@/features/classes/useClasses'
 import type { ClassCategory } from '@/features/classes/classes.types'
+import { classesApi } from '@/features/classes/classes.api'
 import {
   useBlogCategories, useCreateBlogCategory,
   useUpdateBlogCategory, useDeleteBlogCategory,
@@ -120,8 +121,9 @@ export default function SettingsPage() {
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [templateDesc, setTemplateDesc] = useState('')
-  const [templateUnits, setTemplateUnits] = useState<{ sessionNumber: number; topic: string; note: string }[]>([
-    { sessionNumber: 1, topic: '', note: '' }
+  const [templateDocs, setTemplateDocs] = useState<{ title: string; fileUrl: string; fileType: string; fileSizeKb: number }[]>([])
+  const [templateUnits, setTemplateUnits] = useState<{ sessionNumber: number; topic: string; note: string; documents: { title: string; fileUrl: string; fileType: string; fileSizeKb: number }[] }[]>([
+    { sessionNumber: 1, topic: '', note: '', documents: [] }
   ])
   const [templateError, setTemplateError] = useState('')
 
@@ -315,14 +317,15 @@ export default function SettingsPage() {
     setTemplateError('')
     setTemplateName('')
     setTemplateDesc('')
-    setTemplateUnits([{ sessionNumber: 1, topic: '', note: '' }])
+    setTemplateDocs([])
+    setTemplateUnits([{ sessionNumber: 1, topic: '', note: '', documents: [] }])
     setShowTemplateModal(true)
   }
 
   const handleAddTemplateUnit = () => {
     setTemplateUnits(prev => [
       ...prev,
-      { sessionNumber: prev.length + 1, topic: '', note: '' }
+      { sessionNumber: prev.length + 1, topic: '', note: '', documents: [] }
     ])
   }
 
@@ -337,6 +340,74 @@ export default function SettingsPage() {
     setTemplateUnits(prev => prev.map((u, i) => i === idx ? { ...u, [field]: val } : u))
   }
 
+  const getFileType = (name: string): string => {
+    const ext = name.split('.').pop()?.toLowerCase() ?? ''
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image'
+    if (ext === 'pdf') return 'pdf'
+    if (['doc', 'docx'].includes(ext)) return 'doc'
+    if (['xls', 'xlsx'].includes(ext)) return 'xls'
+    if (['ppt', 'pptx'].includes(ext)) return 'ppt'
+    return 'other'
+  }
+
+  const handleUploadTemplateDoc = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const res = await classesApi.uploadFile(file)
+      setTemplateDocs(prev => [
+        ...prev,
+        {
+          title: res.fileName,
+          fileUrl: res.fileUrl,
+          fileType: getFileType(res.fileName),
+          fileSizeKb: Math.round(file.size / 1024)
+        }
+      ])
+    } catch (err) {
+      alert('Tải file lên thất bại')
+    }
+  }
+
+  const handleRemoveTemplateDoc = (docIndex: number) => {
+    setTemplateDocs(prev => prev.filter((_, i) => i !== docIndex))
+  }
+
+  const handleUploadUnitDoc = async (unitIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const res = await classesApi.uploadFile(file)
+      setTemplateUnits(prev => prev.map((u, idx) => {
+        if (idx !== unitIndex) return u
+        return {
+          ...u,
+          documents: [
+            ...u.documents,
+            {
+              title: res.fileName,
+              fileUrl: res.fileUrl,
+              fileType: getFileType(res.fileName),
+              fileSizeKb: Math.round(file.size / 1024)
+            }
+          ]
+        }
+      }))
+    } catch (err) {
+      alert('Tải file lên thất bại')
+    }
+  }
+
+  const handleRemoveUnitDoc = (unitIndex: number, docIndex: number) => {
+    setTemplateUnits(prev => prev.map((u, idx) => {
+      if (idx !== unitIndex) return u
+      return {
+        ...u,
+        documents: u.documents.filter((_, i) => i !== docIndex)
+      }
+    }))
+  }
+
   const handleSaveTemplate = (e: React.FormEvent) => {
     e.preventDefault()
     setTemplateError('')
@@ -349,11 +420,12 @@ export default function SettingsPage() {
     const payload = {
       name: templateName.trim(),
       description: templateDesc.trim() || null,
+      documents: templateDocs,
       units: templateUnits.map(u => ({
         sessionNumber: u.sessionNumber,
         topic: u.topic.trim() || `Buổi học ${u.sessionNumber}`,
         note: u.note.trim() || null,
-        documents: []
+        documents: u.documents
       }))
     }
 
@@ -1226,6 +1298,32 @@ export default function SettingsPage() {
                 />
               </div>
 
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 flex items-center justify-between">
+                  Tài liệu & Giáo trình dùng chung
+                  <label className="cursor-pointer text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 select-none">
+                    <Plus className="h-3.5 w-3.5" /> Tải lên tài liệu chung
+                    <input type="file" onChange={handleUploadTemplateDoc} className="hidden" />
+                  </label>
+                </label>
+                {templateDocs.length === 0 ? (
+                  <p className="text-xs text-gray-400 font-semibold italic bg-gray-50/50 p-3 rounded-xl border border-dashed border-gray-200 text-center">
+                    Không có tài liệu dùng chung nào.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                    {templateDocs.map((doc, dIdx) => (
+                      <div key={dIdx} className="flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700">
+                        <span className="truncate max-w-[80%]">{doc.title} ({doc.fileSizeKb} KB)</span>
+                        <button type="button" onClick={() => handleRemoveTemplateDoc(dIdx)} className="text-red-500 hover:text-red-700 font-bold px-1.5">
+                          Xóa
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-3 pt-3 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                   <h4 className="font-extrabold text-sm text-gray-800 flex items-center gap-1.5">
@@ -1283,6 +1381,31 @@ export default function SettingsPage() {
                             className="h-8 text-xs rounded-lg"
                           />
                         </div>
+                      </div>
+
+                      {/* Attached documents list & upload for unit */}
+                      <div className="space-y-1.5 pt-2 border-t border-gray-100/50 text-left">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Tài liệu riêng của buổi</label>
+                          <label className="cursor-pointer text-[10px] font-extrabold text-amber-600 hover:text-amber-700 flex items-center gap-0.5 select-none">
+                            <Plus className="h-3 w-3" /> Tải lên tài liệu buổi học
+                            <input type="file" onChange={(e) => handleUploadUnitDoc(idx, e)} className="hidden" />
+                          </label>
+                        </div>
+                        {u.documents.length === 0 ? (
+                          <p className="text-[10px] text-gray-400 font-semibold italic">Không có tài liệu riêng cho buổi này.</p>
+                        ) : (
+                          <div className="flex flex-wrap gap-1.5">
+                            {u.documents.map((doc, dIdx) => (
+                              <div key={dIdx} className="flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-lg bg-white border border-gray-200 text-[10px] font-bold text-gray-600 shadow-sm">
+                                <span className="truncate max-w-[120px]" title={doc.title}>{doc.title}</span>
+                                <button type="button" onClick={() => handleRemoveUnitDoc(idx, dIdx)} className="text-red-500 hover:text-red-700 font-extrabold px-0.5">
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

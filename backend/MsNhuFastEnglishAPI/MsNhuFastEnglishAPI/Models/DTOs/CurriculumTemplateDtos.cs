@@ -6,6 +6,7 @@ namespace MsNhuFastEnglishAPI.Models.DTOs;
 public record CreateCurriculumTemplateRequest(
     string Name,
     string? Description,
+    List<TemplateDocumentDto>? Documents,
     List<CreateTemplateUnitRequest> Units
 );
 
@@ -33,6 +34,7 @@ public record CurriculumTemplateDto(
     Guid Id,
     string Name,
     string? Description,
+    List<TemplateDocumentDto> Documents,
     DateTime CreatedAt,
     DateTime UpdatedAt,
     List<CurriculumTemplateUnitDto> Units

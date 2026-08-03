@@ -62,10 +62,15 @@ public class CurriculumTemplatesController(AppDbContext db) : ControllerBase
             ))
             .ToList();
 
+        var templateDocs = string.IsNullOrEmpty(template.DocumentsJson)
+            ? new List<TemplateDocumentDto>()
+            : JsonSerializer.Deserialize<List<TemplateDocumentDto>>(template.DocumentsJson) ?? new List<TemplateDocumentDto>();
+
         var result = new CurriculumTemplateDto(
             template.Id,
             template.Name,
             template.Description,
+            templateDocs,
             template.CreatedAt,
             template.UpdatedAt,
             unitDtos
@@ -87,6 +92,7 @@ public class CurriculumTemplatesController(AppDbContext db) : ControllerBase
             Id = Guid.NewGuid(),
             Name = req.Name.Trim(),
             Description = req.Description?.Trim(),
+            DocumentsJson = req.Documents != null ? JsonSerializer.Serialize(req.Documents) : null,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
