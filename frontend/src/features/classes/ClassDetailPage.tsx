@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Users, Info, Trash2, Plus, Copy, Link2,
   Loader2, Check, AlertTriangle, Search, Edit2,
-  ChevronLeft, ChevronRight, BookOpen, FileText, Calendar,
+  ChevronLeft, ChevronRight, ChevronDown, BookOpen, FileText, Calendar,
   Clock, Sparkles,
   Paperclip, ExternalLink, Send, Download, PlusCircle,
   GraduationCap, File, CheckSquare
@@ -119,7 +119,14 @@ export default function ClassDetailPage() {
 
   const [selectedAssignment, setSelectedAssignment] = useState<ClassAssignment | null>(null)
   const [staffViewTab, setStaffViewTab] = useState<'submissions' | 'preview'>('submissions')
+  const [expandedSessions, setExpandedSessions] = useState<Record<string, boolean>>({})
 
+  const toggleSession = (sessionId: string) => {
+    setExpandedSessions(prev => ({
+      ...prev,
+      [sessionId]: !prev[sessionId]
+    }))
+  }
 
   const [showGradeModal, setShowGradeModal] = useState(false)
   const [selectedSubmission, setSelectedSubmission] = useState<AssignmentSubmission | null>(null)
@@ -589,173 +596,212 @@ export default function ClassDetailPage() {
       </div>
 
       {/* ── 1. Lessons tab ── */}
-      {tab === 'lessons' && (
-        <div className="space-y-6">
-          {/* Header Actions */}
-          {isStaff && (
-            <div className="flex flex-wrap gap-2 justify-end mb-2">
-              <Button size="sm" onClick={handleOpenAddSession} className="gap-1.5 text-xs font-semibold rounded-xl">
-                <Plus className="h-4 w-4" />
-                Thêm buổi học (Unit)
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => { setSelectedSessionForDoc(null); setShowAddDoc(true); }} className="gap-1.5 text-xs font-semibold rounded-xl">
-                <Plus className="h-4 w-4" />
-                Thêm tài liệu chung
-              </Button>
-            </div>
-          )}
-
-          {/* General Documents Box */}
-          <div className="bg-gray-50/50 border border-gray-200/80 rounded-2xl p-5">
-            <h3 className="font-bold text-gray-800 text-sm mb-3.5 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-amber-500" />
-              Tài liệu & Giáo trình chung của lớp
-            </h3>
-            {generalDocuments.length === 0 ? (
-              <p className="text-xs text-gray-400 font-medium italic">Lớp học chưa có tài liệu chung.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {generalDocuments.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:shadow-sm transition-all duration-200 group">
-                    <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 min-w-0 flex-1 hover:text-amber-600 transition-colors">
-                      {getFileIcon(doc.fileType)}
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-gray-900 truncate leading-snug">{doc.title}</p>
-                        <p className="text-[10px] text-gray-400 font-semibold mt-0.5">{doc.fileSizeKb} KB • {new Date(doc.createdAt).toLocaleDateString('vi-VN')}</p>
-                      </div>
-                    </a>
-                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-gray-100 transition-colors" title="Xem tài liệu">
-                        <ExternalLink className="h-3.5 w-3.5" />
+      {tab === 'lessons' && (() => {
+        const sortedSessions = [...sessions].sort((a, b) => {
+          const dateDiff = new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
+          if (dateDiff !== 0) return dateDiff
+          return b.sessionNumber - a.sessionNumber
+        })
+        const isAllExpanded = sortedSessions.length > 0 && sortedSessions.every(s => expandedSessions[s.id])
+        return (
+          <div className="space-y-6">
+            {/* General Documents Box */}
+            <div className="bg-gray-50/50 border border-gray-200/80 rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-3.5 flex-wrap gap-2">
+                <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-amber-500" />
+                  Tài liệu & Giáo trình chung của lớp
+                </h3>
+                {isStaff && (
+                  <Button size="sm" variant="secondary" onClick={() => { setSelectedSessionForDoc(null); setShowAddDoc(true); }} className="gap-1.5 text-xs font-semibold rounded-xl">
+                    <Plus className="h-4 w-4" />
+                    Thêm tài liệu chung
+                  </Button>
+                )}
+              </div>
+              {generalDocuments.length === 0 ? (
+                <p className="text-xs text-gray-400 font-medium italic">Lớp học chưa có tài liệu chung.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {generalDocuments.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:shadow-sm transition-all duration-200 group">
+                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 min-w-0 flex-1 hover:text-amber-600 transition-colors">
+                        {getFileIcon(doc.fileType)}
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-gray-900 truncate leading-snug">{doc.title}</p>
+                          <p className="text-[10px] text-gray-400 font-semibold mt-0.5">{doc.fileSizeKb} KB • {new Date(doc.createdAt).toLocaleDateString('vi-VN')}</p>
+                        </div>
                       </a>
-                      {isStaff && (
-                        <button onClick={() => handleDeleteDoc(doc.id)} className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100" title="Xóa tài liệu">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Sessions/Units Timeline */}
-          <div>
-            <h3 className="font-bold text-gray-900 text-base mb-4 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-amber-500" />
-              Chương trình học theo từng Unit
-            </h3>
-            {loadingSessions ? (
-              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-amber-500" /></div>
-            ) : sessions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
-                <BookOpen className="h-8 w-8 text-gray-300 mb-2" />
-                <p className="text-sm font-semibold text-gray-500">Chưa có nội dung buổi học nào</p>
-                <p className="text-xs text-gray-400 mt-0.5">Vui lòng quay lại sau hoặc liên hệ giáo viên</p>
-              </div>
-            ) : (
-              <div className="relative border-l border-gray-200 ml-4 pl-6 space-y-8">
-                {sessions.map((s) => (
-                  <div key={s.id} className="relative group/timeline animate-in fade-in duration-300">
-                    {/* Circle marker */}
-                    <div className="absolute -left-[35px] top-1 w-6 h-6 rounded-full bg-amber-500 border-4 border-white shadow-sm flex items-center justify-center text-[9px] font-bold text-white group-hover/timeline:bg-amber-600 transition-colors">
-                      {s.sessionNumber}
-                    </div>
-
-                    {/* Session content card */}
-                    <div className="bg-white border border-gray-200/80 rounded-2xl p-5 hover:shadow-md hover:border-gray-300 transition-all duration-300">
-                      <div className="flex items-start justify-between gap-4 flex-wrap sm:flex-nowrap mb-3 border-b border-gray-100 pb-3">
-                        <div>
-                          <h4 className="font-extrabold text-gray-900 text-sm leading-snug group-hover/timeline:text-amber-600 transition-colors">
-                            Unit {s.sessionNumber}: {s.topic || 'Chưa cập nhật chủ đề'}
-                          </h4>
-                          <div className="flex items-center gap-3 text-xs text-gray-400 mt-1.5 flex-wrap">
-                            <span className="flex items-center gap-1 font-semibold text-gray-500">
-                              <Calendar className="h-3.5 w-3.5 shrink-0" />
-                              {new Date(s.sessionDate).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })}
-                            </span>
-                            <span className="flex items-center gap-1 font-semibold text-gray-500">
-                              <Clock className="h-3.5 w-3.5 shrink-0" />
-                              {s.startTime} - {s.endTime}
-                            </span>
-                            {s.guestTeacherName && (
-                              <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">
-                                GV thay thế: {s.guestTeacherName}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-gray-100 transition-colors" title="Xem tài liệu">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
                         {isStaff && (
-                          <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover/timeline:opacity-100 transition-opacity">
-                            <button onClick={() => handleOpenEditSession(s)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-all" title="Sửa buổi học">
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </button>
-                            <button onClick={() => handleDeleteSession(s.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all" title="Xóa buổi học">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                          <button onClick={() => handleDeleteDoc(doc.id)} className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100" title="Xóa tài liệu">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         )}
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-                      {/* Lesson notes */}
-                      {s.note && (
-                        <p className="text-xs text-gray-500 leading-relaxed font-semibold mb-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                          {s.note}
-                        </p>
-                      )}
+            {/* Sessions/Units Timeline */}
+            <div>
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  Chương trình học theo từng Unit
+                </h3>
+                <div className="flex items-center gap-2">
+                  {sortedSessions.length > 0 && (
+                    <button
+                      onClick={() => {
+                        if (isAllExpanded) {
+                          setExpandedSessions({})
+                        } else {
+                          const all: Record<string, boolean> = {}
+                          sortedSessions.forEach(s => { all[s.id] = true })
+                          setExpandedSessions(all)
+                        }
+                      }}
+                      className="text-xs font-bold text-amber-600 hover:text-amber-700 select-none mr-2"
+                    >
+                      {isAllExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả'}
+                    </button>
+                  )}
+                  {isStaff && (
+                    <Button size="sm" onClick={handleOpenAddSession} className="gap-1.5 text-xs font-semibold rounded-xl">
+                      <Plus className="h-4 w-4" />
+                      Thêm buổi học (Unit)
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {loadingSessions ? (
+                <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-amber-500" /></div>
+              ) : sortedSessions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                  <BookOpen className="h-8 w-8 text-gray-300 mb-2" />
+                  <p className="text-sm font-semibold text-gray-500">Chưa có nội dung buổi học nào</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Vui lòng quay lại sau hoặc liên hệ giáo viên</p>
+                </div>
+              ) : (
+                <div className="relative border-l border-gray-200 ml-4 pl-6 space-y-8">
+                  {sortedSessions.map((s) => (
+                    <div key={s.id} className="relative group/timeline animate-in fade-in duration-300">
+                      {/* Circle marker */}
+                      <div className="absolute -left-[35px] top-1.5 w-6 h-6 rounded-full bg-amber-500 border-4 border-white shadow-sm flex items-center justify-center text-[9px] font-bold text-white group-hover/timeline:bg-amber-600 transition-colors">
+                        {s.sessionNumber}
+                      </div>
 
-                      {/* Session Documents list */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tài liệu học tập ({s.documents.length})</p>
-                          {isStaff && (
-                            <button
-                              onClick={() => { setSelectedSessionForDoc(s.id); setShowAddDoc(true); }}
-                              className="text-[10px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-0.5"
-                            >
-                              <Plus className="h-3 w-3" />
-                              Thêm tài liệu
-                            </button>
-                          )}
-                        </div>
-                        {s.documents.length === 0 ? (
-                          <p className="text-[11px] text-gray-400 italic">Chưa có tài liệu đính kèm cho buổi học này.</p>
-                        ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                            {s.documents.map((doc) => (
-                              <div key={doc.id} className="flex items-center justify-between p-2.5 bg-gray-50/50 border border-gray-200/50 rounded-xl hover:bg-white hover:border-gray-200 hover:shadow-sm transition-all duration-200 group/doc">
-                                <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 min-w-0 flex-1 hover:text-amber-600 transition-colors">
-                                  {getFileIcon(doc.fileType)}
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-semibold text-gray-800 truncate leading-snug">{doc.title}</p>
-                                    <p className="text-[9px] text-gray-400 font-semibold mt-0.5">{doc.fileSizeKb} KB</p>
-                                  </div>
-                                </a>
-                                <div className="flex items-center shrink-0 ml-1">
-                                  <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-gray-100 transition-colors">
-                                    <Download className="h-3 w-3" />
-                                  </a>
-                                  {isStaff && (
-                                    <button onClick={() => handleDeleteDoc(doc.id)} className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover/doc:opacity-100 transition-colors">
-                                      <Trash2 className="h-3 w-3" />
-                                    </button>
-                                  )}
-                                </div>
+                      {/* Session content card */}
+                      <div 
+                        onClick={() => toggleSession(s.id)}
+                        className="bg-white border border-gray-200/80 rounded-2xl p-5 hover:shadow-md hover:border-gray-300 transition-all duration-300 cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between gap-4 flex-wrap sm:flex-nowrap">
+                          <div>
+                            <h4 className="font-extrabold text-gray-900 text-sm leading-snug group-hover/timeline:text-amber-600 transition-colors flex items-center gap-1.5">
+                              Unit {s.sessionNumber}: {s.topic || 'Chưa cập nhật chủ đề'}
+                            </h4>
+                            <div className="flex items-center gap-3 text-xs text-gray-400 mt-1.5 flex-wrap">
+                              <span className="flex items-center gap-1 font-semibold text-gray-500">
+                                <Calendar className="h-3.5 w-3.5 shrink-0" />
+                                {new Date(s.sessionDate).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })}
+                              </span>
+                              <span className="flex items-center gap-1 font-semibold text-gray-500">
+                                <Clock className="h-3.5 w-3.5 shrink-0" />
+                                {s.startTime} - {s.endTime}
+                              </span>
+                              {s.guestTeacherName && (
+                                <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">
+                                  GV thay thế: {s.guestTeacherName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {isStaff && (
+                              <div className="flex items-center gap-1.5 opacity-0 group-hover/timeline:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => handleOpenEditSession(s)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-all" title="Sửa buổi học">
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </button>
+                                <button onClick={() => handleDeleteSession(s.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all" title="Xóa buổi học">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
                               </div>
-                            ))}
+                            )}
+                            <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${expandedSessions[s.id] ? 'rotate-180' : ''}`} />
+                          </div>
+                        </div>
+
+                        {/* Expanded Details */}
+                        {expandedSessions[s.id] && (
+                          <div className="mt-3 pt-3 border-t border-gray-100 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200" onClick={(e) => e.stopPropagation()}>
+                            {/* Lesson notes */}
+                            {s.note && (
+                              <p className="text-xs text-gray-500 leading-relaxed font-semibold p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                {s.note}
+                              </p>
+                            )}
+
+                            {/* Session Documents list */}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tài liệu học tập ({s.documents.length})</p>
+                                {isStaff && (
+                                  <button
+                                    onClick={() => { setSelectedSessionForDoc(s.id); setShowAddDoc(true); }}
+                                    className="text-[10px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-0.5"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                    Thêm tài liệu
+                                  </button>
+                                )}
+                              </div>
+                              {s.documents.length === 0 ? (
+                                <p className="text-[11px] text-gray-400 italic">Chưa có tài liệu đính kèm cho buổi học này.</p>
+                              ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                  {s.documents.map((doc) => (
+                                    <div key={doc.id} className="flex items-center justify-between p-2.5 bg-gray-50/50 border border-gray-200/50 rounded-xl hover:bg-white hover:border-gray-200 hover:shadow-sm transition-all duration-200 group/doc">
+                                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 min-w-0 flex-1 hover:text-amber-600 transition-colors">
+                                        {getFileIcon(doc.fileType)}
+                                        <div className="min-w-0">
+                                          <p className="text-xs font-semibold text-gray-800 truncate leading-snug">{doc.title}</p>
+                                          <p className="text-[9px] text-gray-400 font-semibold mt-0.5">{doc.fileSizeKb} KB</p>
+                                        </div>
+                                      </a>
+                                      <div className="flex items-center shrink-0 ml-1">
+                                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-gray-100 transition-colors">
+                                          <Download className="h-3 w-3" />
+                                        </a>
+                                        {isStaff && (
+                                          <button onClick={() => handleDeleteDoc(doc.id)} className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover/doc:opacity-100 transition-colors">
+                                            <Trash2 className="h-3 w-3" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ── 2. Assignments tab ── */}
       {tab === 'assignments' && (
