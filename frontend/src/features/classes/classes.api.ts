@@ -144,6 +144,12 @@ export const classesApi = {
   getCurriculumTemplates: () =>
     api.get<ApiResponse<any[]>>('/curriculum-templates').then((r) => r.data.data!),
 
+  createCurriculumTemplate: (body: any) =>
+    api.post<ApiResponse<any>>('/curriculum-templates', body).then((r) => r.data),
+
+  deleteCurriculumTemplate: (id: string) =>
+    api.delete<ApiResponse<any>>(`/curriculum-templates/${id}`).then((r) => r.data),
+
   importCurriculum: (classId: string, body: { templateId: string; startDate: string; weekdays: number[] }) =>
     api.post<ApiResponse<any>>(`/classes/${classId}/import-curriculum`, body).then((r) => r.data)
 }

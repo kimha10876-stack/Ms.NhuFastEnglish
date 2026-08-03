@@ -32,6 +32,8 @@ import {
 import {
   useClassCategories, useCreateCategory,
   useUpdateCategory, useDeleteCategory,
+  useCurriculumTemplates, useCreateCurriculumTemplate,
+  useDeleteCurriculumTemplate
 } from '@/features/classes/useClasses'
 import type { ClassCategory } from '@/features/classes/classes.types'
 import {
@@ -40,7 +42,7 @@ import {
 } from '@/features/blog/useBlog'
 import type { BlogCategory } from '@/features/blog/blog.types'
 
-type ActiveTab = 'system' | 'categories' | 'roles' | 'blog-categories'
+type ActiveTab = 'system' | 'categories' | 'roles' | 'blog-categories' | 'curriculum-templates'
 
 const PRESET_COLORS = [
   '#007AFF', // Blue
@@ -109,6 +111,19 @@ export default function SettingsPage() {
   const [roleFilter, setRoleFilter] = useState('')
   const [rolesPage, setRolesPage] = useState(1)
   const rolesPageSize = 10
+
+  // ── Tab 5: Curriculum Templates states & hooks ──
+  const { data: templates = [], isLoading: loadingTemplates } = useCurriculumTemplates()
+  const { mutate: createTemplate, isPending: creatingTemplate } = useCreateCurriculumTemplate()
+  const { mutate: deleteTemplate } = useDeleteCurriculumTemplate()
+
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
+  const [templateName, setTemplateName] = useState('')
+  const [templateDesc, setTemplateDesc] = useState('')
+  const [templateUnits, setTemplateUnits] = useState<{ sessionNumber: number; topic: string; note: string }[]>([
+    { sessionNumber: 1, topic: '', note: '' }
+  ])
+  const [templateError, setTemplateError] = useState('')
 
   // Initialize settings form values once data is fetched
   if (settings.length > 0 && !initSettings) {
@@ -295,6 +310,78 @@ export default function SettingsPage() {
     )
   }
 
+  // ── Tab 5: Handle Curriculum Templates CRUD ──
+  const openTemplateDialog = () => {
+    setTemplateError('')
+    setTemplateName('')
+    setTemplateDesc('')
+    setTemplateUnits([{ sessionNumber: 1, topic: '', note: '' }])
+    setShowTemplateModal(true)
+  }
+
+  const handleAddTemplateUnit = () => {
+    setTemplateUnits(prev => [
+      ...prev,
+      { sessionNumber: prev.length + 1, topic: '', note: '' }
+    ])
+  }
+
+  const handleRemoveTemplateUnit = (idx: number) => {
+    if (templateUnits.length <= 1) return
+    const filtered = templateUnits.filter((_, i) => i !== idx)
+    const mapped = filtered.map((u, i) => ({ ...u, sessionNumber: i + 1 }))
+    setTemplateUnits(mapped)
+  }
+
+  const handleTemplateUnitChange = (idx: number, field: 'topic' | 'note', val: string) => {
+    setTemplateUnits(prev => prev.map((u, i) => i === idx ? { ...u, [field]: val } : u))
+  }
+
+  const handleSaveTemplate = (e: React.FormEvent) => {
+    e.preventDefault()
+    setTemplateError('')
+
+    if (!templateName.trim()) {
+      setTemplateError('Vui lòng nhập tên khung giáo trình')
+      return
+    }
+
+    const payload = {
+      name: templateName.trim(),
+      description: templateDesc.trim() || null,
+      units: templateUnits.map(u => ({
+        sessionNumber: u.sessionNumber,
+        topic: u.topic.trim() || `Buổi học ${u.sessionNumber}`,
+        note: u.note.trim() || null,
+        documents: []
+      }))
+    }
+
+    createTemplate(payload, {
+      onSuccess: () => {
+        setShowTemplateModal(false)
+        alert('Tạo khung giáo trình mẫu thành công!')
+      },
+      onError: (err: any) => {
+        const msg = err?.response?.data?.message || 'Tạo khung giáo trình thất bại'
+        setTemplateError(msg)
+      }
+    })
+  }
+
+  const handleDeleteTemplate = (id: string, name: string) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa khung giáo trình "${name}"? Các lớp học đã tạo sẽ không bị ảnh hưởng.`)) {
+      deleteTemplate(id, {
+        onSuccess: () => {
+          alert('Xóa khung giáo trình thành công!')
+        },
+        onError: (err: any) => {
+          alert(err?.response?.data?.message || 'Xóa khung giáo trình thất bại')
+        }
+      })
+    }
+  }
+
   // Filter users based on search query and role filter
   const filteredUsers = users.filter((u) => {
     const q = userSearch.toLowerCase().trim()
@@ -339,6 +426,7 @@ export default function SettingsPage() {
           { id: 'system', label: 'Thông tin trung tâm', icon: Building },
           { id: 'categories', label: 'Danh mục lớp học', icon: BookOpen },
           { id: 'blog-categories', label: 'Danh mục bài viết', icon: FileText },
+          { id: 'curriculum-templates', label: 'Khung giáo trình mẫu', icon: BookOpen },
           { id: 'roles', label: 'Phân quyền thành viên', icon: Users },
         ].map((t) => {
           const Icon = t.icon
@@ -755,6 +843,75 @@ export default function SettingsPage() {
             )}
           </div>
         )}
+
+        {/* ── Tab 5: Curriculum Templates ── */}
+        {activeTab === 'curriculum-templates' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">Khung giáo trình mẫu</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Quản lý lộ trình học mẫu của trung tâm để import nhanh khi tạo lớp học mới</p>
+              </div>
+              <Button onClick={openTemplateDialog} className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-gray-900 font-semibold rounded-xl">
+                <Plus className="h-4 w-4" />
+                Tạo khung mới
+              </Button>
+            </div>
+
+            {loadingTemplates ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="text-center py-16 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                Chưa có khung giáo trình nào. Hãy tạo khung giáo trình đầu tiên của trung tâm!
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {templates.map((tpl: any) => (
+                  <div
+                    key={tpl.id}
+                    className="p-5 border border-gray-200 rounded-2xl bg-white flex flex-col gap-4 relative group hover:border-amber-300 hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-sm shrink-0">
+                          <BookOpen className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-extrabold text-gray-900 text-sm leading-snug">{tpl.name}</h4>
+                          <span className="text-[10px] text-gray-400 font-semibold">Tạo ngày: {new Date(tpl.createdAt).toLocaleDateString('vi-VN')}</span>
+                        </div>
+                      </div>
+
+                      {/* Controls */}
+                      <button
+                        onClick={() => handleDeleteTemplate(tpl.id, tpl.name)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                        title="Xoá giáo trình mẫu"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                      {tpl.description || 'Không có mô tả chi tiết.'}
+                    </p>
+
+                    <div className="flex items-center justify-between border-t border-gray-50 pt-3 mt-auto text-xs">
+                      <span className="text-amber-600 font-extrabold bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md">
+                        {tpl.units?.length ?? 0} buổi học (Units)
+                      </span>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        Syllabus Template
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Dialog 1: Add/Edit Category Modal ── */}
@@ -1021,6 +1178,132 @@ export default function SettingsPage() {
                 </Button>
                 <Button type="submit" className="flex-1 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold" disabled={creatingBlogCat || updatingBlogCat}>
                   {creatingBlogCat || updatingBlogCat ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Lưu lại'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Dialog 4: Add Curriculum Template Modal ── */}
+      {showTemplateModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8 overflow-y-auto"
+          onClick={(e) => e.target === e.currentTarget && setShowTemplateModal(false)}
+        >
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 shrink-0 text-left">
+              <div>
+                <h2 className="font-bold text-lg text-gray-900">Tạo khung chương trình mẫu mới</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Xây dựng giáo trình khung chuẩn của trung tâm để tái sử dụng</p>
+              </div>
+              <button
+                onClick={() => setShowTemplateModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTemplate} className="p-5 overflow-y-auto flex-1 space-y-4 text-left">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Tên khung giáo trình <span className="text-red-500">*</span></label>
+                <Input
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="VD: Tiếng Anh Giao Tiếp 12 Buổi, IELTS Target 6.5..."
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Mô tả ngắn gọn</label>
+                <textarea
+                  value={templateDesc}
+                  onChange={(e) => setTemplateDesc(e.target.value)}
+                  placeholder="Mô tả mục tiêu lộ trình, đối tượng học viên..."
+                  className="w-full min-h-[60px] p-3 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 bg-white"
+                />
+              </div>
+
+              <div className="space-y-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-extrabold text-sm text-gray-800 flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-amber-500" />
+                    Danh sách các Buổi học (Units)
+                  </h4>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddTemplateUnit}
+                    className="gap-1 rounded-xl text-xs font-semibold h-8"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Thêm buổi học
+                  </Button>
+                </div>
+
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                  {templateUnits.map((u, idx) => (
+                    <div key={idx} className="p-3 border border-gray-200 rounded-xl space-y-3 bg-gray-50/50 relative group">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-extrabold text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-lg">
+                          Buổi #{u.sessionNumber}
+                        </span>
+                        {templateUnits.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTemplateUnit(idx)}
+                            className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="Xóa buổi học này"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase">Chủ đề học (Topic) <span className="text-red-500">*</span></label>
+                          <Input
+                            value={u.topic}
+                            onChange={(e) => handleTemplateUnitChange(idx, 'topic', e.target.value)}
+                            placeholder="VD: Phát âm chuẩn IPA, Nói về sở thích..."
+                            required
+                            className="h-8 text-xs font-semibold rounded-lg"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase">Ghi chú / Nội dung chính</label>
+                          <Input
+                            value={u.note}
+                            onChange={(e) => handleTemplateUnitChange(idx, 'note', e.target.value)}
+                            placeholder="VD: Luyện phát âm 44 nguyên âm, phụ âm..."
+                            className="h-8 text-xs rounded-lg"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {templateError && (
+                <div className="bg-red-50 border-l-4 border-red-500 px-4 py-2.5 rounded-r-xl">
+                  <p className="text-[13px] text-red-700 flex items-center gap-1.5">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {templateError}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
+                <Button type="button" variant="secondary" className="flex-1 rounded-xl h-11" onClick={() => setShowTemplateModal(false)}>
+                  Huỷ bỏ
+                </Button>
+                <Button type="submit" className="flex-1 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold rounded-xl h-11" disabled={creatingTemplate}>
+                  {creatingTemplate ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Lưu lại'}
                 </Button>
               </div>
             </form>

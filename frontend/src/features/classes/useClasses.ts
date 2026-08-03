@@ -315,3 +315,23 @@ export function useImportCurriculum(classId: string) {
   })
 }
 
+export function useCreateCurriculumTemplate() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: any) => classesApi.createCurriculumTemplate(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['curriculum-templates'] })
+    },
+  })
+}
+
+export function useDeleteCurriculumTemplate() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => classesApi.deleteCurriculumTemplate(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['curriculum-templates'] })
+    },
+  })
+}
+
