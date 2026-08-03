@@ -185,6 +185,7 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
         if (req.Note          is not null) c.Note         = req.Note;
         if (req.MaxStudents.HasValue)      c.MaxStudents  = req.MaxStudents;
         if (req.EndDate.HasValue)          c.EndDate      = req.EndDate;
+        if (req.StartDate.HasValue)        c.StartDate    = req.StartDate.Value;
         if (req.TeacherId.HasValue)        c.TeacherId    = req.TeacherId.Value;
         if (req.CategoryId.HasValue)       c.CategoryId   = req.CategoryId.Value;
 

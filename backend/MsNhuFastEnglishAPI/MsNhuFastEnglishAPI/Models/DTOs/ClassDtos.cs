@@ -28,6 +28,7 @@ public record UpdateClassRequest
     public string?   Note          { get; init; }
     public int?      MaxStudents   { get; init; }
     public DateOnly? EndDate       { get; init; }
+    public DateOnly? StartDate     { get; init; }
 }
 
 public record AddMemberRequest(Guid StudentId);

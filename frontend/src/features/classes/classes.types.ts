@@ -67,6 +67,7 @@ export interface UpdateClassRequest {
   note?: string
   maxStudents?: number
   endDate?: string
+  startDate?: string
 }
 
 export interface InviteInfo {

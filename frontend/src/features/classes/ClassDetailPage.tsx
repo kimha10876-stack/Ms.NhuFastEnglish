@@ -12,7 +12,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useAuthStore } from '@/features/auth/auth.store'
 import {
-  useClassDetail, useUpdateClass, useDeleteClass,
+  useClassDetail, useUpdateClass, useDeleteClass, useClassCategories,
   useAddMember, useRemoveMember, useCreateInvite, useSearchStudents,
   useActiveInvite, useRevokeInvite,
   useClassSessions, useCreateSession, useUpdateSession, useDeleteSession,
@@ -187,6 +187,7 @@ export default function ClassDetailPage() {
   
   const gradeSubmissionMutation = useGradeSubmission(id, selectedAssignment?.id ?? '')
   const { data: templates = [] } = useCurriculumTemplates()
+  const { data: categories = [] } = useClassCategories()
   const importCurriculumMutation = useImportCurriculum(id)
   
   const { data: submissions = [], isLoading: loadingSubmissions } = useAssignmentSubmissions(selectedAssignment?.id ?? '')
@@ -273,6 +274,7 @@ export default function ClassDetailPage() {
       status: cls.status, scheduleDays: cls.scheduleDays ?? '', scheduleTime: cls.scheduleTime ?? '',
       room: cls.room ?? '', note: cls.note ?? '', maxStudents: cls.maxStudents ?? undefined,
       endDate: cls.endDate ?? undefined,
+      startDate: cls.startDate ? new Date(cls.startDate).toISOString().split('T')[0] : undefined,
     })
   }
 
@@ -1231,260 +1233,309 @@ export default function ClassDetailPage() {
         </div>
       )}
 
-      {/* ── 4. Info tab ── */}
       {tab === 'info' && (
-        <div>
-          {editForm ? (
-            <form onSubmit={handleUpdate} className="space-y-4 max-w-lg bg-white border border-gray-200 p-6 rounded-2xl">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tên lớp</label>
-                <Input
-                  value={editForm.name ?? ''}
-                  onChange={(e) => setEditForm((p) => p ? { ...p, name: e.target.value } : p)}
-                />
-              </div>
-
-              {isAdmin && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Giáo viên phụ trách</label>
-                  <TeacherSelect
-                    value={editForm.teacherId ?? ''}
-                    onChange={(val) => setEditForm((p) => p ? { ...p, teacherId: val } : p)}
+        <form onSubmit={handleUpdate} className="space-y-6 text-left">
+          {editForm && (
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4 max-w-2xl animate-in fade-in duration-200">
+              <h4 className="font-extrabold text-gray-900 text-sm border-b border-gray-100 pb-2">
+                Thông tin cơ bản lớp học
+              </h4>
+              <div className="space-y-3.5">
+                <div className="flex flex-col gap-1.5 text-xs">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Tên lớp học <span className="text-red-500">*</span></span>
+                  <Input
+                    value={editForm.name ?? ''}
+                    onChange={(e) => setEditForm(p => p ? { ...p, name: e.target.value } : p)}
+                    className="font-bold text-gray-950 rounded-xl"
+                    required
                   />
                 </div>
-              )}
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Trạng thái</label>
-                <CustomDropdown
-                  value={editForm.status ?? 'active'}
-                  options={STATUS_OPTIONS.map((s) => ({ id: s, name: STATUS_LABEL[s] }))}
-                  onChange={(val) => setEditForm((p) => p ? { ...p, status: val } : p)}
-                />
               </div>
+            </div>
+          )}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Lịch học</label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {WEEKDAYS.map((day) => {
-                    const currentDays = editForm.scheduleDays ? editForm.scheduleDays.split(',').map((d) => d.trim()).filter(Boolean) : []
-                    const isSelected = currentDays.includes(day)
-                    return (
-                      <button
-                        key={day}
-                        type="button"
-                        onClick={() => {
-                          const newDays = isSelected
-                            ? currentDays.filter((d) => d !== day)
-                            : [...currentDays, day].sort((a, b) => WEEKDAYS.indexOf(a) - WEEKDAYS.indexOf(b))
-                          setEditForm((p) => p ? { ...p, scheduleDays: newDays.join(',') } : p)
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl">
+            {/* Card 1: Học thuật & Phụ trách */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-md transition-all duration-300">
+              <h4 className="font-extrabold text-gray-900 text-sm border-b border-gray-100 pb-2 flex items-center gap-1.5">
+                <GraduationCap className="h-4.5 w-4.5 text-amber-500" />
+                Học thuật & Quản lý
+              </h4>
+              
+              <div className="space-y-3.5">
+                {/* Danh mục */}
+                <div className="flex items-center justify-between text-xs gap-3">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Chương trình học</span>
+                  {editForm ? (
+                    <div className="w-56 shrink-0">
+                      <select
+                        value={editForm.categoryId ?? ''}
+                        onChange={(e) => setEditForm(p => p ? { ...p, categoryId: Number(e.target.value) } : p)}
+                        className="w-full text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl p-2 focus:border-amber-500 focus:ring-amber-500/20"
+                      >
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <span
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm"
+                      style={{ backgroundColor: cls.categoryColorHex }}
+                    >
+                      {cls.categoryName}
+                    </span>
+                  )}
+                </div>
+
+                {/* Giáo viên */}
+                <div className="flex items-center justify-between text-xs gap-3">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Giáo viên phụ trách</span>
+                  {editForm && isAdmin ? (
+                    <div className="w-56 shrink-0">
+                      <TeacherSelect
+                        value={editForm.teacherId ?? ''}
+                        onChange={(val) => setEditForm(p => p ? { ...p, teacherId: val } : p)}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center border border-amber-200">
+                        <span className="text-[10px] font-bold text-amber-700">
+                          {cls.teacherName[0]?.toUpperCase()}
+                        </span>
+                      </div>
+                      <span className="font-bold text-gray-900">{cls.teacherName}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Ngày khai giảng */}
+                <div className="flex items-center justify-between text-xs gap-3">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Ngày bắt đầu</span>
+                  {editForm ? (
+                    <div className="w-56 shrink-0">
+                      <Input
+                        type="date"
+                        value={editForm.startDate ?? ''}
+                        onChange={(e) => setEditForm(p => p ? { ...p, startDate: e.target.value } : p)}
+                        className="w-full text-xs font-bold rounded-xl"
+                      />
+                    </div>
+                  ) : (
+                    <span className="font-bold text-gray-900">
+                      {new Date(cls.startDate).toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  )}
+                </div>
+
+                {/* Trạng thái lớp */}
+                <div className="flex items-center justify-between text-xs gap-3">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Trạng thái</span>
+                  {editForm ? (
+                    <div className="w-56 shrink-0">
+                      <CustomDropdown
+                        value={editForm.status ?? 'active'}
+                        options={STATUS_OPTIONS.map((s) => ({ id: s, name: STATUS_LABEL[s] }))}
+                        onChange={(val) => setEditForm(p => p ? { ...p, status: val } : p)}
+                      />
+                    </div>
+                  ) : (
+                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${STATUS_COLOR[cls.status] ?? STATUS_COLOR.active}`}>
+                      {STATUS_LABEL[cls.status] ?? cls.status}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Lịch học & Thời khóa biểu */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-md transition-all duration-300">
+              <h4 className="font-extrabold text-gray-900 text-sm border-b border-gray-100 pb-2 flex items-center gap-1.5">
+                <Calendar className="h-4.5 w-4.5 text-amber-500" />
+                Lịch học & Thời gian
+              </h4>
+              
+              <div className="space-y-3.5">
+                {/* Ngày học */}
+                <div className="flex flex-col gap-1.5 text-xs">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Lịch học trong tuần</span>
+                  <div className="flex gap-1.5 flex-wrap mt-0.5">
+                    {WEEKDAYS.map((day) => {
+                      const currentDays = editForm
+                        ? (editForm.scheduleDays ? editForm.scheduleDays.split(',').map((d) => d.trim()).filter(Boolean) : [])
+                        : (cls.scheduleDays ? cls.scheduleDays.split(',').map(d => d.trim()).filter(Boolean) : [])
+                      const isSelected = currentDays.includes(day)
+                      
+                      if (editForm) {
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => {
+                              const newDays = isSelected
+                                ? currentDays.filter((d) => d !== day)
+                                : [...currentDays, day].sort((a, b) => WEEKDAYS.indexOf(a) - WEEKDAYS.indexOf(b))
+                              setEditForm((p) => p ? { ...p, scheduleDays: newDays.join(',') } : p)
+                            }}
+                            className={`h-7 px-2.5 rounded-lg text-[11px] font-bold border transition-all ${
+                              isSelected
+                                ? 'bg-amber-500 border-amber-600 text-white shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
+                            }`}
+                          >
+                            {day}
+                          </button>
+                        )
+                      }
+                      
+                      return (
+                        <span
+                          key={day}
+                          className={`h-7 px-2.5 rounded-lg text-[11px] font-bold border flex items-center justify-center select-none transition-all ${
+                            isSelected
+                              ? 'bg-amber-500 border-amber-600 text-white shadow-sm'
+                              : 'bg-white border-gray-200 text-gray-400'
+                          }`}
+                        >
+                          {day}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Giờ học */}
+                <div className="flex items-center justify-between text-xs gap-3">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Khung giờ học</span>
+                  {editForm ? (
+                    <div className="w-56 shrink-0 flex items-center gap-2">
+                      <Input
+                        type="time"
+                        value={(editForm.scheduleTime || '').split('-')[0]?.trim() || ''}
+                        onChange={(e) => {
+                          const newStart = e.target.value
+                          setEditForm((p) => {
+                            if (!p) return null
+                            const [, currentEnd = ''] = (p.scheduleTime || '').split('-').map((t) => t.trim())
+                            return {
+                              ...p,
+                              scheduleTime: newStart || currentEnd ? `${newStart}-${currentEnd}` : '',
+                            }
+                          })
                         }}
-                        className={`h-9 px-3 rounded-xl text-xs font-bold border transition-all ${
-                          isSelected
-                            ? 'bg-amber-500 border-amber-600 text-white shadow-sm shadow-amber-500/20'
-                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        {day}
-                      </button>
-                    )
-                  })}
+                        className="w-full text-center rounded-xl h-8 text-xs font-bold"
+                      />
+                      <span className="text-gray-400 text-xs font-medium">đến</span>
+                      <Input
+                        type="time"
+                        value={(editForm.scheduleTime || '').split('-')[1]?.trim() || ''}
+                        onChange={(e) => {
+                          const newEnd = e.target.value
+                          setEditForm((p) => {
+                            if (!p) return null
+                            const [currentStart = ''] = (p.scheduleTime || '').split('-').map((t) => t.trim())
+                            return {
+                              ...p,
+                              scheduleTime: currentStart || newEnd ? `${currentStart}-${newEnd}` : '',
+                            }
+                          })
+                        }}
+                        className="w-full text-center rounded-xl h-8 text-xs font-bold"
+                      />
+                    </div>
+                  ) : (
+                    <span className="font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl text-xs">
+                      {cls.scheduleTime || 'Chưa thiết lập'}
+                    </span>
+                  )}
+                </div>
+
+                {/* Sĩ số */}
+                <div className="flex items-center justify-between text-xs gap-3">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Sĩ số lớp học</span>
+                  {editForm ? (
+                    <div className="w-56 shrink-0">
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="Không giới hạn"
+                        value={editForm.maxStudents ?? ''}
+                        onChange={(e) => setEditForm(p => p ? { ...p, maxStudents: e.target.value ? Number(e.target.value) : undefined } : p)}
+                        className="w-full text-xs font-bold rounded-xl h-8"
+                      />
+                    </div>
+                  ) : (
+                    <span className="font-bold text-gray-900 flex items-center gap-1.5">
+                      <Users className="h-4 w-4 text-gray-400" />
+                      {cls.members.length} / {cls.maxStudents ?? '∞'} học viên
+                    </span>
+                  )}
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Giờ học</label>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      type="time"
-                      value={(editForm.scheduleTime || '').split('-')[0]?.trim() || ''}
-                      onChange={(e) => {
-                        const newStart = e.target.value
-                        setEditForm((p) => {
-                          if (!p) return null
-                          const [, currentEnd = ''] = (p.scheduleTime || '').split('-').map((t) => t.trim())
-                          return {
-                            ...p,
-                            scheduleTime: newStart || currentEnd ? `${newStart}-${currentEnd}` : '',
-                          }
-                        })
-                      }}
-                      className="w-full text-center rounded-xl"
-                    />
-                  </div>
-                  <span className="text-gray-400 text-sm font-medium">đến</span>
-                  <div className="relative flex-1">
-                    <Input
-                      type="time"
-                      value={(editForm.scheduleTime || '').split('-')[1]?.trim() || ''}
-                      onChange={(e) => {
-                        const newEnd = e.target.value
-                        setEditForm((p) => {
-                          if (!p) return null
-                          const [currentStart = ''] = (p.scheduleTime || '').split('-').map((t) => t.trim())
-                          return {
-                            ...p,
-                            scheduleTime: currentStart || newEnd ? `${currentStart}-${newEnd}` : '',
-                          }
-                        })
-                      }}
-                      className="w-full text-center rounded-xl"
-                    />
-                  </div>
-                </div>
+          {/* Card 3: Ghi chú lớp học */}
+          {editForm ? (
+            <div className="bg-amber-50/30 border border-amber-200/40 rounded-2xl p-5 flex flex-col gap-2 max-w-4xl">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-amber-600" />
+                <h5 className="font-bold text-gray-900 text-xs uppercase tracking-wider">Ghi chú lớp học</h5>
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ghi chú</label>
-                <Input value={editForm.note ?? ''}
-                  onChange={(e) => setEditForm((p) => p ? { ...p, note: e.target.value } : p)}
-                />
-              </div>
-
-              {editError && (
-                <div className="bg-red-50 border-l-4 border-red-500 px-4 py-2.5 rounded-r-xl">
-                  <p className="text-[13px] text-red-700 font-semibold">{editError}</p>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-1">
-                <Button type="button" variant="secondary" onClick={() => setEditForm(null)} className="rounded-xl">Huỷ</Button>
-                <Button type="submit" disabled={updating} className="rounded-xl">
-                  {updating ? 'Đang lưu...' : 'Lưu thay đổi'}
-                </Button>
-              </div>
-            </form>
+              <textarea
+                value={editForm.note ?? ''}
+                onChange={(e) => setEditForm(p => p ? { ...p, note: e.target.value } : p)}
+                placeholder="Ghi chú lớp học..."
+                className="w-full min-h-[60px] p-3 text-xs rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 bg-white"
+              />
+            </div>
           ) : (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Card 1: Học thuật & Phụ trách */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-md transition-all duration-300">
-                  <h4 className="font-extrabold text-gray-900 text-sm border-b border-gray-100 pb-2 flex items-center gap-1.5">
-                    <GraduationCap className="h-4.5 w-4.5 text-amber-500" />
-                    Học thuật & Quản lý
-                  </h4>
-                  
-                  <div className="space-y-3.5">
-                    {/* Danh mục */}
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider">Chương trình học</span>
-                      <span
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm"
-                        style={{ backgroundColor: cls.categoryColorHex }}
-                      >
-                        {cls.categoryName}
-                      </span>
-                    </div>
-
-                    {/* Giáo viên */}
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider">Giáo viên phụ trách</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center border border-amber-200">
-                          <span className="text-[10px] font-bold text-amber-700">
-                            {cls.teacherName[0]?.toUpperCase()}
-                          </span>
-                        </div>
-                        <span className="font-bold text-gray-900">{cls.teacherName}</span>
-                      </div>
-                    </div>
-
-                    {/* Ngày khai giảng */}
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider">Ngày bắt đầu</span>
-                      <span className="font-bold text-gray-900">
-                        {new Date(cls.startDate).toLocaleDateString('vi-VN', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric'
-                        })}
-                      </span>
-                    </div>
-
-                    {/* Trạng thái lớp */}
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider">Trạng thái</span>
-                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${STATUS_COLOR[cls.status] ?? STATUS_COLOR.active}`}>
-                        {STATUS_LABEL[cls.status] ?? cls.status}
-                      </span>
-                    </div>
-                  </div>
+            cls.note && (
+              <div className="bg-amber-50/30 border border-amber-200/40 rounded-2xl p-5 flex gap-3.5 items-start max-w-4xl">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0 shadow-sm border border-amber-200/50 mt-0.5">
+                  <Info className="h-4 w-4" />
                 </div>
-
-                {/* Card 2: Lịch học & Thời khóa biểu */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-md transition-all duration-300">
-                  <h4 className="font-extrabold text-gray-900 text-sm border-b border-gray-100 pb-2 flex items-center gap-1.5">
-                    <Calendar className="h-4.5 w-4.5 text-amber-500" />
-                    Lịch học & Thời gian
-                  </h4>
-                  
-                  <div className="space-y-3.5">
-                    {/* Ngày học */}
-                    <div className="flex flex-col gap-1.5 text-xs">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider">Lịch học trong tuần</span>
-                      <div className="flex gap-1.5 flex-wrap mt-0.5">
-                        {WEEKDAYS.map((day) => {
-                          const isSelected = cls.scheduleDays?.split(',').map(d => d.trim()).includes(day)
-                          return (
-                            <span
-                              key={day}
-                              className={`h-7 px-2.5 rounded-lg text-[11px] font-bold border flex items-center justify-center select-none transition-all ${
-                                isSelected
-                                  ? 'bg-amber-500 border-amber-600 text-white shadow-sm'
-                                  : 'bg-white border-gray-200 text-gray-400'
-                              }`}
-                            >
-                              {day}
-                            </span>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Giờ học */}
-                    <div className="flex items-center justify-between text-xs pt-1">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider">Khung giờ học</span>
-                      <span className="font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl text-xs">
-                        {cls.scheduleTime || 'Chưa thiết lập'}
-                      </span>
-                    </div>
-
-                    {/* Sĩ số */}
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider">Sĩ số lớp học</span>
-                      <span className="font-bold text-gray-900 flex items-center gap-1.5">
-                        <Users className="h-4 w-4 text-gray-400" />
-                        {cls.members.length} / {cls.maxStudents ?? '∞'} học viên
-                      </span>
-                    </div>
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <h5 className="font-bold text-gray-900 text-xs uppercase tracking-wider mb-1">Ghi chú lớp học</h5>
+                  <p className="text-sm text-gray-600 leading-relaxed font-medium">{cls.note}</p>
                 </div>
               </div>
+            )
+          )}
 
-              {/* Card 3: Ghi chú lớp học */}
-              {cls.note && (
-                <div className="bg-amber-50/30 border border-amber-200/40 rounded-2xl p-5 flex gap-3.5 items-start">
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0 shadow-sm border border-amber-200/50 mt-0.5">
-                    <Info className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h5 className="font-bold text-gray-900 text-xs uppercase tracking-wider mb-1">Ghi chú lớp học</h5>
-                    <p className="text-sm text-gray-600 leading-relaxed font-medium">{cls.note}</p>
-                  </div>
-                </div>
-              )}
+          {editError && (
+            <div className="bg-red-50 border-l-4 border-red-500 px-4 py-2.5 rounded-r-xl max-w-4xl">
+              <p className="text-[13px] text-red-700 font-semibold">{editError}</p>
+            </div>
+          )}
 
-              {/* Action Buttons - Chỉ hiển thị cho Giáo viên và Admin */}
-              {isStaff && (
-                <div className="pt-2 flex justify-start gap-3">
-                  <Button onClick={startEdit} variant="secondary" className="font-semibold gap-1.5 rounded-xl text-xs px-4 h-9">
+          {/* Action Buttons - Chỉ hiển thị cho Giáo viên và Admin */}
+          {isStaff && (
+            <div className="pt-2 flex justify-start gap-3">
+              {editForm ? (
+                <>
+                  <Button type="submit" disabled={updating} className="font-bold rounded-xl text-xs px-5 h-9 bg-amber-500 hover:bg-amber-600 text-gray-900">
+                    {updating ? <Loader2 className="h-4 w-4 animate-spin text-gray-900" /> : 'Lưu thay đổi'}
+                  </Button>
+                  <Button type="button" onClick={() => setEditForm(null)} variant="secondary" className="font-semibold rounded-xl text-xs px-5 h-9">
+                    Hủy bỏ
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button type="button" onClick={startEdit} variant="secondary" className="font-semibold gap-1.5 rounded-xl text-xs px-4 h-9">
                     <Edit2 className="h-3.5 w-3.5" />
                     Chỉnh sửa thông tin
                   </Button>
                   
                   {isAdmin && (
                     <Button
+                      type="button"
                       onClick={handleDelete}
                       variant="outline"
                       className="font-semibold border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 gap-1.5 rounded-xl text-xs px-4 h-9"
@@ -1493,11 +1544,11 @@ export default function ClassDetailPage() {
                       Xóa lớp học
                     </Button>
                   )}
-                </div>
+                </>
               )}
             </div>
           )}
-        </div>
+        </form>
       )}
 
       {/* ── Add member modal ── */}
