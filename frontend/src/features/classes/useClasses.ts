@@ -404,3 +404,14 @@ export function useDeleteComment(classId: string) {
   })
 }
 
+export function useUpdateAnnouncement(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { announcementId: string; content: string }) =>
+      classesApi.updateAnnouncement(classId, body.announcementId, { content: body.content }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', classId, 'announcements'] })
+    },
+  })
+}
+

@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, ChevronDown, BookOpen, FileText, Calendar,
   Clock, Sparkles,
   Paperclip, ExternalLink, Send, Download, PlusCircle,
-  GraduationCap, File, CheckSquare, XCircle, Megaphone, Bold, Italic, Underline
+  GraduationCap, File, CheckSquare, XCircle, Megaphone, Bold, Italic, Underline, MoreVertical
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -21,7 +21,7 @@ import {
   useAssignmentSubmissions, useGradeSubmission,
   useCurriculumTemplates, useImportCurriculum,
   useClassAttendance, useUpdateAttendance,
-  useClassAnnouncements, useCreateAnnouncement, useDeleteAnnouncement,
+  useClassAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDeleteAnnouncement,
   useCreateComment, useDeleteComment
 } from './useClasses'
 import type { UpdateClassRequest, ClassSession, ClassAssignment, AssignmentSubmission, AssignmentQuestion, StudentAnswer } from './classes.types'
@@ -238,6 +238,7 @@ export default function ClassDetailPage() {
   // Announcements and Comments states & hooks
   const { data: announcements = [], isLoading: loadingAnnouncements } = useClassAnnouncements(id)
   const createAnnouncementMutation = useCreateAnnouncement(id)
+  const updateAnnouncementMutation = useUpdateAnnouncement(id)
   const deleteAnnouncementMutation = useDeleteAnnouncement(id)
   const createCommentMutation = useCreateComment(id)
   const deleteCommentMutation = useDeleteComment(id)
@@ -246,8 +247,13 @@ export default function ClassDetailPage() {
   const [commentContents, setCommentContents] = useState<Record<string, string>>({})
   const [isComposerExpanded, setIsComposerExpanded] = useState(false)
 
-  const handleFormat = (type: 'bold' | 'italic' | 'underline') => {
-    const textarea = document.getElementById('announcement-editor') as HTMLTextAreaElement
+  // 3-dots actions & edit states
+  const [openActionAnnId, setOpenActionAnnId] = useState<string | null>(null)
+  const [editingAnnId, setEditingAnnId] = useState<string | null>(null)
+  const [editingAnnContent, setEditingAnnContent] = useState('')
+
+  const handleFormat = (type: 'bold' | 'italic' | 'underline', targetId = 'announcement-editor') => {
+    const textarea = document.getElementById(targetId) as HTMLTextAreaElement
     if (!textarea) return
 
     const start = textarea.selectionStart
@@ -269,7 +275,11 @@ export default function ClassDetailPage() {
     }
 
     const newVal = text.substring(0, start) + replacement + text.substring(end)
-    setAnnouncementContent(newVal)
+    if (targetId === 'announcement-editor') {
+      setAnnouncementContent(newVal)
+    } else {
+      setEditingAnnContent(newVal)
+    }
 
     setTimeout(() => {
       textarea.focus()
@@ -318,6 +328,23 @@ export default function ClassDetailPage() {
         alert(err?.response?.data?.message || 'Không thể xóa thông báo')
       }
     })
+  }
+
+  const handleUpdateAnnouncement = (annId: string, e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingAnnContent.trim()) return
+    updateAnnouncementMutation.mutate(
+      { announcementId: annId, content: editingAnnContent.trim() },
+      {
+        onSuccess: () => {
+          setEditingAnnId(null)
+          setEditingAnnContent('')
+        },
+        onError: (err: any) => {
+          alert(err?.response?.data?.message || 'Không thể cập nhật thông báo')
+        }
+      }
+    )
   }
 
   const handlePostComment = (annId: string, e: React.FormEvent) => {
@@ -1008,23 +1035,132 @@ export default function ClassDetailPage() {
                             </p>
                           </div>
 
-                          {canDeleteAnn && (
-                            <button
-                              onClick={() => handleDeleteAnnouncement(ann.id)}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors shrink-0"
-                              title="Xóa thông báo"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                          {(canDeleteAnn || isAuthor || isAdmin) && (
+                            <div className="relative">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setOpenActionAnnId(openActionAnnId === ann.id ? null : ann.id)
+                                }}
+                                className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-900 transition-colors shrink-0"
+                                title="Lựa chọn"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
+
+                              {openActionAnnId === ann.id && (
+                                <>
+                                  <div 
+                                    className="fixed inset-0 z-10" 
+                                    onClick={() => setOpenActionAnnId(null)}
+                                  />
+                                  <div className="absolute right-0 mt-1.5 w-40 rounded-2xl bg-white border border-gray-150 shadow-lg py-1.5 z-20 animate-in fade-in slide-in-from-top-1 duration-100">
+                                    {(isAuthor || isAdmin) && (
+                                      <button
+                                        onClick={() => {
+                                          setOpenActionAnnId(null)
+                                          setEditingAnnId(ann.id)
+                                          setEditingAnnContent(ann.content)
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                      >
+                                        <Edit2 className="h-3.5 w-3.5" />
+                                        Sửa bài viết
+                                      </button>
+                                    )}
+                                    {canDeleteAnn && (
+                                      <button
+                                        onClick={() => {
+                                          setOpenActionAnnId(null)
+                                          handleDeleteAnnouncement(ann.id)
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Xóa bài viết
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           )}
                         </div>
 
-                        {/* Announcement Content */}
+                        {/* Announcement Content / Edit Form */}
                         <div className="px-5 pb-5 border-b border-gray-100">
-                          <div 
-                            className="text-sm text-gray-700 leading-relaxed whitespace-pre-line font-medium break-words"
-                            dangerouslySetInnerHTML={{ __html: formatContent(ann.content) }}
-                          />
+                          {editingAnnId === ann.id ? (
+                            <form onSubmit={(e) => handleUpdateAnnouncement(ann.id, e)} className="space-y-3.5 pt-2">
+                              {/* Edit toolbar */}
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">Chế độ chỉnh sửa</span>
+                                <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-gray-50/70 p-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFormat('bold', `edit-editor-${ann.id}`)}
+                                    className="p-1.5 hover:bg-gray-200/80 rounded-lg text-gray-600 hover:text-gray-900 transition-colors"
+                                    title="In đậm"
+                                  >
+                                    <Bold className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFormat('italic', `edit-editor-${ann.id}`)}
+                                    className="p-1.5 hover:bg-gray-200/80 rounded-lg text-gray-600 hover:text-gray-900 transition-colors"
+                                    title="In nghiêng"
+                                  >
+                                    <Italic className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFormat('underline', `edit-editor-${ann.id}`)}
+                                    className="p-1.5 hover:bg-gray-200/80 rounded-lg text-gray-600 hover:text-gray-900 transition-colors"
+                                    title="Gạch chân"
+                                  >
+                                    <Underline className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <textarea
+                                id={`edit-editor-${ann.id}`}
+                                value={editingAnnContent}
+                                onChange={(e) => setEditingAnnContent(e.target.value)}
+                                className="w-full min-h-[100px] p-3 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 bg-gray-50/20 focus:bg-white transition-all font-medium leading-relaxed outline-none"
+                                required
+                                autoFocus
+                              />
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setEditingAnnId(null)
+                                    setEditingAnnContent('')
+                                  }}
+                                  className="font-bold rounded-xl text-xs px-4 h-8 text-gray-500 hover:text-gray-900"
+                                >
+                                  Hủy
+                                </Button>
+                                <Button
+                                  type="submit"
+                                  disabled={updateAnnouncementMutation.isPending}
+                                  className="font-bold rounded-xl text-xs px-5 h-8 bg-amber-500 hover:bg-amber-600 text-gray-900 gap-1.5 shadow-sm"
+                                >
+                                  {updateAnnouncementMutation.isPending ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-900" />
+                                  ) : (
+                                    "Lưu thay đổi"
+                                  )}
+                                </Button>
+                              </div>
+                            </form>
+                          ) : (
+                            <div 
+                              className="text-sm text-gray-700 leading-relaxed whitespace-pre-line font-medium break-words text-left"
+                              dangerouslySetInnerHTML={{ __html: formatContent(ann.content) }}
+                            />
+                          )}
                         </div>
 
                         {/* Comments List Section */}

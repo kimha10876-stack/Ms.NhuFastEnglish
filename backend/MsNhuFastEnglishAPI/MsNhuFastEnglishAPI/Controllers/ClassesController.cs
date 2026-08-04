@@ -1196,4 +1196,22 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
 
         return Ok(ApiResponse.Ok<object?>(null, "Xóa bình luận thành công"));
     }
+
+    [HttpPut("{id:guid}/announcements/{announcementId:guid}")]
+    public async Task<IActionResult> UpdateAnnouncement(Guid id, Guid announcementId, [FromBody] CreateAnnouncementRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Content))
+            return BadRequest(ApiResponse.BadRequest("Nội dung thông báo không được để trống"));
+
+        var ann = await db.ClassAnnouncements.FirstOrDefaultAsync(a => a.Id == announcementId && a.ClassId == id);
+        if (ann == null) return NotFound(ApiResponse.NotFound("Không tìm thấy thông báo"));
+
+        if (!IsAdmin && ann.CreatedBy != UserId)
+            return StatusCode(403, ApiResponse.Forbidden("Bạn không có quyền chỉnh sửa thông báo này"));
+
+        ann.Content = req.Content;
+        await db.SaveChangesAsync();
+
+        return Ok(ApiResponse.Ok<object?>(null, "Cập nhật thông báo thành công"));
+    }
 }

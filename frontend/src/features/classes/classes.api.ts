@@ -167,6 +167,9 @@ export const classesApi = {
   createAnnouncement: (classId: string, body: { content: string }) =>
     api.post<ApiResponse<ClassAnnouncement>>(`/classes/${classId}/announcements`, body).then((r) => r.data.data!),
 
+  updateAnnouncement: (classId: string, announcementId: string, body: { content: string }) =>
+    api.put<ApiResponse<any>>(`/classes/${classId}/announcements/${announcementId}`, body).then((r) => r.data),
+
   deleteAnnouncement: (classId: string, announcementId: string) =>
     api.delete<ApiResponse<any>>(`/classes/${classId}/announcements/${announcementId}`).then((r) => r.data),
 
