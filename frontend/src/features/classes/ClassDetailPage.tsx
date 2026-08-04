@@ -360,12 +360,30 @@ export default function ClassDetailPage() {
       {
         onSuccess: () => {
           setCommentContents(prev => ({ ...prev, [annId]: '' }))
+          setExpandedCommentAnnId(null)
         },
         onError: (err: any) => {
           alert(err?.response?.data?.message || 'Không thể đăng bình luận')
         }
       }
     )
+  }
+
+  const handleReplyToComment = (annId: string, authorName: string) => {
+    setExpandedCommentAnnId(annId)
+    const mentionText = `**@${authorName}** `
+    setCommentContents(prev => {
+      const current = prev[annId] ?? ''
+      if (current.includes(mentionText)) return prev
+      return { ...prev, [annId]: mentionText + current }
+    })
+    setTimeout(() => {
+      const textarea = document.getElementById(`comment-editor-${annId}`) as HTMLTextAreaElement
+      if (textarea) {
+        textarea.focus()
+        textarea.selectionStart = textarea.selectionEnd = textarea.value.length
+      }
+    }, 100)
   }
 
   const handleDeleteComment = (annId: string, commentId: string) => {
@@ -1193,8 +1211,8 @@ export default function ClassDetailPage() {
                                     }`}>
                                       {cInitials}
                                     </div>
-                                    <div className="flex-1 bg-white border border-gray-150 rounded-2xl px-4 py-2.5 relative shadow-xs hover:border-gray-300 transition-colors">
-                                      <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                    <div className="flex-1 min-w-0 relative">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
                                         <span className="font-extrabold text-gray-950">{comment.creatorName}</span>
                                         <span className={`text-[8px] font-bold scale-90 px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
                                           comment.creatorRole === 'Admin'
@@ -1205,7 +1223,7 @@ export default function ClassDetailPage() {
                                         }`}>
                                           {comment.creatorRole === 'Admin' ? 'Admin' : comment.creatorRole === 'Teacher' ? 'GV' : 'HV'}
                                         </span>
-                                        <span className="text-[9px] text-gray-400 font-semibold ml-auto">
+                                        <span className="text-[9px] text-gray-400 font-semibold ml-1.5">
                                           {new Date(comment.createdAt).toLocaleString('vi-VN', {
                                             day: '2-digit',
                                             month: '2-digit',
@@ -1215,14 +1233,24 @@ export default function ClassDetailPage() {
                                         </span>
                                       </div>
                                       <div 
-                                        className="text-gray-700 font-medium whitespace-pre-line leading-relaxed pr-6 break-words"
+                                        className="text-gray-700 font-medium whitespace-pre-line leading-relaxed pr-6 mt-1 break-words text-left"
                                         dangerouslySetInnerHTML={{ __html: formatContent(comment.content) }}
                                       />
+
+                                      <div className="flex items-center gap-3 mt-1 select-none">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleReplyToComment(ann.id, comment.creatorName)}
+                                          className="text-[10px] font-bold text-gray-400 hover:text-amber-600 transition-colors"
+                                        >
+                                          Trả lời
+                                        </button>
+                                      </div>
                                       
                                       {canDeleteComment && (
                                         <button
                                           onClick={() => handleDeleteComment(ann.id, comment.id)}
-                                          className="absolute right-3.5 top-3.5 opacity-0 group-hover/comment:opacity-100 hover:text-red-500 text-gray-400 transition-opacity p-0.5 rounded"
+                                          className="absolute right-0 top-0.5 opacity-0 group-hover/comment:opacity-100 hover:text-red-500 text-gray-400 transition-opacity p-0.5 rounded"
                                           title="Xóa bình luận"
                                         >
                                           <Trash2 className="h-3 w-3" />
