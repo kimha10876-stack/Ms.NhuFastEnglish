@@ -1232,23 +1232,88 @@ export default function ClassDetailPage() {
                           )}
 
                           {/* Comment Input Form */}
-                          <form onSubmit={(e) => handlePostComment(ann.id, e)} className="flex items-center gap-2.5 pt-1">
-                            <input
-                              type="text"
-                              value={commentVal}
-                              onChange={(e) => setCommentContents(prev => ({ ...prev, [ann.id]: e.target.value }))}
-                              placeholder="Viết bình luận lớp học..."
-                              className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs font-semibold focus:border-amber-500 focus:ring-amber-500/20 shadow-xs h-9 outline-none transition-all"
-                              required
-                            />
-                            <button
-                              type="submit"
-                              disabled={createCommentMutation.isPending}
-                              className="w-9 h-9 rounded-xl bg-amber-500 hover:bg-amber-600 text-gray-900 flex items-center justify-center shrink-0 transition-colors shadow-sm disabled:opacity-50 hover:shadow animate-in fade-in"
+                          {expandedCommentAnnId === ann.id ? (
+                            // Expanded comment editor
+                            <form onSubmit={(e) => handlePostComment(ann.id, e)} className="space-y-3 pt-2 animate-in fade-in duration-150">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">Viết bình luận</span>
+                                <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white p-0.5 shadow-xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFormat('bold', `comment-editor-${ann.id}`)}
+                                    className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-gray-900 transition-colors"
+                                    title="In đậm"
+                                  >
+                                    <Bold className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFormat('italic', `comment-editor-${ann.id}`)}
+                                    className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-gray-900 transition-colors"
+                                    title="In nghiêng"
+                                  >
+                                    <Italic className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFormat('underline', `comment-editor-${ann.id}`)}
+                                    className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-gray-900 transition-colors"
+                                    title="Gạch chân"
+                                  >
+                                    <Underline className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <textarea
+                                id={`comment-editor-${ann.id}`}
+                                value={commentVal}
+                                onChange={(e) => setCommentContents(prev => ({ ...prev, [ann.id]: e.target.value }))}
+                                placeholder="Viết bình luận chi tiết cho lớp học..."
+                                className="w-full min-h-[80px] p-3 text-xs rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 bg-white focus:bg-white transition-all font-medium leading-relaxed outline-none shadow-xs text-left"
+                                required
+                                autoFocus
+                              />
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setExpandedCommentAnnId(null)
+                                    setCommentContents(prev => ({ ...prev, [ann.id]: '' }))
+                                  }}
+                                  className="font-bold rounded-xl text-[10px] px-3.5 h-8 text-gray-500 hover:text-gray-900"
+                                >
+                                  Hủy
+                                </Button>
+                                <Button
+                                  type="submit"
+                                  disabled={createCommentMutation.isPending}
+                                  className="font-bold rounded-xl text-[10px] px-4.5 h-8 bg-amber-500 hover:bg-amber-600 text-gray-900 gap-1.5 shadow-sm"
+                                >
+                                  {createCommentMutation.isPending ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-900" />
+                                  ) : (
+                                    <>
+                                      <Send className="h-3.5 w-3.5" />
+                                      Bình luận
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </form>
+                          ) : (
+                            // Collapsed comment form
+                            <div 
+                              onClick={() => setExpandedCommentAnnId(ann.id)}
+                              className="flex items-center gap-2.5 pt-1 cursor-pointer"
                             >
-                              <Send className="h-3.5 w-3.5 animate-pulse" />
-                            </button>
-                          </form>
+                              <div className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs font-semibold text-gray-400 hover:border-gray-300 transition-colors shadow-xs h-9 flex items-center justify-between">
+                                <span>Viết bình luận lớp học...</span>
+                                <Send className="h-3.5 w-3.5 text-gray-400" />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )
