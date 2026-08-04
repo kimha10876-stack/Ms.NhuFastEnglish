@@ -155,6 +155,7 @@ export interface ClassSession {
   guestTeacherId: string | null
   guestTeacherName: string | null
   documents: ClassDocument[]
+  attendanceStatus?: string | null
 }
 
 export interface AssignmentQuestion {
@@ -262,5 +263,26 @@ export interface GradeSubmissionRequest {
   grade: number
   teacherFeedback?: string
   answersJson?: string
+}
+
+export interface AnnouncementComment {
+  id: string
+  announcementId: string
+  content: string
+  createdBy: string
+  creatorName: string
+  creatorRole: string
+  createdAt: string
+}
+
+export interface ClassAnnouncement {
+  id: string
+  classId: string
+  content: string
+  createdBy: string
+  creatorName: string
+  creatorRole: string
+  createdAt: string
+  comments: AnnouncementComment[]
 }
 

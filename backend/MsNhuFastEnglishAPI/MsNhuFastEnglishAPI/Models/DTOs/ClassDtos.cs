@@ -163,7 +163,8 @@ public record ClassSessionDto(
     string? Note,
     Guid? GuestTeacherId,
     string? GuestTeacherName,
-    IList<ClassDocumentDto> Documents
+    IList<ClassDocumentDto> Documents,
+    string? AttendanceStatus = null
 );
 
 // ── Document DTOs ────────────────────────────────────────────────────────────
@@ -266,5 +267,34 @@ public record StudentAnswerDto(
     bool? IsCorrect,
     float? Grade,
     string? TeacherFeedback
+);
+
+public record CreateAnnouncementRequest(
+    string Content
+);
+
+public record ClassAnnouncementDto(
+    Guid Id,
+    Guid ClassId,
+    string Content,
+    Guid CreatedBy,
+    string CreatorName,
+    string CreatorRole,
+    DateTime CreatedAt,
+    IList<AnnouncementCommentDto> Comments
+);
+
+public record CreateCommentRequest(
+    string Content
+);
+
+public record AnnouncementCommentDto(
+    Guid Id,
+    Guid AnnouncementId,
+    string Content,
+    Guid CreatedBy,
+    string CreatorName,
+    string CreatorRole,
+    DateTime CreatedAt
 );
 

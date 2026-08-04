@@ -24,6 +24,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<CurriculumTemplate> CurriculumTemplates => Set<CurriculumTemplate>();
     public DbSet<CurriculumTemplateUnit> CurriculumTemplateUnits => Set<CurriculumTemplateUnit>();
     public DbSet<ClassAttendance> ClassAttendances => Set<ClassAttendance>();
+    public DbSet<ClassAnnouncement> ClassAnnouncements => Set<ClassAnnouncement>();
+    public DbSet<AnnouncementComment> AnnouncementComments => Set<AnnouncementComment>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -221,6 +223,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(ca => ca.Student)
              .WithMany()
              .HasForeignKey(ca => ca.StudentId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── ClassAnnouncement ─────────────────────────────────────────────
+        mb.Entity<ClassAnnouncement>(e =>
+        {
+            e.Property(ca => ca.CreatedAt).HasDefaultValueSql("NOW()");
+            e.HasOne(ca => ca.Class)
+             .WithMany()
+             .HasForeignKey(ca => ca.ClassId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(ca => ca.Creator)
+             .WithMany()
+             .HasForeignKey(ca => ca.CreatedBy)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── AnnouncementComment ───────────────────────────────────────────
+        mb.Entity<AnnouncementComment>(e =>
+        {
+            e.Property(ac => ac.CreatedAt).HasDefaultValueSql("NOW()");
+            e.HasOne(ac => ac.Announcement)
+             .WithMany(ca => ca.Comments)
+             .HasForeignKey(ac => ac.AnnouncementId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(ac => ac.Creator)
+             .WithMany()
+             .HasForeignKey(ac => ac.CreatedBy)
              .OnDelete(DeleteBehavior.Cascade);
         });
 

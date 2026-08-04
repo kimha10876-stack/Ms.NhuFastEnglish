@@ -213,6 +213,22 @@ using (var scope = app.Services.CreateScope())
                         ""CreatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
                         ""UpdatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
                     );
+
+                    CREATE TABLE IF NOT EXISTS ""ClassAnnouncements"" (
+                        ""Id"" UUID PRIMARY KEY,
+                        ""ClassId"" UUID NOT NULL REFERENCES ""Classes""(""Id"") ON DELETE CASCADE,
+                        ""Content"" TEXT NOT NULL,
+                        ""CreatedBy"" UUID NOT NULL REFERENCES ""Users""(""Id"") ON DELETE CASCADE,
+                        ""CreatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+                    );
+
+                    CREATE TABLE IF NOT EXISTS ""AnnouncementComments"" (
+                        ""Id"" UUID PRIMARY KEY,
+                        ""AnnouncementId"" UUID NOT NULL REFERENCES ""ClassAnnouncements""(""Id"") ON DELETE CASCADE,
+                        ""Content"" TEXT NOT NULL,
+                        ""CreatedBy"" UUID NOT NULL REFERENCES ""Users""(""Id"") ON DELETE CASCADE,
+                        ""CreatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+                    );
                 ");
             }
             else
@@ -295,6 +311,24 @@ using (var scope = app.Services.CreateScope())
                             Status TEXT NOT NULL DEFAULT 'present',
                             CreatedAt TEXT NOT NULL,
                             UpdatedAt TEXT NOT NULL
+                        );
+                    ");
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS ClassAnnouncements (
+                            Id TEXT PRIMARY KEY,
+                            ClassId TEXT NOT NULL REFERENCES Classes(Id) ON DELETE CASCADE,
+                            Content TEXT NOT NULL,
+                            CreatedBy TEXT NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+                            CreatedAt TEXT NOT NULL
+                        );
+                    ");
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS AnnouncementComments (
+                            Id TEXT PRIMARY KEY,
+                            AnnouncementId TEXT NOT NULL REFERENCES ClassAnnouncements(Id) ON DELETE CASCADE,
+                            Content TEXT NOT NULL,
+                            CreatedBy TEXT NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+                            CreatedAt TEXT NOT NULL
                         );
                     ");
                 }

@@ -24,6 +24,8 @@ import type {
   UpdateAssignmentRequest,
   SubmitAssignmentRequest,
   GradeSubmissionRequest,
+  ClassAnnouncement,
+  AnnouncementComment,
 } from './classes.types'
 
 export const classesApi = {
@@ -157,5 +159,20 @@ export const classesApi = {
     api.get<ApiResponse<{ studentId: string; fullName: string; email: string; status: string | null }[]>>(`/classes/${classId}/attendance/${sessionId}`).then((r) => r.data.data!),
 
   updateAttendance: (classId: string, sessionId: string, body: { studentId: string; status: string }) =>
-    api.post<ApiResponse<any>>(`/classes/${classId}/attendance/${sessionId}`, body).then((r) => r.data)
+    api.post<ApiResponse<any>>(`/classes/${classId}/attendance/${sessionId}`, body).then((r) => r.data),
+
+  getAnnouncements: (classId: string) =>
+    api.get<ApiResponse<ClassAnnouncement[]>>(`/classes/${classId}/announcements`).then((r) => r.data.data!),
+
+  createAnnouncement: (classId: string, body: { content: string }) =>
+    api.post<ApiResponse<ClassAnnouncement>>(`/classes/${classId}/announcements`, body).then((r) => r.data.data!),
+
+  deleteAnnouncement: (classId: string, announcementId: string) =>
+    api.delete<ApiResponse<any>>(`/classes/${classId}/announcements/${announcementId}`).then((r) => r.data),
+
+  createComment: (classId: string, announcementId: string, body: { content: string }) =>
+    api.post<ApiResponse<AnnouncementComment>>(`/classes/${classId}/announcements/${announcementId}/comments`, body).then((r) => r.data.data!),
+
+  deleteComment: (classId: string, announcementId: string, commentId: string) =>
+    api.delete<ApiResponse<any>>(`/classes/${classId}/announcements/${announcementId}/comments/${commentId}`).then((r) => r.data)
 }

@@ -354,3 +354,53 @@ export function useUpdateAttendance(classId: string, sessionId: string) {
   })
 }
 
+export function useClassAnnouncements(classId: string) {
+  return useQuery({
+    queryKey: ['classes', classId, 'announcements'],
+    queryFn: () => classesApi.getAnnouncements(classId),
+    enabled: !!classId,
+  })
+}
+
+export function useCreateAnnouncement(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { content: string }) => classesApi.createAnnouncement(classId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', classId, 'announcements'] })
+    },
+  })
+}
+
+export function useDeleteAnnouncement(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (announcementId: string) => classesApi.deleteAnnouncement(classId, announcementId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', classId, 'announcements'] })
+    },
+  })
+}
+
+export function useCreateComment(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { announcementId: string; content: string }) =>
+      classesApi.createComment(classId, body.announcementId, { content: body.content }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', classId, 'announcements'] })
+    },
+  })
+}
+
+export function useDeleteComment(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { announcementId: string; commentId: string }) =>
+      classesApi.deleteComment(classId, body.announcementId, body.commentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', classId, 'announcements'] })
+    },
+  })
+}
+
