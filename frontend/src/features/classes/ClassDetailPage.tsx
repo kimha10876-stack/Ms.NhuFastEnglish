@@ -22,7 +22,7 @@ import {
   useCurriculumTemplates, useImportCurriculum,
   useClassAttendance, useUpdateAttendance,
   useClassAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDeleteAnnouncement,
-  useCreateComment, useDeleteComment
+  useCreateComment, useDeleteComment, useSubmitAssignment
 } from './useClasses'
 import type { UpdateClassRequest, ClassSession, ClassAssignment, AssignmentSubmission, AssignmentQuestion, StudentAnswer } from './classes.types'
 import TeacherSelect from './TeacherSelect'
@@ -206,6 +206,7 @@ export default function ClassDetailPage() {
   const createAssignmentMutation = useCreateAssignment(id)
   const updateAssignmentMutation = useUpdateAssignment(id)
   const deleteAssignmentMutation = useDeleteAssignment(id)
+  const submitAssignmentMutation = useSubmitAssignment(id, selectedAssignment?.id ?? '')
   
   const gradeSubmissionMutation = useGradeSubmission(id, selectedAssignment?.id ?? '')
   const { data: templates = [] } = useCurriculumTemplates()
@@ -253,6 +254,29 @@ export default function ClassDetailPage() {
   const [editingAnnContent, setEditingAnnContent] = useState('')
   const [expandedCommentAnnId, setExpandedCommentAnnId] = useState<string | null>(null)
   const [replyParentCommentId, setReplyParentCommentId] = useState<Record<string, string | null>>({})
+
+  // Inline homework submission states
+  const [inlineSubmissionMode, setInlineSubmissionMode] = useState<'link' | 'text'>('link')
+  const [inlineLinkUrl, setInlineLinkUrl] = useState('')
+  const [inlineTextContent, setInlineTextContent] = useState('')
+  const [isEditingInlineSub, setIsEditingInlineSub] = useState(false)
+
+  useEffect(() => {
+    if (selectedAssignment) {
+      const sub = selectedAssignment.submission
+      if (sub) {
+        setInlineLinkUrl(sub.fileUrl ?? '')
+        setInlineTextContent(sub.submissionText ?? '')
+        setInlineSubmissionMode(sub.fileUrl ? 'link' : 'text')
+        setIsEditingInlineSub(false)
+      } else {
+        setInlineLinkUrl('')
+        setInlineTextContent('')
+        setInlineSubmissionMode('link')
+        setIsEditingInlineSub(true)
+      }
+    }
+  }, [selectedAssignment])
 
   const handleFormat = (type: 'bold' | 'italic' | 'underline', targetId = 'announcement-editor') => {
     const textarea = document.getElementById(targetId) as HTMLTextAreaElement
@@ -399,6 +423,42 @@ export default function ClassDetailPage() {
       {
         onError: (err: any) => {
           alert(err?.response?.data?.message || 'Không thể xóa bình luận')
+        }
+      }
+    )
+  }
+
+  const handleInlineSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedAssignment) return
+
+    const isLinkMode = inlineSubmissionMode === 'link'
+    const fileUrl = isLinkMode ? inlineLinkUrl.trim() : ''
+    const fileName = isLinkMode ? 'Link bài làm' : ''
+    const submissionText = inlineTextContent.trim()
+
+    if (isLinkMode && !fileUrl) {
+      alert('Vui lòng nhập đường dẫn bài làm!')
+      return
+    }
+    if (!isLinkMode && !submissionText) {
+      alert('Vui lòng nhập nội dung tự luận!')
+      return
+    }
+
+    submitAssignmentMutation.mutate(
+      {
+        submissionText,
+        fileUrl,
+        fileName
+      },
+      {
+        onSuccess: () => {
+          alert('Nộp bài thành công!')
+          setIsEditingInlineSub(false)
+        },
+        onError: (err: any) => {
+          alert(err?.response?.data?.message || 'Có lỗi xảy ra khi nộp bài!')
         }
       }
     )
@@ -3059,16 +3119,167 @@ export default function ClassDetailPage() {
                       </div>
                     </div>
                   )}
-                  <Button
-                    onClick={() => {
-                      const url = `/classes/${id}/assignments/${selectedAssignment.id}/do`
-                      navigate(url)
-                    }}
-                    className="w-full gap-1.5 rounded-xl font-extrabold py-3 shadow-md shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
-                  >
-                    <Send className="h-4 w-4" />
-                    {selectedAssignment.submission ? 'Xem chi tiết bài làm & Kết quả' : 'Bắt đầu làm bài'}
-                  </Button>
+                  {selectedAssignment.assignmentType === 'Quiz' ? (
+                    <Button
+                      onClick={() => {
+                        const url = `/classes/${id}/assignments/${selectedAssignment.id}/do`
+                        navigate(url)
+                      }}
+                      className="w-full gap-1.5 rounded-xl font-extrabold py-3 shadow-md shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
+                    >
+                      <Send className="h-4 w-4" />
+                      {selectedAssignment.submission ? 'Xem chi tiết bài làm & Kết quả' : 'Bắt đầu làm bài trắc nghiệm (Quiz)'}
+                    </Button>
+                  ) : (
+                    // Upload/Essay assignment inline submission workflow
+                    <div className="space-y-4 pt-1">
+                      {isEditingInlineSub ? (
+                        <form onSubmit={handleInlineSubmit} className="space-y-4">
+                          {/* Segmented control to choose between link or text */}
+                          <div className="flex border border-gray-200 rounded-2xl overflow-hidden p-1 bg-gray-50/50">
+                            <button
+                              type="button"
+                              onClick={() => setInlineSubmissionMode('link')}
+                              className={`flex-1 py-1.5 text-[11px] font-extrabold rounded-xl transition-all ${
+                                inlineSubmissionMode === 'link'
+                                  ? 'bg-white shadow-sm text-amber-700'
+                                  : 'text-gray-400 hover:text-gray-600'
+                              }`}
+                            >
+                              Nộp bằng Link liên kết
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setInlineSubmissionMode('text')
+                                setInlineLinkUrl('')
+                              }}
+                              className={`flex-1 py-1.5 text-[11px] font-extrabold rounded-xl transition-all ${
+                                inlineSubmissionMode === 'text'
+                                  ? 'bg-white shadow-sm text-amber-700'
+                                  : 'text-gray-400 hover:text-gray-600'
+                              }`}
+                            >
+                              Làm trực tiếp trên Web
+                            </button>
+                          </div>
+
+                          {inlineSubmissionMode === 'link' ? (
+                            <div className="space-y-3">
+                              <div className="space-y-1.5 text-left">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Đường dẫn bài làm (Link Google Drive, Canva, Figma...)</label>
+                                <Input
+                                  value={inlineLinkUrl}
+                                  onChange={(e) => setInlineLinkUrl(e.target.value)}
+                                  placeholder="Dán link bài làm của bạn tại đây..."
+                                  className="rounded-xl h-10 text-xs bg-white border border-gray-200 focus:border-amber-500"
+                                  required
+                                />
+                              </div>
+
+                              <div className="space-y-1.5 text-left">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Ghi chú hoặc lời nhắn (tùy chọn)</label>
+                                <textarea
+                                  value={inlineTextContent}
+                                  onChange={(e) => setInlineTextContent(e.target.value)}
+                                  placeholder="Nhập lời nhắn gửi giáo viên..."
+                                  className="w-full min-h-[90px] p-3 text-xs font-semibold bg-white rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-1.5 text-left">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Nội dung bài làm tự luận</label>
+                              <textarea
+                                value={inlineTextContent}
+                                onChange={(e) => setInlineTextContent(e.target.value)}
+                                placeholder="Viết bài tự luận hoặc trả lời của bạn trực tiếp tại đây..."
+                                className="w-full min-h-[180px] p-4 text-xs font-semibold bg-white rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20"
+                                required
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex gap-2">
+                            {selectedAssignment.submission && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsEditingInlineSub(false)}
+                                className="flex-1 rounded-xl text-xs font-bold"
+                              >
+                                Hủy bỏ
+                              </Button>
+                            )}
+                            <Button
+                              type="submit"
+                              disabled={submitAssignmentMutation.isPending}
+                              className="flex-1 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-gray-900"
+                            >
+                              {submitAssignmentMutation.isPending ? 'Đang gửi...' : 'Nộp bài làm'}
+                            </Button>
+                          </div>
+                        </form>
+                      ) : (
+                        // View mode for already submitted homework
+                        (() => {
+                          const sub = selectedAssignment.submission
+                          if (!sub) return null
+                          return (
+                            <div className="space-y-4">
+                              <div className="bg-gray-50 border border-gray-150 rounded-2xl p-4 text-left space-y-3">
+                                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                                  <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Đã nộp bài thành công</span>
+                                  <span className="text-[9px] text-gray-400 font-semibold">
+                                    {sub.submittedAt && new Date(sub.submittedAt).toLocaleString('vi-VN')}
+                                  </span>
+                                </div>
+
+                                {sub.fileUrl ? (
+                                  <div className="space-y-2.5">
+                                    <div className="text-xs">
+                                      <span className="font-bold text-gray-500">Đường dẫn: </span>
+                                      <a
+                                        href={sub.fileUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-amber-600 hover:underline font-bold inline-flex items-center gap-1"
+                                      >
+                                        Mở bài làm (Link liên kết)
+                                        <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    </div>
+                                    {sub.submissionText && (
+                                      <div className="text-xs text-gray-700 bg-white border border-gray-100 p-2.5 rounded-xl whitespace-pre-wrap font-semibold leading-relaxed">
+                                        <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider mb-1">Ghi chú</span>
+                                        {sub.submissionText}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-gray-700 bg-white border border-gray-100 p-3 rounded-xl whitespace-pre-wrap font-semibold leading-relaxed max-h-[200px] overflow-y-auto">
+                                    <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider mb-1">Nội dung bài làm trực tiếp</span>
+                                    {sub.submissionText}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Resubmit button if allowed */}
+                              {(!selectedAssignment.dueDate || new Date(selectedAssignment.dueDate) > new Date() || selectedAssignment.allowLateSubmission) && (
+                                <Button
+                                  type="button"
+                                  onClick={() => setIsEditingInlineSub(true)}
+                                  className="w-full rounded-xl text-xs font-bold bg-amber-50/50 hover:bg-amber-100/60 border border-amber-200/50 text-amber-800 transition-colors"
+                                >
+                                  Nộp lại bài làm
+                                </Button>
+                              )}
+                            </div>
+                          )
+                        })()
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
