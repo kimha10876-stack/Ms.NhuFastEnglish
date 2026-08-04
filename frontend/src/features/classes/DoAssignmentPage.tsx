@@ -10,7 +10,6 @@ import {
   XCircle, 
   ExternalLink, 
   Paperclip, 
-  Upload, 
   Loader2, 
   Sparkles, 
   BookOpen
@@ -33,7 +32,6 @@ export default function DoAssignmentPage() {
     fileUrl: '',
     fileName: ''
   })
-  const [uploadingFile, setUploadingFile] = useState(false)
   const [timeLeft, setTimeLeft] = useState<string>('')
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null)
 
@@ -354,7 +352,7 @@ export default function DoAssignmentPage() {
             <div className="pt-6 border-t border-gray-100 mt-6 shrink-0">
               <Button 
                 onClick={() => handleSubmit()} 
-                disabled={submitAssignmentMutation.isPending || uploadingFile} 
+                disabled={submitAssignmentMutation.isPending} 
                 className="w-full gap-1.5 rounded-xl font-bold py-3 shadow-md shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
               >
                 {submitAssignmentMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
@@ -570,89 +568,37 @@ export default function DoAssignmentPage() {
                 })}
               </div>
             ) : (
-              // Standard Upload Assignment layout
+              // Standard Link Submission layout
               <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6">
                 <div className="flex items-center gap-2 border-b border-gray-50 pb-4 justify-start">
                   <BookOpen className="h-5 w-5 text-amber-500" />
-                  <h3 className="font-extrabold text-base text-gray-800">Bài tự luận / Tải tệp</h3>
+                  <h3 className="font-extrabold text-base text-gray-800">Nộp bài bằng Link liên kết</h3>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-wider block text-left">Nội dung bài làm hoặc Link lưu trữ</label>
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-wider block text-left">Ghi chú hoặc nội dung bài làm</label>
                   <textarea
                     value={submitForm.submissionText}
                     onChange={(e) => setSubmitForm({ ...submitForm, submissionText: e.target.value })}
-                    placeholder="Nhập nội dung tự luận hoặc dán link Google Drive/Dropbox/Onedrive chứa bài làm của bạn..."
-                    className="w-full min-h-[220px] p-4 text-sm font-medium bg-white rounded-2xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20"
+                    placeholder="Nhập ghi chú hoặc lời nhắn gửi giáo viên..."
+                    className="w-full min-h-[140px] p-4 text-sm font-medium bg-white rounded-2xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20"
+                    disabled={hasSubmitted || isBlocked}
+                  />
+                </div>
+
+                <div className="space-y-2 text-left">
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-wider block">Đường dẫn bài làm (Link Google Drive, Canva, Figma...)</label>
+                  <Input
+                    value={submitForm.fileUrl}
+                    onChange={(e) => setSubmitForm({ ...submitForm, fileUrl: e.target.value, fileName: e.target.value ? 'Link bài làm' : '' })}
+                    placeholder="https://docs.google.com/document/d/... hoặc các đường dẫn khác"
+                    className="rounded-2xl h-11 text-xs bg-white border border-gray-200 focus:border-amber-500"
                     required
                     disabled={hasSubmitted || isBlocked}
                   />
                 </div>
 
-                {/* File Upload details */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-50 pt-5">
-                  <div className="space-y-2 text-left">
-                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider block">Đính kèm tệp tin (PDF, Word, Ảnh)</label>
-                    <div className="flex items-center gap-2.5">
-                      <label
-                        className={`flex items-center gap-1.5 px-4 h-11 rounded-2xl border border-gray-200 text-xs font-bold cursor-pointer select-none transition-all ${
-                          uploadingFile || hasSubmitted || isBlocked
-                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                            : 'bg-white text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                          disabled={uploadingFile || hasSubmitted || isBlocked}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0]
-                            if (!file) return
-                            setUploadingFile(true)
-                            try {
-                              const res = await classesApi.uploadFile(file)
-                              setSubmitForm((prev) => ({
-                                ...prev,
-                                fileUrl: res.fileUrl,
-                                fileName: res.fileName
-                              }))
-                              alert('Tải tệp đính kèm thành công!')
-                            } catch {
-                              alert('Tải tệp thất bại, hãy tải lại!')
-                            } finally {
-                              setUploadingFile(false)
-                            }
-                          }}
-                          className="hidden"
-                        />
-                        {uploadingFile ? (
-                          <Loader2 className="h-4.5 w-4.5 animate-spin text-amber-500" />
-                        ) : (
-                          <Upload className="h-4.5 w-4.5 text-gray-500" />
-                        )}
-                        Tải tệp lên
-                      </label>
-                      {submitForm.fileName && (
-                        <span className="text-[10px] text-gray-500 font-bold truncate max-w-[140px]" title={submitForm.fileName}>
-                          {submitForm.fileName}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-left">
-                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider block">Đường dẫn tệp đính kèm trực tiếp</label>
-                    <Input
-                      value={submitForm.fileUrl}
-                      onChange={(e) => setSubmitForm({ ...submitForm, fileUrl: e.target.value })}
-                      placeholder="https://..."
-                      className="rounded-2xl h-11 text-xs bg-white border border-gray-200 focus:border-amber-500"
-                      disabled={hasSubmitted || isBlocked}
-                    />
-                  </div>
-                </div>
-
-                {/* Show uploaded attachment links if submitted */}
+                {/* Show submitted link if submitted */}
                 {submitForm.fileUrl && hasSubmitted && (
                   <div className="pt-2 text-left">
                     <a 
@@ -662,7 +608,7 @@ export default function DoAssignmentPage() {
                       className="inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 font-bold bg-amber-50/50 border border-amber-100 px-3.5 py-1.5 rounded-xl transition-all"
                     >
                       <Paperclip className="h-4 w-4" />
-                      {submitForm.fileName || 'Xem tệp đã đính kèm'}
+                      Xem bài làm (Link liên kết)
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>
