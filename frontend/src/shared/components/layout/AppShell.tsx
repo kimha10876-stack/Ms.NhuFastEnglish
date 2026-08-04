@@ -269,7 +269,13 @@ export function AppShell() {
           )}
 
           <main className="flex-1 overflow-y-auto">
-            <Outlet />
+            {isStudent ? (
+              <div className="max-w-7xl mx-auto w-full px-2 sm:px-4 lg:px-6">
+                <Outlet />
+              </div>
+            ) : (
+              <Outlet />
+            )}
           </main>
         </div>
       </div>
