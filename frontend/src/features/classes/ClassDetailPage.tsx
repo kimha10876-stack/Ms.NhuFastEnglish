@@ -251,6 +251,7 @@ export default function ClassDetailPage() {
   const [openActionAnnId, setOpenActionAnnId] = useState<string | null>(null)
   const [editingAnnId, setEditingAnnId] = useState<string | null>(null)
   const [editingAnnContent, setEditingAnnContent] = useState('')
+  const [expandedCommentAnnId, setExpandedCommentAnnId] = useState<string | null>(null)
 
   const handleFormat = (type: 'bold' | 'italic' | 'underline', targetId = 'announcement-editor') => {
     const textarea = document.getElementById(targetId) as HTMLTextAreaElement
@@ -277,6 +278,9 @@ export default function ClassDetailPage() {
     const newVal = text.substring(0, start) + replacement + text.substring(end)
     if (targetId === 'announcement-editor') {
       setAnnouncementContent(newVal)
+    } else if (targetId.startsWith('comment-editor-')) {
+      const annId = targetId.substring('comment-editor-'.length)
+      setCommentContents(prev => ({ ...prev, [annId]: newVal }))
     } else {
       setEditingAnnContent(newVal)
     }
