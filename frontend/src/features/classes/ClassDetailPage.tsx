@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, ChevronDown, BookOpen, FileText, Calendar,
   Clock, Sparkles,
   Paperclip, ExternalLink, Send, Download, PlusCircle,
-  GraduationCap, File, CheckSquare, XCircle, Megaphone
+  GraduationCap, File, CheckSquare, XCircle, Megaphone, Bold, Italic, Underline
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -43,6 +43,26 @@ const STATUS_COLOR: Record<string, string> = {
   active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   paused: 'bg-amber-50 text-amber-700 border-amber-200',
   ended:  'bg-gray-100 text-gray-500 border-gray-200',
+}
+
+function formatContent(text: string) {
+  if (!text) return ''
+  let escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+
+  escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+  escaped = escaped.replace(/\*(.*?)\*/g, '<em>$1</em>')
+  escaped = escaped.replace(/__(.*?)__/g, '<u>$1</u>')
+  escaped = escaped.replace(/\n/g, '<br />')
+
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  escaped = escaped.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline break-all font-semibold">$1</a>')
+
+  return escaped
 }
 
 export default function ClassDetailPage() {
@@ -224,6 +244,42 @@ export default function ClassDetailPage() {
 
   const [announcementContent, setAnnouncementContent] = useState('')
   const [commentContents, setCommentContents] = useState<Record<string, string>>({})
+  const [isComposerExpanded, setIsComposerExpanded] = useState(false)
+
+  const handleFormat = (type: 'bold' | 'italic' | 'underline') => {
+    const textarea = document.getElementById('announcement-editor') as HTMLTextAreaElement
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const text = textarea.value
+    const selectedText = text.substring(start, end)
+
+    let replacement = ''
+    let cursorOffset = 0
+    if (type === 'bold') {
+      replacement = `**${selectedText || 'in đậm'}**`
+      cursorOffset = selectedText ? end + 4 : start + 2
+    } else if (type === 'italic') {
+      replacement = `*${selectedText || 'in nghiêng'}*`
+      cursorOffset = selectedText ? end + 2 : start + 1
+    } else if (type === 'underline') {
+      replacement = `__${selectedText || 'gạch chân'}__`
+      cursorOffset = selectedText ? end + 4 : start + 2
+    }
+
+    const newVal = text.substring(0, start) + replacement + text.substring(end)
+    setAnnouncementContent(newVal)
+
+    setTimeout(() => {
+      textarea.focus()
+      if (selectedText) {
+        textarea.setSelectionRange(start, start + replacement.length)
+      } else {
+        textarea.setSelectionRange(cursorOffset, cursorOffset + (type === 'bold' || type === 'underline' ? 6 : 10))
+      }
+    }, 0)
+  }
 
   const handleToggleAttendance = (studentId: string, currentStatus: string | null, targetStatus: string) => {
     if (currentStatus === targetStatus) return
@@ -755,200 +811,316 @@ export default function ClassDetailPage() {
       {/* ── 0. Announcements tab (Bảng tin) ── */}
       {tab === 'announcements' && (
         <div className="space-y-6 text-left max-w-4xl">
-          {/* Box đăng thông báo mới (chỉ dành cho giáo viên và admin) */}
-          {isStaff && (
-            <form onSubmit={handlePostAnnouncement} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                  <Megaphone className="h-4 w-4" />
-                </div>
-                <h4 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider">
-                  Đăng thông báo mới cho lớp học
-                </h4>
-              </div>
-              <div className="space-y-3">
-                <textarea
-                  value={announcementContent}
-                  onChange={(e) => setAnnouncementContent(e.target.value)}
-                  placeholder="Chia sẻ thông báo hoặc tài liệu thảo luận với lớp học..."
-                  className="w-full min-h-[100px] p-3.5 text-sm rounded-2xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 bg-gray-50/50"
-                  required
-                />
-                <div className="flex justify-end">
-                  <Button
-                    type="submit"
-                    disabled={createAnnouncementMutation.isPending}
-                    className="font-bold rounded-xl text-xs px-5 h-9 bg-amber-500 hover:bg-amber-600 text-gray-900 gap-1.5"
-                  >
-                    {createAnnouncementMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-gray-900" />
-                    ) : (
-                      <>
-                        <Send className="h-3.5 w-3.5" />
-                        Đăng thông báo
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </form>
-          )}
-
-          {/* Loading announcements */}
-          {loadingAnnouncements ? (
-            <div className="bg-white border rounded-2xl p-20 flex justify-center items-center shadow-sm">
-              <Loader2 className="h-7 w-7 animate-spin text-amber-500" />
+          {/* Class Banner Card (Google Classroom style) */}
+          <div className="relative rounded-2xl overflow-hidden shadow-md bg-gradient-to-r from-amber-600 via-amber-800 to-slate-900 p-8 text-white min-h-[140px] md:min-h-[180px] flex flex-col justify-end">
+            <div className="absolute right-0 top-0 w-1/3 h-full opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-200 via-amber-400 to-transparent pointer-events-none" />
+            <div className="z-10">
+              <span className="text-[10px] uppercase font-bold tracking-widest bg-amber-500/30 border border-amber-300/30 text-amber-200 px-2.5 py-0.5 rounded-full mb-2.5 inline-block">
+                {cls.categoryName || 'Lớp học'}
+              </span>
+              <h2 className="text-xl md:text-3xl font-extrabold tracking-tight drop-shadow-sm mb-1">{cls.name}</h2>
+              <p className="text-xs md:text-sm text-amber-200/90 font-medium flex items-center gap-1.5 mt-1.5">
+                <span>Giáo viên chính: <strong>{cls.teacherName}</strong></span>
+                <span className="text-amber-400/60">•</span>
+                <span>Sĩ số: <strong>{cls.members.length} học viên</strong></span>
+                <span className="text-amber-400/60">•</span>
+                <span>Số buổi học: <strong>{sessions.length} buổi</strong></span>
+              </p>
             </div>
-          ) : announcements.length === 0 ? (
-            <div className="bg-white border border-gray-200 border-dashed rounded-2xl p-16 text-center shadow-sm">
-              <Megaphone className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="font-bold text-gray-800 text-sm">Bảng tin chưa có thông báo nào</h3>
-              <p className="text-xs text-gray-400 mt-1">Các hoạt động và bài đăng thảo luận sẽ xuất hiện ở đây.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+            {/* Left sidebar info box on large screens */}
+            <div className="space-y-4 md:col-span-1 hidden md:block">
+              <div className="bg-white border border-gray-200/80 rounded-2xl p-4 shadow-sm">
+                <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  Sắp diễn ra
+                </h3>
+                <p className="text-xs text-gray-400 font-medium">Tuyệt vời! Không có bài tập nào sắp đến hạn nộp.</p>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {announcements.map((ann) => {
-                const commentVal = commentContents[ann.id] ?? ''
-                const creatorInitials = ann.creatorName
-                  ?.split(' ')
-                  .slice(-2)
-                  .map((w) => w[0])
-                  .join('')
-                  .toUpperCase() ?? 'U'
 
-                const isAuthor = ann.createdBy === user?.id
-                const canDeleteAnn = isStaff || isAuthor
-
-                return (
-                  <div key={ann.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden animate-in fade-in duration-200">
-                    {/* Announcement Header */}
-                    <div className="p-5 flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-sm font-bold shrink-0 shadow-inner">
-                        {creatorInitials}
+            {/* Main Announcements feed */}
+            <div className="md:col-span-3 space-y-5">
+              {/* Box đăng thông báo mới (chỉ dành cho giáo viên và admin) */}
+              {isStaff && (
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden transition-all duration-300">
+                  {!isComposerExpanded ? (
+                    // Collapsed form
+                    <div 
+                      onClick={() => setIsComposerExpanded(true)}
+                      className="p-4 flex items-center gap-3.5 cursor-pointer hover:bg-gray-50/50 transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-extrabold shadow-inner shrink-0">
+                        {user?.fullName?.split(' ').slice(-1)[0][0]?.toUpperCase() ?? 'GV'}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-extrabold text-sm text-gray-900">{ann.creatorName}</span>
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                            ann.creatorRole === 'Admin'
-                              ? "bg-red-50 text-red-600 border border-red-100"
-                              : ann.creatorRole === 'Teacher'
-                              ? "bg-amber-50 text-amber-700 border border-amber-100"
-                              : "bg-blue-50 text-blue-600 border border-blue-100"
-                          }`}>
-                            {ann.creatorRole === 'Admin' ? 'Admin' : ann.creatorRole === 'Teacher' ? 'Giáo viên' : 'Học viên'}
-                          </span>
+                      <span className="text-xs font-semibold text-gray-400 flex-1">
+                        Thông báo điều gì đó cho lớp học của bạn...
+                      </span>
+                      <Megaphone className="h-4 w-4 text-gray-400" />
+                    </div>
+                  ) : (
+                    // Expanded composer form
+                    <form onSubmit={handlePostAnnouncement} className="p-5 space-y-4 animate-in fade-in duration-150">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-inner">
+                            {user?.fullName?.split(' ').slice(-1)[0][0]?.toUpperCase() ?? 'GV'}
+                          </div>
+                          <span className="text-xs font-bold text-gray-800">{user?.fullName}</span>
                         </div>
-                        <p className="text-[10px] text-gray-400 font-semibold mt-1">
-                          {new Date(ann.createdAt).toLocaleString('vi-VN', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
+
+                        {/* Format buttons toolbar */}
+                        <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-gray-50/70 p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleFormat('bold')}
+                            className="p-1.5 hover:bg-gray-200/80 rounded-lg text-gray-600 hover:text-gray-900 transition-colors"
+                            title="In đậm (Ctrl+B)"
+                          >
+                            <Bold className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleFormat('italic')}
+                            className="p-1.5 hover:bg-gray-200/80 rounded-lg text-gray-600 hover:text-gray-900 transition-colors"
+                            title="In nghiêng (Ctrl+I)"
+                          >
+                            <Italic className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleFormat('underline')}
+                            className="p-1.5 hover:bg-gray-200/80 rounded-lg text-gray-600 hover:text-gray-900 transition-colors"
+                            title="Gạch chân (Ctrl+U)"
+                          >
+                            <Underline className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
 
-                      {canDeleteAnn && (
-                        <button
-                          onClick={() => handleDeleteAnnouncement(ann.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                          title="Xóa thông báo"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Announcement Content */}
-                    <div className="px-5 pb-5 border-b border-gray-100">
-                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line font-medium">{ann.content}</p>
-                    </div>
-
-                    {/* Comments List Section */}
-                    <div className="bg-gray-50/50 px-5 py-4 space-y-4">
-                      {ann.comments.length > 0 && (
-                        <div className="space-y-3.5">
-                          {ann.comments.map((comment) => {
-                            const cInitials = comment.creatorName
-                              ?.split(' ')
-                              .slice(-2)
-                              .map((w) => w[0])
-                              .join('')
-                              .toUpperCase() ?? 'U'
-
-                            const isCommentAuthor = comment.createdBy === user?.id
-                            const canDeleteComment = isStaff || isCommentAuthor
-
-                            return (
-                              <div key={comment.id} className="flex items-start gap-3 group/comment text-xs">
-                                <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 text-xs font-bold shrink-0 shadow-xs">
-                                  {cInitials}
-                                </div>
-                                <div className="flex-1 bg-white border border-gray-150 rounded-2xl px-4 py-2.5 relative shadow-xs">
-                                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                                    <span className="font-extrabold text-gray-950">{comment.creatorName}</span>
-                                    <span className={`text-[8px] font-bold scale-90 px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
-                                      comment.creatorRole === 'Admin'
-                                        ? "bg-red-50 text-red-600"
-                                        : comment.creatorRole === 'Teacher'
-                                        ? "bg-amber-50 text-amber-700"
-                                        : "bg-blue-50 text-blue-600"
-                                    }`}>
-                                      {comment.creatorRole === 'Admin' ? 'Admin' : comment.creatorRole === 'Teacher' ? 'GV' : 'HV'}
-                                    </span>
-                                    <span className="text-[9px] text-gray-400 font-semibold ml-auto">
-                                      {new Date(comment.createdAt).toLocaleString('vi-VN', {
-                                        day: '2-digit',
-                                        month: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </span>
-                                  </div>
-                                  <p className="text-gray-700 font-medium whitespace-pre-line leading-relaxed pr-6">{comment.content}</p>
-                                  
-                                  {canDeleteComment && (
-                                    <button
-                                      onClick={() => handleDeleteComment(ann.id, comment.id)}
-                                      className="absolute right-3.5 top-3.5 opacity-0 group-hover/comment:opacity-100 hover:text-red-500 text-gray-400 transition-opacity p-0.5 rounded"
-                                      title="Xóa bình luận"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-
-                      {/* Comment Input Form */}
-                      <form onSubmit={(e) => handlePostComment(ann.id, e)} className="flex items-center gap-2.5 pt-1">
-                        <input
-                          type="text"
-                          value={commentVal}
-                          onChange={(e) => setCommentContents(prev => ({ ...prev, [ann.id]: e.target.value }))}
-                          placeholder="Viết bình luận lớp học..."
-                          className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs font-semibold focus:border-amber-500 focus:ring-amber-500/20 shadow-xs h-9"
+                      <div className="space-y-3">
+                        <textarea
+                          id="announcement-editor"
+                          value={announcementContent}
+                          onChange={(e) => setAnnouncementContent(e.target.value)}
+                          placeholder="Chia sẻ thông báo hoặc tài liệu thảo luận với lớp học..."
+                          className="w-full min-h-[120px] p-4 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 bg-gray-50/20 focus:bg-white transition-all font-medium leading-relaxed outline-none"
                           required
+                          autoFocus
                         />
-                        <button
-                          type="submit"
-                          disabled={createCommentMutation.isPending}
-                          className="w-9 h-9 rounded-xl bg-amber-500 hover:bg-amber-600 text-gray-900 flex items-center justify-center shrink-0 transition-colors shadow-sm disabled:opacity-50"
-                        >
-                          <Send className="h-3.5 w-3.5" />
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                )
-              })}
+                        <div className="flex justify-end gap-2.5">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => {
+                              setIsComposerExpanded(false)
+                              setAnnouncementContent('')
+                            }}
+                            className="font-bold rounded-xl text-xs px-4 h-9 text-gray-500 hover:text-gray-900"
+                          >
+                            Hủy bỏ
+                          </Button>
+                          <Button
+                            type="submit"
+                            disabled={createAnnouncementMutation.isPending}
+                            className="font-bold rounded-xl text-xs px-5 h-9 bg-amber-500 hover:bg-amber-600 text-gray-900 gap-1.5 shadow-sm hover:shadow-md transition-all duration-300"
+                          >
+                            {createAnnouncementMutation.isPending ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-900" />
+                            ) : (
+                              <>
+                                <Send className="h-3.5 w-3.5" />
+                                Đăng thông báo
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {/* Loading announcements */}
+              {loadingAnnouncements ? (
+                <div className="bg-white border border-gray-200/85 rounded-2xl p-20 flex justify-center items-center shadow-sm">
+                  <Loader2 className="h-7 w-7 animate-spin text-amber-500" />
+                </div>
+              ) : announcements.length === 0 ? (
+                <div className="bg-white border border-gray-200 border-dashed rounded-2xl p-16 text-center shadow-sm">
+                  <Megaphone className="h-10 w-10 text-gray-300 mx-auto mb-4" />
+                  <h3 className="font-bold text-gray-800 text-sm">Bảng tin chưa có thông báo nào</h3>
+                  <p className="text-xs text-gray-400 mt-1">Các thông báo lớp học và bài đăng thảo luận sẽ hiển thị ở đây.</p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {announcements.map((ann) => {
+                    const commentVal = commentContents[ann.id] ?? ''
+                    const creatorInitials = ann.creatorName
+                      ?.split(' ')
+                      .slice(-2)
+                      .map((w) => w[0])
+                      .join('')
+                      .toUpperCase() ?? 'U'
+
+                    const isAuthor = ann.createdBy === user?.id
+                    const canDeleteAnn = isStaff || isAuthor
+
+                    return (
+                      <div 
+                        key={ann.id} 
+                        className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden hover:shadow-md hover:border-gray-300/80 transition-all duration-300"
+                      >
+                        {/* Announcement Header */}
+                        <div className="p-5 flex items-start gap-4">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-extrabold shrink-0 shadow-inner ${
+                            ann.creatorRole === 'Admin'
+                              ? "bg-red-50 text-red-700 border border-red-200"
+                              : ann.creatorRole === 'Teacher'
+                              ? "bg-amber-50 text-amber-700 border border-amber-200"
+                              : "bg-blue-50 text-blue-700 border border-blue-200"
+                          }`}>
+                            {creatorInitials}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-extrabold text-sm text-gray-900">{ann.creatorName}</span>
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                ann.creatorRole === 'Admin'
+                                  ? "bg-red-50 text-red-600 border border-red-100"
+                                  : ann.creatorRole === 'Teacher'
+                                  ? "bg-amber-50 text-amber-700 border border-amber-100"
+                                  : "bg-blue-50 text-blue-600 border border-blue-100"
+                              }`}>
+                                {ann.creatorRole === 'Admin' ? 'Admin' : ann.creatorRole === 'Teacher' ? 'Giáo viên' : 'Học viên'}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-gray-400 font-semibold mt-1">
+                              {new Date(ann.createdAt).toLocaleString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+
+                          {canDeleteAnn && (
+                            <button
+                              onClick={() => handleDeleteAnnouncement(ann.id)}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                              title="Xóa thông báo"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Announcement Content */}
+                        <div className="px-5 pb-5 border-b border-gray-100">
+                          <div 
+                            className="text-sm text-gray-700 leading-relaxed whitespace-pre-line font-medium break-words"
+                            dangerouslySetInnerHTML={{ __html: formatContent(ann.content) }}
+                          />
+                        </div>
+
+                        {/* Comments List Section */}
+                        <div className="bg-gray-50/50 px-5 py-4 space-y-4">
+                          {ann.comments.length > 0 && (
+                            <div className="space-y-3.5 border-b border-gray-150/70 pb-4 mb-4 empty:hidden">
+                              {ann.comments.map((comment) => {
+                                const cInitials = comment.creatorName
+                                  ?.split(' ')
+                                  .slice(-2)
+                                  .map((w) => w[0])
+                                  .join('')
+                                  .toUpperCase() ?? 'U'
+
+                                const isCommentAuthor = comment.createdBy === user?.id
+                                const canDeleteComment = isStaff || isCommentAuthor
+
+                                return (
+                                  <div key={comment.id} className="flex items-start gap-3 group/comment text-xs">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-xs border ${
+                                      comment.creatorRole === 'Admin'
+                                        ? "bg-red-50 text-red-600 border-red-100"
+                                        : comment.creatorRole === 'Teacher'
+                                        ? "bg-amber-50 text-amber-700 border-amber-100"
+                                        : "bg-blue-50 text-blue-700 border-blue-100"
+                                    }`}>
+                                      {cInitials}
+                                    </div>
+                                    <div className="flex-1 bg-white border border-gray-150 rounded-2xl px-4 py-2.5 relative shadow-xs hover:border-gray-300 transition-colors">
+                                      <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                        <span className="font-extrabold text-gray-950">{comment.creatorName}</span>
+                                        <span className={`text-[8px] font-bold scale-90 px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
+                                          comment.creatorRole === 'Admin'
+                                            ? "bg-red-50 text-red-600"
+                                            : comment.creatorRole === 'Teacher'
+                                            ? "bg-amber-50 text-amber-700"
+                                            : "bg-blue-50 text-blue-600"
+                                        }`}>
+                                          {comment.creatorRole === 'Admin' ? 'Admin' : comment.creatorRole === 'Teacher' ? 'GV' : 'HV'}
+                                        </span>
+                                        <span className="text-[9px] text-gray-400 font-semibold ml-auto">
+                                          {new Date(comment.createdAt).toLocaleString('vi-VN', {
+                                            day: '2-digit',
+                                            month: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          })}
+                                        </span>
+                                      </div>
+                                      <div 
+                                        className="text-gray-700 font-medium whitespace-pre-line leading-relaxed pr-6 break-words"
+                                        dangerouslySetInnerHTML={{ __html: formatContent(comment.content) }}
+                                      />
+                                      
+                                      {canDeleteComment && (
+                                        <button
+                                          onClick={() => handleDeleteComment(ann.id, comment.id)}
+                                          className="absolute right-3.5 top-3.5 opacity-0 group-hover/comment:opacity-100 hover:text-red-500 text-gray-400 transition-opacity p-0.5 rounded"
+                                          title="Xóa bình luận"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+
+                          {/* Comment Input Form */}
+                          <form onSubmit={(e) => handlePostComment(ann.id, e)} className="flex items-center gap-2.5 pt-1">
+                            <input
+                              type="text"
+                              value={commentVal}
+                              onChange={(e) => setCommentContents(prev => ({ ...prev, [ann.id]: e.target.value }))}
+                              placeholder="Viết bình luận lớp học..."
+                              className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs font-semibold focus:border-amber-500 focus:ring-amber-500/20 shadow-xs h-9 outline-none transition-all"
+                              required
+                            />
+                            <button
+                              type="submit"
+                              disabled={createCommentMutation.isPending}
+                              className="w-9 h-9 rounded-xl bg-amber-500 hover:bg-amber-600 text-gray-900 flex items-center justify-center shrink-0 transition-colors shadow-sm disabled:opacity-50 hover:shadow animate-in fade-in"
+                            >
+                              <Send className="h-3.5 w-3.5 animate-pulse" />
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
 
