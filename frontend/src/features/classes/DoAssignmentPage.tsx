@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   Clock, 
@@ -23,10 +23,12 @@ export default function DoAssignmentPage() {
   const { assignmentId } = useParams<{ classId: string; assignmentId: string }>()
   const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const isPreview = searchParams.get('preview') === 'true'
 
   // States
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({})
+  const [submissionMode, setSubmissionMode] = useState<'link' | 'text'>('link')
   const [submitForm, setSubmitForm] = useState({
     submissionText: '',
     fileUrl: '',
@@ -74,6 +76,14 @@ export default function DoAssignmentPage() {
         fileUrl: assignment.submission?.fileUrl ?? '',
         fileName: assignment.submission?.fileName ?? ''
       })
+
+      if (assignment.submission?.fileUrl) {
+        setSubmissionMode('link')
+      } else if (assignment.submission?.submissionText) {
+        setSubmissionMode('text')
+      } else {
+        setSubmissionMode('link')
+      }
 
       // Quiz answers state
       if (assignment.assignmentType === 'Quiz' && assignment.submission?.answersJson) {
@@ -196,7 +206,7 @@ export default function DoAssignmentPage() {
         <AlertTriangle className="h-12 w-12 text-red-500 mb-3" />
         <p className="text-base font-bold text-gray-800">Không tìm thấy thông tin bài tập</p>
         <p className="text-xs text-gray-500 mt-1">Bài tập không tồn tại hoặc bạn không có quyền truy cập.</p>
-        <Button onClick={() => window.close()} className="mt-4 rounded-xl font-bold">Đóng Tab</Button>
+        <Button onClick={() => navigate(-1)} className="mt-4 rounded-xl font-bold">Quay lại</Button>
       </div>
     )
   }
@@ -217,9 +227,9 @@ export default function DoAssignmentPage() {
         <div className="flex items-center gap-3">
           <button 
             type="button"
-            onClick={() => window.close()} 
+            onClick={() => navigate(-1)} 
             className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white transition-all"
-            title="Đóng Tab làm bài"
+            title="Quay lại lớp học"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -568,37 +578,91 @@ export default function DoAssignmentPage() {
                 })}
               </div>
             ) : (
-              // Standard Link Submission layout
+              // Standard Link Submission or Text Writing layout
               <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6">
                 <div className="flex items-center gap-2 border-b border-gray-50 pb-4 justify-start">
                   <BookOpen className="h-5 w-5 text-amber-500" />
-                  <h3 className="font-extrabold text-base text-gray-800">Nộp bài bằng Link liên kết</h3>
+                  <h3 className="font-extrabold text-base text-gray-800">
+                    {hasSubmitted 
+                      ? (submitForm.fileUrl ? 'Bài làm: Link liên kết' : 'Bài làm: Tự luận trên web')
+                      : 'Nộp bài tập tự luận'
+                    }
+                  </h3>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-wider block text-left">Ghi chú hoặc nội dung bài làm</label>
-                  <textarea
-                    value={submitForm.submissionText}
-                    onChange={(e) => setSubmitForm({ ...submitForm, submissionText: e.target.value })}
-                    placeholder="Nhập ghi chú hoặc lời nhắn gửi giáo viên..."
-                    className="w-full min-h-[140px] p-4 text-sm font-medium bg-white rounded-2xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20"
-                    disabled={hasSubmitted || isBlocked}
-                  />
-                </div>
+                {/* Choice Toggle Buttons */}
+                {!hasSubmitted && !isBlocked && (
+                  <div className="flex border border-gray-200 rounded-2xl overflow-hidden p-1 bg-gray-50/50">
+                    <button
+                      type="button"
+                      onClick={() => setSubmissionMode('link')}
+                      className={`flex-1 py-2 text-xs font-extrabold rounded-xl transition-all ${
+                        submissionMode === 'link'
+                          ? 'bg-white shadow-sm text-amber-700'
+                          : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      Nộp bằng Link liên kết
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubmissionMode('text')
+                        setSubmitForm(prev => ({ ...prev, fileUrl: '', fileName: '' }))
+                      }}
+                      className={`flex-1 py-2 text-xs font-extrabold rounded-xl transition-all ${
+                        submissionMode === 'text'
+                          ? 'bg-white shadow-sm text-amber-700'
+                          : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      Làm trực tiếp trên Web
+                    </button>
+                  </div>
+                )}
 
-                <div className="space-y-2 text-left">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-wider block">Đường dẫn bài làm (Link Google Drive, Canva, Figma...)</label>
-                  <Input
-                    value={submitForm.fileUrl}
-                    onChange={(e) => setSubmitForm({ ...submitForm, fileUrl: e.target.value, fileName: e.target.value ? 'Link bài làm' : '' })}
-                    placeholder="https://docs.google.com/document/d/... hoặc các đường dẫn khác"
-                    className="rounded-2xl h-11 text-xs bg-white border border-gray-200 focus:border-amber-500"
-                    required
-                    disabled={hasSubmitted || isBlocked}
-                  />
-                </div>
+                {/* Rendering Link submission inputs */}
+                {(hasSubmitted ? !!submitForm.fileUrl : submissionMode === 'link') ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider block text-left">Ghi chú hoặc nội dung bài làm</label>
+                      <textarea
+                        value={submitForm.submissionText}
+                        onChange={(e) => setSubmitForm({ ...submitForm, submissionText: e.target.value })}
+                        placeholder="Nhập ghi chú hoặc lời nhắn gửi giáo viên (tùy chọn)..."
+                        className="w-full min-h-[140px] p-4 text-sm font-medium bg-white rounded-2xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 text-left"
+                        disabled={hasSubmitted || isBlocked}
+                      />
+                    </div>
 
-                {/* Show submitted link if submitted */}
+                    <div className="space-y-2 text-left">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider block">Đường dẫn bài làm (Link Google Drive, Canva, Figma...)</label>
+                      <Input
+                        value={submitForm.fileUrl}
+                        onChange={(e) => setSubmitForm({ ...submitForm, fileUrl: e.target.value, fileName: e.target.value ? 'Link bài làm' : '' })}
+                        placeholder="https://docs.google.com/document/d/... hoặc các đường dẫn khác"
+                        className="rounded-2xl h-11 text-xs bg-white border border-gray-200 focus:border-amber-500"
+                        required
+                        disabled={hasSubmitted || isBlocked}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  // Rendering Text writing response
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider block text-left">Nội dung bài làm tự luận</label>
+                    <textarea
+                      value={submitForm.submissionText}
+                      onChange={(e) => setSubmitForm({ ...submitForm, submissionText: e.target.value })}
+                      placeholder="Viết bài tự luận hoặc câu trả lời của bạn trực tiếp tại đây..."
+                      className="w-full min-h-[260px] p-4 text-sm font-medium bg-white rounded-2xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500/20 text-left"
+                      required
+                      disabled={hasSubmitted || isBlocked}
+                    />
+                  </div>
+                )}
+
+                {/* Show submitted link if submitted in link mode */}
                 {submitForm.fileUrl && hasSubmitted && (
                   <div className="pt-2 text-left">
                     <a 
@@ -608,7 +672,7 @@ export default function DoAssignmentPage() {
                       className="inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 font-bold bg-amber-50/50 border border-amber-100 px-3.5 py-1.5 rounded-xl transition-all"
                     >
                       <Paperclip className="h-4 w-4" />
-                      Xem bài làm (Link liên kết)
+                      Mở bài làm (Link liên kết)
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>

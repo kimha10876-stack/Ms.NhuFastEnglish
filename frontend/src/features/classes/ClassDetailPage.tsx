@@ -3062,12 +3062,12 @@ export default function ClassDetailPage() {
                   <Button
                     onClick={() => {
                       const url = `/classes/${id}/assignments/${selectedAssignment.id}/do`
-                      window.open(url, '_blank')
+                      navigate(url)
                     }}
                     className="w-full gap-1.5 rounded-xl font-extrabold py-3 shadow-md shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
                   >
-                    <ExternalLink className="h-4 w-4" />
-                    {selectedAssignment.submission ? 'Xem chi tiết bài làm & Kết quả' : 'Bắt đầu làm bài (Tab mới)'}
+                    <Send className="h-4 w-4" />
+                    {selectedAssignment.submission ? 'Xem chi tiết bài làm & Kết quả' : 'Bắt đầu làm bài'}
                   </Button>
                 </div>
               )}
@@ -3112,12 +3112,12 @@ export default function ClassDetailPage() {
                       <Button
                         onClick={() => {
                           const url = `/classes/${id}/assignments/${selectedAssignment.id}/do?preview=true`
-                          window.open(url, '_blank')
+                          navigate(url)
                         }}
                         className="w-full gap-1.5 rounded-xl font-extrabold py-3 shadow-md shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
                       >
-                        <ExternalLink className="h-4 w-4" />
-                        Làm thử bài tập (Tab mới)
+                        <Send className="h-4 w-4" />
+                        Làm thử bài tập
                       </Button>
                     </div>
                   )}
