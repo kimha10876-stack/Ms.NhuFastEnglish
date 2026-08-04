@@ -50,12 +50,13 @@ export default function DashboardPage() {
     retry: false, // Bypass role error if not fully registered yet
   })
 
-  // Fetch Student classes
-  const { data: myClasses = [], isLoading: loadingMyClasses } = useQuery<MyClass[]>({
+  const { data: myClassesData = [], isLoading: loadingMyClasses } = useQuery<MyClass[]>({
     queryKey: ['my-classes'],
     queryFn: () => api.get<ApiResponse<MyClass[]>>('/classes/my-classes').then((r) => r.data.data!),
     enabled: isStudent,
   })
+
+  const myClasses = myClassesData.filter((cls) => cls.status === 'active')
 
   if (isStudent) {
     return (

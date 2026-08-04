@@ -53,7 +53,7 @@ export default function ClassesPage() {
   })
 
   if (isStudent) {
-    const studentClasses = myClassesData ?? []
+    const studentClasses = (myClassesData ?? []).filter((cls) => cls.status === 'active')
     const totalStudentCount = studentClasses.length
     const totalStudentPages = Math.ceil(totalStudentCount / studentPageSize) || 1
     const activeStudentPage = Math.min(studentPage, totalStudentPages)
