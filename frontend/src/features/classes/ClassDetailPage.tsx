@@ -888,11 +888,75 @@ export default function ClassDetailPage() {
             {/* Left sidebar info box on large screens */}
             <div className="space-y-4 md:col-span-1 hidden md:block">
               <div className="bg-white border border-gray-200/80 rounded-2xl p-4 shadow-sm">
-                <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b border-gray-100 pb-2">
+                  <Calendar className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                   Sắp diễn ra
                 </h3>
-                <p className="text-xs text-gray-400 font-medium">Tuyệt vời! Không có bài tập nào sắp đến hạn nộp.</p>
+                {isStudent ? (() => {
+                  const todoAssignments = assignments.filter(a => !a.submission)
+                  
+                  if (todoAssignments.length === 0) {
+                    return (
+                      <div className="text-center py-2">
+                        <Check className="h-5 w-5 text-emerald-500 mx-auto mb-1.5 animate-bounce" />
+                        <p className="text-[11px] text-emerald-600 font-extrabold">Tuyệt vời!</p>
+                        <p className="text-[10px] text-gray-400 font-semibold mt-0.5">Bạn đã hoàn thành tất cả bài tập.</p>
+                      </div>
+                    )
+                  }
+
+                  const sortedTodo = [...todoAssignments].sort((a, b) => {
+                    if (!a.dueDate) return 1
+                    if (!b.dueDate) return -1
+                    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+                  })
+
+                  return (
+                    <div className="space-y-2.5">
+                      <p className="text-[10px] text-gray-400 font-semibold mb-2">Bạn có {todoAssignments.length} bài tập chưa hoàn thành:</p>
+                      <div className="space-y-2 max-h-[220px] overflow-y-auto scrollbar-none">
+                        {sortedTodo.slice(0, 4).map((a) => {
+                          const isOverdue = a.dueDate && new Date(a.dueDate).getTime() < Date.now()
+                          return (
+                            <div 
+                              key={a.id} 
+                              onClick={() => setTab('assignments')}
+                              className="text-left p-2 rounded-xl bg-gray-50/50 hover:bg-amber-50/30 border border-gray-150/60 hover:border-amber-200/50 cursor-pointer transition-all duration-250"
+                            >
+                              <div className="font-bold text-gray-900 text-xs truncate" title={a.title}>
+                                {a.title}
+                              </div>
+                              <div className="flex items-center justify-between mt-1 gap-1.5 flex-wrap">
+                                <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded ${
+                                  isOverdue 
+                                    ? "bg-red-50 text-red-600 border border-red-100" 
+                                    : "bg-amber-50 text-amber-600 border border-amber-100"
+                                }`}>
+                                  {isOverdue ? "Quá hạn" : "Chưa nộp"}
+                                </span>
+                                {a.dueDate ? (
+                                  <span className="text-[9px] text-gray-400 font-semibold">
+                                    Hạn: {new Date(a.dueDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] text-gray-400 font-semibold">Không hạn</span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <button 
+                        onClick={() => setTab('assignments')}
+                        className="w-full text-center mt-1 py-1.5 text-[10px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50/50 rounded-xl transition-colors"
+                      >
+                        Xem tất cả bài tập
+                      </button>
+                    </div>
+                  )
+                })() : (
+                  <p className="text-xs text-gray-400 font-medium">Lớp học hiện có {assignments.length} bài tập đã giao.</p>
+                )}
               </div>
             </div>
 
