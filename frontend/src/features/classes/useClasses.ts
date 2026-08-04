@@ -385,8 +385,8 @@ export function useDeleteAnnouncement(classId: string) {
 export function useCreateComment(classId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { announcementId: string; content: string }) =>
-      classesApi.createComment(classId, body.announcementId, { content: body.content }),
+    mutationFn: (body: { announcementId: string; content: string; parentCommentId?: string | null }) =>
+      classesApi.createComment(classId, body.announcementId, { content: body.content, parentCommentId: body.parentCommentId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['classes', classId, 'announcements'] })
     },

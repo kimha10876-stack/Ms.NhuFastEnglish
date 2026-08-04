@@ -252,6 +252,7 @@ export default function ClassDetailPage() {
   const [editingAnnId, setEditingAnnId] = useState<string | null>(null)
   const [editingAnnContent, setEditingAnnContent] = useState('')
   const [expandedCommentAnnId, setExpandedCommentAnnId] = useState<string | null>(null)
+  const [replyParentCommentId, setReplyParentCommentId] = useState<Record<string, string | null>>({})
 
   const handleFormat = (type: 'bold' | 'italic' | 'underline', targetId = 'announcement-editor') => {
     const textarea = document.getElementById(targetId) as HTMLTextAreaElement
@@ -355,12 +356,14 @@ export default function ClassDetailPage() {
     e.preventDefault()
     const content = commentContents[annId]
     if (!content || !content.trim()) return
+    const parentCommentId = replyParentCommentId[annId] || null
     createCommentMutation.mutate(
-      { announcementId: annId, content: content.trim() },
+      { announcementId: annId, content: content.trim(), parentCommentId },
       {
         onSuccess: () => {
           setCommentContents(prev => ({ ...prev, [annId]: '' }))
           setExpandedCommentAnnId(null)
+          setReplyParentCommentId(prev => ({ ...prev, [annId]: null }))
         },
         onError: (err: any) => {
           alert(err?.response?.data?.message || 'Không thể đăng bình luận')
@@ -369,8 +372,11 @@ export default function ClassDetailPage() {
     )
   }
 
-  const handleReplyToComment = (annId: string, authorName: string) => {
+  const handleReplyToComment = (annId: string, authorName: string, commentId: string, parentCommentId?: string | null) => {
     setExpandedCommentAnnId(annId)
+    const targetParentId = parentCommentId || commentId
+    setReplyParentCommentId(prev => ({ ...prev, [annId]: targetParentId }))
+
     const mentionText = `**@${authorName}** `
     setCommentContents(prev => {
       const current = prev[annId] ?? ''
@@ -1187,81 +1193,168 @@ export default function ClassDetailPage() {
 
                         {/* Comments List Section */}
                         <div className="bg-gray-50/50 px-5 py-4 space-y-4">
-                          {ann.comments.length > 0 && (
-                            <div className="space-y-3.5 border-b border-gray-150/70 pb-4 mb-4 empty:hidden">
-                              {ann.comments.map((comment) => {
-                                const cInitials = comment.creatorName
-                                  ?.split(' ')
-                                  .slice(-2)
-                                  .map((w) => w[0])
-                                  .join('')
-                                  .toUpperCase() ?? 'U'
+                          {ann.comments.length > 0 && (() => {
+                            const rootComments = ann.comments.filter(c => !c.parentCommentId)
+                            const getRepliesForRoot = (rootId: string) => 
+                              ann.comments.filter(c => c.parentCommentId === rootId)
 
-                                const isCommentAuthor = comment.createdBy === user?.id
-                                const canDeleteComment = isStaff || isCommentAuthor
+                            return (
+                              <div className="space-y-4 border-b border-gray-150/70 pb-4 mb-4 empty:hidden">
+                                {rootComments.map((comment) => {
+                                  const cInitials = comment.creatorName
+                                    ?.split(' ')
+                                    .slice(-2)
+                                    .map((w) => w[0])
+                                    .join('')
+                                    .toUpperCase() ?? 'U'
 
-                                return (
-                                  <div key={comment.id} className="flex items-start gap-3 group/comment text-xs">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-xs border ${
-                                      comment.creatorRole === 'Admin'
-                                        ? "bg-red-50 text-red-600 border-red-100"
-                                        : comment.creatorRole === 'Teacher'
-                                        ? "bg-amber-50 text-amber-700 border-amber-100"
-                                        : "bg-blue-50 text-blue-700 border-blue-100"
-                                    }`}>
-                                      {cInitials}
-                                    </div>
-                                    <div className="flex-1 min-w-0 relative">
-                                      <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="font-extrabold text-gray-950">{comment.creatorName}</span>
-                                        <span className={`text-[8px] font-bold scale-90 px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
+                                  const isCommentAuthor = comment.createdBy === user?.id
+                                  const canDeleteComment = isStaff || isCommentAuthor
+                                  const replies = getRepliesForRoot(comment.id)
+
+                                  return (
+                                    <div key={comment.id} className="space-y-3.5">
+                                      {/* Root comment card */}
+                                      <div className="flex items-start gap-3 group/comment text-xs">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-xs border ${
                                           comment.creatorRole === 'Admin'
-                                            ? "bg-red-50 text-red-600"
+                                            ? "bg-red-50 text-red-600 border-red-100"
                                             : comment.creatorRole === 'Teacher'
-                                            ? "bg-amber-50 text-amber-700"
-                                            : "bg-blue-50 text-blue-600"
+                                            ? "bg-amber-50 text-amber-700 border-amber-100"
+                                            : "bg-blue-50 text-blue-700 border-blue-100"
                                         }`}>
-                                          {comment.creatorRole === 'Admin' ? 'Admin' : comment.creatorRole === 'Teacher' ? 'GV' : 'HV'}
-                                        </span>
-                                        <span className="text-[9px] text-gray-400 font-semibold ml-1.5">
-                                          {new Date(comment.createdAt).toLocaleString('vi-VN', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
-                                        </span>
-                                      </div>
-                                      <div 
-                                        className="text-gray-700 font-medium whitespace-pre-line leading-relaxed pr-6 mt-1 break-words text-left"
-                                        dangerouslySetInnerHTML={{ __html: formatContent(comment.content) }}
-                                      />
+                                          {cInitials}
+                                        </div>
+                                        <div className="flex-1 min-w-0 relative">
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="font-extrabold text-gray-950">{comment.creatorName}</span>
+                                            <span className={`text-[8px] font-bold scale-90 px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
+                                              comment.creatorRole === 'Admin'
+                                                ? "bg-red-50 text-red-600"
+                                                : comment.creatorRole === 'Teacher'
+                                                ? "bg-amber-50 text-amber-700"
+                                                : "bg-blue-50 text-blue-600"
+                                            }`}>
+                                              {comment.creatorRole === 'Admin' ? 'Admin' : comment.creatorRole === 'Teacher' ? 'GV' : 'HV'}
+                                            </span>
+                                            <span className="text-[9px] text-gray-400 font-semibold ml-1.5">
+                                              {new Date(comment.createdAt).toLocaleString('vi-VN', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                              })}
+                                            </span>
+                                          </div>
+                                          <div 
+                                            className="text-gray-700 font-medium whitespace-pre-line leading-relaxed pr-6 mt-1 break-words text-left"
+                                            dangerouslySetInnerHTML={{ __html: formatContent(comment.content) }}
+                                          />
 
-                                      <div className="flex items-center gap-3 mt-1 select-none">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleReplyToComment(ann.id, comment.creatorName)}
-                                          className="text-[10px] font-bold text-gray-400 hover:text-amber-600 transition-colors"
-                                        >
-                                          Trả lời
-                                        </button>
+                                          <div className="flex items-center gap-3 mt-1 select-none">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleReplyToComment(ann.id, comment.creatorName, comment.id)}
+                                              className="text-[10px] font-bold text-gray-400 hover:text-amber-600 transition-colors"
+                                            >
+                                              Trả lời
+                                            </button>
+                                          </div>
+                                          
+                                          {canDeleteComment && (
+                                            <button
+                                              onClick={() => handleDeleteComment(ann.id, comment.id)}
+                                              className="absolute right-0 top-0.5 opacity-0 group-hover/comment:opacity-100 hover:text-red-500 text-gray-400 transition-opacity p-0.5 rounded"
+                                              title="Xóa bình luận"
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </button>
+                                          )}
+                                        </div>
                                       </div>
-                                      
-                                      {canDeleteComment && (
-                                        <button
-                                          onClick={() => handleDeleteComment(ann.id, comment.id)}
-                                          className="absolute right-0 top-0.5 opacity-0 group-hover/comment:opacity-100 hover:text-red-500 text-gray-400 transition-opacity p-0.5 rounded"
-                                          title="Xóa bình luận"
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </button>
+
+                                      {/* Replies container */}
+                                      {replies.length > 0 && (
+                                        <div className="ml-11 pl-4 border-l border-gray-250/70 space-y-3.5">
+                                          {replies.map((reply) => {
+                                            const rInitials = reply.creatorName
+                                              ?.split(' ')
+                                              .slice(-2)
+                                              .map((w) => w[0])
+                                              .join('')
+                                              .toUpperCase() ?? 'U'
+
+                                            const isReplyAuthor = reply.createdBy === user?.id
+                                            const canDeleteReply = isStaff || isReplyAuthor
+
+                                            return (
+                                              <div key={reply.id} className="flex items-start gap-3 group/comment text-xs">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-xs border ${
+                                                  reply.creatorRole === 'Admin'
+                                                    ? "bg-red-50 text-red-600 border-red-100"
+                                                    : reply.creatorRole === 'Teacher'
+                                                    ? "bg-amber-50 text-amber-700 border-amber-100"
+                                                    : "bg-blue-50 text-blue-700 border-blue-100"
+                                                }`}>
+                                                  {rInitials}
+                                                </div>
+                                                <div className="flex-1 min-w-0 relative">
+                                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="font-extrabold text-gray-950">{reply.creatorName}</span>
+                                                    <span className={`text-[8px] font-bold scale-90 px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
+                                                      reply.creatorRole === 'Admin'
+                                                        ? "bg-red-50 text-red-600"
+                                                        : reply.creatorRole === 'Teacher'
+                                                        ? "bg-amber-50 text-amber-700"
+                                                        : "bg-blue-50 text-blue-600"
+                                                    }`}>
+                                                      {reply.creatorRole === 'Admin' ? 'Admin' : reply.creatorRole === 'Teacher' ? 'GV' : 'HV'}
+                                                    </span>
+                                                    <span className="text-[9px] text-gray-400 font-semibold ml-1.5">
+                                                      {new Date(reply.createdAt).toLocaleString('vi-VN', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                      })}
+                                                    </span>
+                                                  </div>
+                                                  <div 
+                                                    className="text-gray-700 font-medium whitespace-pre-line leading-relaxed pr-6 mt-1 break-words text-left"
+                                                    dangerouslySetInnerHTML={{ __html: formatContent(reply.content) }}
+                                                  />
+
+                                                  <div className="flex items-center gap-3 mt-1 select-none">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => handleReplyToComment(ann.id, reply.creatorName, comment.id, reply.parentCommentId)}
+                                                      className="text-[10px] font-bold text-gray-400 hover:text-amber-600 transition-colors"
+                                                    >
+                                                      Trả lời
+                                                    </button>
+                                                  </div>
+                                                  
+                                                  {canDeleteReply && (
+                                                    <button
+                                                      onClick={() => handleDeleteComment(ann.id, reply.id)}
+                                                      className="absolute right-0 top-0.5 opacity-0 group-hover/comment:opacity-100 hover:text-red-500 text-gray-400 transition-opacity p-0.5 rounded"
+                                                      title="Xóa bình luận"
+                                                    >
+                                                      <Trash2 className="h-3 w-3" />
+                                                    </button>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            )
+                                          })}
+                                        </div>
                                       )}
                                     </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
+                                  )
+                                })}
+                              </div>
+                            )
+                          })()}
 
                           {/* Comment Input Form */}
                           {expandedCommentAnnId === ann.id ? (

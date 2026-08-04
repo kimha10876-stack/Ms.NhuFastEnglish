@@ -129,6 +129,11 @@ using (var scope = app.Services.CreateScope())
         { 
             db.Database.EnsureCreated(); 
             
+            // Tự động thêm cột ParentCommentId nếu chưa có
+            db.Database.ExecuteSqlRaw(@"
+                ALTER TABLE ""AnnouncementComments"" ADD COLUMN IF NOT EXISTS ""ParentCommentId"" uuid NULL;
+            ");
+            
             // Khởi tạo bảng SystemSettings nếu chưa tồn tại
             db.Database.ExecuteSqlRaw(@"
                 CREATE TABLE IF NOT EXISTS ""SystemSettings"" (

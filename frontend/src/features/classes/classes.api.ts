@@ -173,7 +173,7 @@ export const classesApi = {
   deleteAnnouncement: (classId: string, announcementId: string) =>
     api.delete<ApiResponse<any>>(`/classes/${classId}/announcements/${announcementId}`).then((r) => r.data),
 
-  createComment: (classId: string, announcementId: string, body: { content: string }) =>
+  createComment: (classId: string, announcementId: string, body: { content: string; parentCommentId?: string | null }) =>
     api.post<ApiResponse<AnnouncementComment>>(`/classes/${classId}/announcements/${announcementId}/comments`, body).then((r) => r.data.data!),
 
   deleteComment: (classId: string, announcementId: string, commentId: string) =>

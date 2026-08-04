@@ -285,7 +285,8 @@ public record ClassAnnouncementDto(
 );
 
 public record CreateCommentRequest(
-    string Content
+    string Content,
+    Guid? ParentCommentId = null
 );
 
 public record AnnouncementCommentDto(
@@ -295,6 +296,7 @@ public record AnnouncementCommentDto(
     Guid CreatedBy,
     string CreatorName,
     string CreatorRole,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    Guid? ParentCommentId
 );
 

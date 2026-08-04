@@ -1066,7 +1066,8 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
                 CreatedBy: c.CreatedBy,
                 CreatorName: c.Creator.FullName,
                 CreatorRole: c.Creator.UserRoles.FirstOrDefault()?.Role.Name ?? "User",
-                CreatedAt: c.CreatedAt
+                CreatedAt: c.CreatedAt,
+                ParentCommentId: c.ParentCommentId
             )).ToList()
         )).ToList();
 
@@ -1154,7 +1155,8 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
             AnnouncementId = announcementId,
             Content = req.Content,
             CreatedBy = UserId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            ParentCommentId = req.ParentCommentId
         };
 
         db.AnnouncementComments.Add(comment);
@@ -1173,7 +1175,8 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
             CreatedBy: createdComment.CreatedBy,
             CreatorName: createdComment.Creator.FullName,
             CreatorRole: createdComment.Creator.UserRoles.FirstOrDefault()?.Role.Name ?? "User",
-            CreatedAt: createdComment.CreatedAt
+            CreatedAt: createdComment.CreatedAt,
+            ParentCommentId: createdComment.ParentCommentId
         );
 
         return Ok(ApiResponse.Ok(dto, "Bình luận thành công"));

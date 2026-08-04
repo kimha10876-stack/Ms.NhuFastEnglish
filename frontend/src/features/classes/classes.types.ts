@@ -273,6 +273,7 @@ export interface AnnouncementComment {
   creatorName: string
   creatorRole: string
   createdAt: string
+  parentCommentId?: string | null
 }
 
 export interface ClassAnnouncement {

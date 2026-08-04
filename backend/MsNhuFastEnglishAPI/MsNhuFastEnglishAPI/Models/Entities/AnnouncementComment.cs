@@ -10,6 +10,8 @@ namespace MsNhuFastEnglishAPI.Models.Entities
         public Guid CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public Guid? ParentCommentId { get; set; }
+
         public ClassAnnouncement Announcement { get; set; } = default!;
         public User Creator { get; set; } = default!;
     }
