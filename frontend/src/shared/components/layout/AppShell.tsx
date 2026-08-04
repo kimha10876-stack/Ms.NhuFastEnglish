@@ -1,11 +1,16 @@
 import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
-import { Menu, BookOpen, AlertTriangle, Loader2 } from 'lucide-react'
+import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Menu, BookOpen, AlertTriangle, Loader2, LogOut, Key, ChevronDown } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { Sidebar } from './Sidebar'
 import { useAuthStore } from '@/features/auth/auth.store'
 import { useChangePassword } from '@/features/auth/useAuth'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
+import { cn } from '@/shared/utils/cn'
+import { api } from '@/shared/api/client'
+import type { ApiResponse } from '@/shared/api/types'
+import { authApi } from '@/features/auth/auth.api'
 
 export function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -17,7 +22,36 @@ export function AppShell() {
   const [successMsg, setSuccessMsg] = useState('')
 
   const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
   const { mutate: changePassword, isPending } = useChangePassword()
+
+  const location = useLocation()
+  const [isClassesOpen, setIsClassesOpen] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+
+  const isStudent = user?.roles.includes('Student') ?? false
+
+  const { data: myClasses = [] } = useQuery<any[]>({
+    queryKey: ['my-classes'],
+    queryFn: () => api.get<ApiResponse<any[]>>('/classes/my-classes').then((r) => r.data.data!),
+    enabled: isStudent,
+  })
+
+  const activeClasses = myClasses.filter((cls) => cls.status === 'active')
+
+  const handleLogout = () => {
+    authApi.logout().finally(() => {
+      logout()
+      window.location.href = '/login'
+    })
+  }
+
+  const initials = user?.fullName
+    ?.split(' ')
+    .slice(-2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase() ?? 'U'
 
   const handleOpenChangePassword = () => {
     setCurrentPassword('')
@@ -78,25 +112,161 @@ export function AppShell() {
         </div>
       )}
 
+      {/* Student Horizontal Header */}
+      {isStudent && (
+        <header className="sticky top-0 z-40 w-full bg-white border-b border-gray-200 shadow-sm shrink-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0 shadow-sm">
+                <BookOpen className="h-4.5 w-4.5 text-gray-900" />
+              </div>
+              <span className="font-extrabold text-[15px] text-gray-900 tracking-tight leading-tight hidden sm:block">
+                Ms. Nhụ Fast English
+              </span>
+            </div>
+
+            {/* Desktop Navigation Links */}
+            <nav className="hidden md:flex items-center gap-1">
+              <NavLink
+                to="/dashboard"
+                end
+                className={({ isActive }) =>
+                  cn(
+                    "px-4 py-2 text-sm font-semibold rounded-xl transition-all",
+                    isActive
+                      ? "bg-amber-50 text-amber-700 shadow-sm"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-950"
+                  )
+                }
+              >
+                Tổng quan
+              </NavLink>
+
+              {/* Lớp học Dropdown */}
+              <div
+                className="relative"
+                onMouseEnter={() => setIsClassesOpen(true)}
+                onMouseLeave={() => setIsClassesOpen(false)}
+              >
+                <NavLink
+                  to="/classes"
+                  className={({ isActive }) =>
+                    cn(
+                      "px-4 py-2 text-sm font-semibold rounded-xl transition-all flex items-center gap-1",
+                      isActive || location.pathname.startsWith('/classes')
+                        ? "bg-amber-50 text-amber-700 shadow-sm"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-950"
+                    )
+                  }
+                >
+                  Lớp học
+                  <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isClassesOpen && "rotate-180")} />
+                </NavLink>
+
+                {/* Submenu dropdown */}
+                {isClassesOpen && activeClasses.length > 0 && (
+                  <div className="absolute left-0 mt-1 w-64 rounded-2xl bg-white border border-gray-150 shadow-xl py-2.5 animate-in fade-in slide-in-from-top-2 duration-150 z-50">
+                    <div className="px-4 py-1.5 border-b border-gray-50 mb-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Các lớp đang học</p>
+                    </div>
+                    {activeClasses.map((cls) => (
+                      <NavLink
+                        key={cls.classId}
+                        to={`/classes/${cls.classId}`}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex items-center gap-2.5 px-4 py-2 text-xs font-semibold transition-colors",
+                            isActive
+                              ? "text-amber-700 bg-amber-50/50"
+                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          )
+                        }
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                        <span className="truncate">{cls.className}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </nav>
+
+            {/* Right Profile Area */}
+            <div className="flex items-center gap-3">
+              {/* Mobile Hamburger Menu Button */}
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors md:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+
+              {/* Profile Dropdown */}
+              <div
+                className="relative"
+                onMouseEnter={() => setIsProfileOpen(true)}
+                onMouseLeave={() => setIsProfileOpen(false)}
+              >
+                <button className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-150">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-bold shrink-0 shadow-inner">
+                    {initials}
+                  </div>
+                  <span className="text-xs font-bold text-gray-700 hidden sm:block truncate max-w-[120px]">
+                    {user?.fullName}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-gray-400 hidden sm:block" />
+                </button>
+
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-1 w-52 rounded-2xl bg-white border border-gray-150 shadow-xl py-2 animate-in fade-in slide-in-from-top-2 duration-150 z-50">
+                    <div className="px-4 py-2 border-b border-gray-50 mb-1">
+                      <p className="text-xs font-bold text-gray-950 truncate">{user?.fullName}</p>
+                      <p className="text-[10px] text-gray-400 truncate mt-0.5">{user?.email}</p>
+                    </div>
+                    <button
+                      onClick={handleOpenChangePassword}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-semibold transition-colors text-left"
+                    >
+                      <Key className="h-4 w-4 text-gray-400 shrink-0" />
+                      Đổi mật khẩu
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 font-bold transition-colors text-left"
+                    >
+                      <LogOut className="h-4 w-4 shrink-0" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+      )}
+
       <div className="flex flex-1 overflow-hidden relative">
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
         <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Mobile top bar */}
-          <header className="flex h-14 items-center gap-3 border-b border-gray-200 bg-white px-4 md:hidden shrink-0">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-amber-500 flex items-center justify-center">
-                <BookOpen className="h-3.5 w-3.5 text-gray-900" />
+          {/* Mobile top bar (only show for admin/teacher since student has header) */}
+          {!isStudent && (
+            <header className="flex h-14 items-center gap-3 border-b border-gray-200 bg-white px-4 md:hidden shrink-0">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-amber-500 flex items-center justify-center">
+                  <BookOpen className="h-3.5 w-3.5 text-gray-900" />
+                </div>
+                <span className="font-semibold text-sm text-gray-900">Ms. Nhụ English</span>
               </div>
-              <span className="font-semibold text-sm text-gray-900">Ms. Nhụ English</span>
-            </div>
-          </header>
+            </header>
+          )}
 
           <main className="flex-1 overflow-y-auto">
             <Outlet />

@@ -72,7 +72,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           'fixed inset-y-0 left-0 z-30 flex w-[220px] flex-col bg-white border-r border-gray-200',
           'transition-transform duration-200',
           open ? 'translate-x-0' : '-translate-x-full',
-          'md:relative md:translate-x-0'
+          isStudent ? 'md:hidden' : 'md:relative md:translate-x-0'
         )}
       >
         {/* ── Logo ── */}
