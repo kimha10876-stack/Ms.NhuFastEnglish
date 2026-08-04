@@ -841,7 +841,7 @@ export default function ClassDetailPage() {
 
       {/* ── 0. Announcements tab (Bảng tin) ── */}
       {tab === 'announcements' && (
-        <div className="space-y-6 text-left max-w-4xl">
+        <div className="space-y-6 text-left w-full">
           {/* Class Banner Card (Google Classroom style) */}
           <div className="relative rounded-2xl overflow-hidden shadow-md bg-gradient-to-r from-amber-600 via-amber-800 to-slate-900 p-8 text-white min-h-[140px] md:min-h-[180px] flex flex-col justify-end">
             <div className="absolute right-0 top-0 w-1/3 h-full opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-200 via-amber-400 to-transparent pointer-events-none" />
