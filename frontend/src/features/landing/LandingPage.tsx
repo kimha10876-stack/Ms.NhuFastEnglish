@@ -4,6 +4,7 @@ import { Target, GraduationCap, TrendingUp, ChevronRight, BookOpen } from 'lucid
 import { Button } from '@/shared/components/ui/button'
 import { useAuthStore } from '@/features/auth/auth.store'
 import { useBlogPosts } from '@/features/blog/useBlog'
+import { useCreateConsultation } from '@/features/consultations/useConsultation'
 
 const features = [
   {
@@ -28,6 +29,52 @@ const levels = ['Giao tiếp', 'IELTS', 'Thiếu nhi', 'Luyện thi', 'Mất g�
 export default function LandingPage() {
   const [isHydrated, setIsHydrated] = useState(false)
   const user = useAuthStore((s) => s.user)
+
+  // Consultation form states
+  const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
+  const [errors, setErrors] = useState<{ fullName?: string; phone?: string; email?: string }>({})
+  const [successMessage, setSuccessMessage] = useState('')
+
+  const { mutate: registerConsultation, isPending } = useCreateConsultation()
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const newErrors: { fullName?: string; phone?: string; email?: string } = {}
+    
+    if (!fullName.trim()) {
+      newErrors.fullName = 'Họ tên không được để trống'
+    }
+    if (!phone.trim()) {
+      newErrors.phone = 'Số điện thoại không được để trống'
+    } else if (phone.trim().replace(/\D/g, '').length < 8) {
+      newErrors.phone = 'Số điện thoại phải có ít nhất 8 chữ số'
+    }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Email không đúng định dạng'
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
+    registerConsultation(
+      { fullName, phone, email: email.trim() || undefined, message: message.trim() || undefined },
+      {
+        onSuccess: () => {
+          setSuccessMessage('Đăng ký tư vấn thành công! Chúng tôi sẽ liên hệ với bạn sớm nhất.')
+          setFullName('')
+          setPhone('')
+          setEmail('')
+          setMessage('')
+          setErrors({})
+        },
+      }
+    )
+  }
 
   useEffect(() => {
     setIsHydrated(true)
@@ -89,12 +136,16 @@ export default function LandingPage() {
               </Link>
             ) : (
               <>
-                <Link to="/dang-ky">
-                  <Button size="lg" className="w-full sm:w-auto px-8">
-                    Đăng ký tư vấn miễn phí
-                    <ChevronRight className="h-4 w-4 ml-0.5" />
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto px-8"
+                  onClick={() => {
+                    document.getElementById('dang-ky-tu-van')?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                >
+                  Đăng ký tư vấn miễn phí
+                  <ChevronRight className="h-4 w-4 ml-0.5" />
+                </Button>
                 <Link to="/login">
                   <Button size="lg" variant="outline" className="w-full sm:w-auto px-8">
                     Học viên / Giáo viên
@@ -210,6 +261,122 @@ export default function LandingPage() {
         </section>
       )}
 
+      {/* ── Consultation Form Section ────────────────────────────────────────── */}
+      {!isLoggedIn && (
+        <section id="dang-ky-tu-van" className="py-16 px-5 bg-gradient-to-b from-white to-amber-50/20 border-t">
+          <div className="max-w-md mx-auto bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+            <div className="text-center mb-6">
+              <span className="inline-block bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
+                Tư vấn học tập
+              </span>
+              <h2 className="text-2xl font-bold text-gray-900 mt-3">Đăng ký nhận lộ trình học</h2>
+              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                Để lại thông tin bên dưới, Ms. Nhụ sẽ trực tiếp liên hệ và tư vấn lộ trình học phù hợp nhất cho bạn.
+              </p>
+            </div>
+
+            {successMessage ? (
+              <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl text-emerald-800 text-sm animate-in fade-in duration-200">
+                <p className="font-bold mb-1">Gửi yêu cầu thành công!</p>
+                <p className="text-xs text-emerald-700 leading-relaxed">{successMessage}</p>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="mt-4 text-xs h-8 border-emerald-300 text-emerald-800 hover:bg-emerald-100/50"
+                  onClick={() => setSuccessMessage('')}
+                >
+                  Gửi yêu cầu khác
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="form-fullname" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Họ và tên <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="form-fullname"
+                    type="text"
+                    placeholder="Nguyễn Văn A"
+                    value={fullName}
+                    onChange={(e) => {
+                      setFullName(e.target.value)
+                      if (errors.fullName) setErrors({ ...errors, fullName: undefined })
+                    }}
+                    className={`w-full h-[38px] px-3 rounded-xl border bg-white text-sm outline-none transition-all focus:ring-3 focus:ring-amber-500/20 ${
+                      errors.fullName ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-amber-500'
+                    }`}
+                  />
+                  {errors.fullName && <p className="text-[11px] text-red-500 mt-1">{errors.fullName}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="form-phone" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Số điện thoại <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="form-phone"
+                    type="tel"
+                    placeholder="0905123456"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value)
+                      if (errors.phone) setErrors({ ...errors, phone: undefined })
+                    }}
+                    className={`w-full h-[38px] px-3 rounded-xl border bg-white text-sm outline-none transition-all focus:ring-3 focus:ring-amber-500/20 ${
+                      errors.phone ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-amber-500'
+                    }`}
+                  />
+                  {errors.phone && <p className="text-[11px] text-red-500 mt-1">{errors.phone}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="form-email" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Email <span className="text-xs text-gray-400 font-normal">(Không bắt buộc)</span>
+                  </label>
+                  <input
+                    id="form-email"
+                    type="email"
+                    placeholder="nguyenvana@gmail.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (errors.email) setErrors({ ...errors, email: undefined })
+                    }}
+                    className={`w-full h-[38px] px-3 rounded-xl border bg-white text-sm outline-none transition-all focus:ring-3 focus:ring-amber-500/20 ${
+                      errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-amber-500'
+                    }`}
+                  />
+                  {errors.email && <p className="text-[11px] text-red-500 mt-1">{errors.email}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="form-message" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Mục tiêu học tập <span className="text-xs text-gray-400 font-normal">(Không bắt buộc)</span>
+                  </label>
+                  <textarea
+                    id="form-message"
+                    rows={3}
+                    placeholder="Ví dụ: Học tiếng Anh giao tiếp đi làm, Luyện thi IELTS 6.5, Mất gốc học lại cơ bản..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm outline-none transition-all focus:border-amber-500 focus:ring-3 focus:ring-amber-500/20 resize-none"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full font-semibold"
+                  disabled={isPending}
+                >
+                  {isPending ? 'Đang gửi...' : 'Gửi yêu cầu tư vấn'}
+                </Button>
+              </form>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* ── CTA ────────────────────────────────────────────────────────────── */}
       <section className="py-10 px-5 mb-10">
         <div className="max-w-2xl mx-auto bg-primary rounded-3xl px-8 py-12 text-center">
@@ -229,14 +396,15 @@ export default function LandingPage() {
               </Button>
             </Link>
           ) : (
-            <Link to="/dang-ky">
-              <Button
-                size="lg"
-                className="bg-white text-primary hover:bg-white/90 font-semibold px-8"
-              >
-                Đăng ký ngay
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              className="bg-white text-primary hover:bg-white/90 font-semibold px-8"
+              onClick={() => {
+                document.getElementById('dang-ky-tu-van')?.scrollIntoView({ behavior: 'smooth' })
+              }}
+            >
+              Đăng ký ngay
+            </Button>
           )}
         </div>
       </section>

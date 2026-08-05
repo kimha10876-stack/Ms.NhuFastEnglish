@@ -89,6 +89,7 @@ builder.Services.AddScoped<ClassService>();
 builder.Services.AddScoped<SettingsService>();
 builder.Services.AddScoped<StudentService>();
 builder.Services.AddScoped<TeacherService>();
+builder.Services.AddScoped<ConsultationService>();
 
 // ── Controllers + Swagger ─────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -239,6 +240,18 @@ using (var scope = app.Services.CreateScope())
                         ""CreatedBy"" UUID NOT NULL REFERENCES ""Users""(""Id"") ON DELETE CASCADE,
                         ""CreatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
                     );
+
+                    CREATE TABLE IF NOT EXISTS ""ConsultationRequests"" (
+                        ""Id"" UUID PRIMARY KEY,
+                        ""FullName"" VARCHAR(255) NOT NULL,
+                        ""Phone"" VARCHAR(50) NOT NULL,
+                        ""Email"" VARCHAR(255),
+                        ""Message"" TEXT,
+                        ""Status"" VARCHAR(50) NOT NULL DEFAULT 'new',
+                        ""AdminNote"" TEXT,
+                        ""CreatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+                        ""ContactedAt"" TIMESTAMP WITHOUT TIME ZONE
+                    );
                 ");
             }
             else
@@ -339,6 +352,19 @@ using (var scope = app.Services.CreateScope())
                             Content TEXT NOT NULL,
                             CreatedBy TEXT NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
                             CreatedAt TEXT NOT NULL
+                        );
+                    ");
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS ConsultationRequests (
+                            Id TEXT PRIMARY KEY,
+                            FullName TEXT NOT NULL,
+                            Phone TEXT NOT NULL,
+                            Email TEXT,
+                            Message TEXT,
+                            Status TEXT NOT NULL DEFAULT 'new',
+                            AdminNote TEXT,
+                            CreatedAt TEXT NOT NULL,
+                            ContactedAt TEXT
                         );
                     ");
                 }

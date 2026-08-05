@@ -11,6 +11,7 @@ import { useAuthStore } from '@/features/auth/auth.store'
 import { authApi } from '@/features/auth/auth.api'
 import { api } from '@/shared/api/client'
 import type { ApiResponse } from '@/shared/api/types'
+import { useNewConsultationsCount } from '@/features/consultations/useConsultation'
 
 const navItems = [
   { to: '/dashboard',     icon: LayoutDashboard, label: 'Tổng quan' },
@@ -18,7 +19,7 @@ const navItems = [
   { to: '/classes',       icon: BookOpen,         label: 'Lớp học' },
   { to: '/teachers',      icon: Users,            label: 'Giáo viên' },
   { to: '/tuition',       icon: CreditCard,       label: 'Học phí' },
-  { to: '/consultations', icon: MessageSquare,    label: 'Tư vấn', badge: 2 },
+  { to: '/consultations', icon: MessageSquare,    label: 'Tư vấn' },
   { to: '/blog-management', icon: FileText,         label: 'Blog' },
 ]
 
@@ -29,13 +30,15 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore()
-  const isAdmin = user?.roles.includes('Admin')
+  const isAdmin = user?.roles.includes('Admin') ?? false
   const location = useLocation()
   const [isClassesHovered, setIsClassesHovered] = useState(false)
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true'
   })
+
+  const { data: newConsultationsCount = 0 } = useNewConsultationsCount(isAdmin)
 
   const toggleCollapse = () => {
     const next = !isCollapsed
@@ -53,6 +56,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         { to: '/blog', icon: FileText, label: 'Blog chia sẻ' },
       ]
     : navItems
+        .map((item) => {
+          if (item.to === '/consultations') {
+            return { ...item, badge: newConsultationsCount > 0 ? newConsultationsCount : undefined }
+          }
+          return item
+        })
+        .filter((item) => {
+          if (item.to === '/consultations') return isAdmin
+          return true
+        })
 
   const { data: myClasses = [] } = useQuery<any[]>({
     queryKey: ['my-classes'],
