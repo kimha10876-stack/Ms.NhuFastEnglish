@@ -33,7 +33,6 @@ export default function LandingPage() {
     setIsHydrated(true)
   }, [])
 
-  const isStaff = isHydrated && user && (user.roles.includes('Admin') || user.roles.includes('Teacher'))
   const isStudent = isHydrated && user && user.roles.includes('Student')
   const isLoggedIn = isHydrated && !!user
   
