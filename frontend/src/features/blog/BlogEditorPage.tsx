@@ -16,6 +16,9 @@ import {
   CheckCircle,
   Calendar,
   User,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -30,6 +33,7 @@ interface Block {
   id: string
   type: 'heading-lg' | 'heading-sm' | 'paragraph' | 'image' | 'quote' | 'list'
   content: string
+  align?: 'left' | 'center' | 'right'
 }
 
 function htmlToBlocks(html: string): Block[] {
@@ -40,21 +44,30 @@ function htmlToBlocks(html: string): Block[] {
   
   Array.from(doc.body.children).forEach((el) => {
     const id = Math.random().toString(36).substring(2, 9)
+    const alignAttr = el.getAttribute('style') || ''
+    let align: Block['align'] = 'left'
+    if (alignAttr.includes('text-align: center')) {
+      align = 'center'
+    } else if (alignAttr.includes('text-align: right')) {
+      align = 'right'
+    }
+
     if (el.tagName === 'H2') {
-      blocks.push({ id, type: 'heading-lg', content: el.innerHTML })
+      blocks.push({ id, type: 'heading-lg', content: el.innerHTML, align })
     } else if (el.tagName === 'H3') {
-      blocks.push({ id, type: 'heading-sm', content: el.innerHTML })
+      blocks.push({ id, type: 'heading-sm', content: el.innerHTML, align })
     } else if (el.tagName === 'BLOCKQUOTE') {
-      blocks.push({ id, type: 'quote', content: el.innerHTML })
+      blocks.push({ id, type: 'quote', content: el.innerHTML, align })
     } else if (el.tagName === 'IMG' || el.querySelector('img')) {
       const img = el.tagName === 'IMG' ? el : el.querySelector('img')
-      blocks.push({ id, type: 'image', content: img?.getAttribute('src') || '' })
+      const parentAlign = el.tagName === 'DIV' ? align : 'left'
+      blocks.push({ id, type: 'image', content: img?.getAttribute('src') || '', align: parentAlign })
     } else if (el.tagName === 'UL') {
       const items = Array.from(el.querySelectorAll('li')).map(li => li.innerHTML).join('\n')
-      blocks.push({ id, type: 'list', content: items })
+      blocks.push({ id, type: 'list', content: items, align })
     } else {
       // standard paragraph
-      blocks.push({ id, type: 'paragraph', content: el.innerHTML })
+      blocks.push({ id, type: 'paragraph', content: el.innerHTML, align })
     }
   })
   
@@ -66,20 +79,25 @@ function htmlToBlocks(html: string): Block[] {
 
 function blocksToHtml(blocks: Block[]): string {
   return blocks.map((b) => {
+    const styleAttr = b.align && b.align !== 'left' ? ` style="text-align: ${b.align};"` : ''
+    
     if (b.type === 'heading-lg') {
-      return `<h2>${b.content}</h2>`
+      return `<h2${styleAttr}>${b.content}</h2>`
     } else if (b.type === 'heading-sm') {
-      return `<h3>${b.content}</h3>`
+      return `<h3${styleAttr}>${b.content}</h3>`
     } else if (b.type === 'quote') {
-      return `<blockquote>${b.content}</blockquote>`
+      return `<blockquote${styleAttr}>${b.content}</blockquote>`
     } else if (b.type === 'image') {
+      if (b.align && b.align !== 'left') {
+        return `<div style="text-align: ${b.align};"><img src="${b.content}" alt="Blog Image" class="w-full rounded-xl my-6 border shadow-sm" /></div>`
+      }
       return `<img src="${b.content}" alt="Blog Image" class="w-full rounded-xl my-6 border shadow-sm" />`
     } else if (b.type === 'list') {
       const items = b.content.split('\n').filter(line => line.trim() !== '')
       if (items.length === 0) return ''
-      return `<ul>\n${items.map(item => `  <li>${item}</li>`).join('\n')}\n</ul>`
+      return `<ul${styleAttr}>\n${items.map(item => `  <li>${item}</li>`).join('\n')}\n</ul>`
     } else {
-      return `<p>${b.content}</p>`
+      return `<p${styleAttr}>${b.content}</p>`
     }
   }).join('\n')
 }
@@ -139,6 +157,10 @@ export default function BlogEditorPage() {
 
   const updateBlockContent = (blockId: string, content: string) => {
     setBlocks(blocks.map(b => b.id === blockId ? { ...b, content } : b))
+  }
+
+  const updateBlockAlign = (blockId: string, align: Block['align']) => {
+    setBlocks(blocks.map(b => b.id === blockId ? { ...b, align } : b))
   }
 
   const changeBlockType = (blockId: string, type: Block['type']) => {
@@ -357,6 +379,37 @@ export default function BlogEditorPage() {
 
                           <span className="w-[1px] h-3 bg-gray-200 mx-1" />
 
+                          {/* Alignment controls */}
+                          <button
+                            onClick={() => updateBlockAlign(block.id, 'left')}
+                            title="Căn lề trái"
+                            className={`p-1 rounded transition-colors ${
+                              (block.align || 'left') === 'left' ? 'text-amber-500 bg-amber-50' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900'
+                            }`}
+                          >
+                            <AlignLeft className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => updateBlockAlign(block.id, 'center')}
+                            title="Căn giữa"
+                            className={`p-1 rounded transition-colors ${
+                              block.align === 'center' ? 'text-amber-500 bg-amber-50' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900'
+                            }`}
+                          >
+                            <AlignCenter className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => updateBlockAlign(block.id, 'right')}
+                            title="Căn lề phải"
+                            className={`p-1 rounded transition-colors ${
+                              block.align === 'right' ? 'text-amber-500 bg-amber-50' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900'
+                            }`}
+                          >
+                            <AlignRight className="h-3.5 w-3.5" />
+                          </button>
+
+                          <span className="w-[1px] h-3 bg-gray-200 mx-1" />
+
                           <button
                             onClick={() => deleteBlock(block.id)}
                             title="Xóa thành phần"
@@ -373,6 +426,7 @@ export default function BlogEditorPage() {
                             value={block.content}
                             onChange={(e) => updateBlockContent(block.id, e.target.value)}
                             rows={Math.max(2, block.content.split('\n').length)}
+                            style={{ textAlign: block.align || 'left' }}
                             className="w-full text-[14px] text-gray-700 bg-transparent placeholder-gray-300 border-none outline-none resize-none leading-relaxed"
                           />
                         )}
@@ -383,6 +437,7 @@ export default function BlogEditorPage() {
                             placeholder="Tiêu đề chương lớn (H2)..."
                             value={block.content}
                             onChange={(e) => updateBlockContent(block.id, e.target.value)}
+                            style={{ textAlign: block.align || 'left' }}
                             className="w-full text-[19px] font-bold text-gray-900 bg-transparent placeholder-gray-300 border-none outline-none"
                           />
                         )}
@@ -393,6 +448,7 @@ export default function BlogEditorPage() {
                             placeholder="Tiêu đề phụ nhỏ (H3)..."
                             value={block.content}
                             onChange={(e) => updateBlockContent(block.id, e.target.value)}
+                            style={{ textAlign: block.align || 'left' }}
                             className="w-full text-[16px] font-bold text-gray-900 bg-transparent placeholder-gray-300 border-none outline-none"
                           />
                         )}
@@ -404,6 +460,7 @@ export default function BlogEditorPage() {
                               value={block.content}
                               onChange={(e) => updateBlockContent(block.id, e.target.value)}
                               rows={2}
+                              style={{ textAlign: block.align || 'left' }}
                               className="w-full text-[13px] font-medium italic text-gray-700 bg-transparent placeholder-gray-400 border-none outline-none resize-none leading-relaxed"
                             />
                           </div>
@@ -422,15 +479,17 @@ export default function BlogEditorPage() {
                               />
                             </div>
                             {block.content.trim() && (
-                              <div className="aspect-[16/9] bg-white rounded-xl overflow-hidden border border-gray-150 relative">
-                                <img
-                                  src={block.content}
-                                  alt="Preview"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none'
-                                  }}
-                                  className="w-full h-full object-cover"
-                                />
+                              <div style={{ textAlign: block.align || 'left' }}>
+                                <div className="aspect-[16/9] w-full max-w-[480px] bg-white rounded-xl overflow-hidden border border-gray-150 relative inline-block text-left">
+                                  <img
+                                    src={block.content}
+                                    alt="Preview"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none'
+                                    }}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>
@@ -444,6 +503,7 @@ export default function BlogEditorPage() {
                               value={block.content}
                               onChange={(e) => updateBlockContent(block.id, e.target.value)}
                               rows={Math.max(3, block.content.split('\n').length)}
+                              style={{ textAlign: block.align || 'left' }}
                               className="w-full text-[13px] font-medium text-gray-700 bg-transparent placeholder-gray-400 border-none outline-none resize-none leading-relaxed"
                             />
                           </div>
