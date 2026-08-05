@@ -43,6 +43,14 @@ export function useAdminBlogPosts(params?: { search?: string; categoryId?: numbe
   })
 }
 
+export function useAdminBlogPostDetail(id: string) {
+  return useQuery({
+    queryKey: [...BLOG_ADMIN_POSTS_KEY, 'detail', id],
+    queryFn: () => blogApi.getAdminPostDetail(id),
+    enabled: !!id,
+  })
+}
+
 export function useCreateBlogPost() {
   const queryClient = useQueryClient()
   return useMutation({

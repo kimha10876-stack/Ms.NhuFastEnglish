@@ -29,6 +29,9 @@ export const blogApi = {
       .get<ApiResponse<PaginatedResponse<BlogPost>>>('/blog/admin/posts', { params })
       .then((r) => r.data.data!),
 
+  getAdminPostDetail: (id: string) =>
+    api.get<ApiResponse<BlogPost>>(`/blog/admin/posts/${id}`).then((r) => r.data.data!),
+
   createPost: (body: CreatePostRequest) =>
     api.post<ApiResponse<BlogPost>>('/blog/admin/posts', body).then((r) => r.data.data!),
 

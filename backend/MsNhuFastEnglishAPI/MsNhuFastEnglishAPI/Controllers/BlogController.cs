@@ -192,6 +192,40 @@ public class BlogController(AppDbContext db) : ControllerBase
         return Ok(ApiResponse.Ok(result));
     }
 
+    // GET /api/blog/admin/posts/{id}
+    [HttpGet("admin/posts/{id:guid}")]
+    [Authorize(Roles = "Admin,Teacher")]
+    public async Task<IActionResult> GetAdminPostDetail(Guid id)
+    {
+        var post = await db.BlogPosts
+            .Include(p => p.Author)
+            .Include(p => p.Category)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (post is null)
+            return NotFound(ApiResponse.NotFound("Không tìm thấy bài viết"));
+
+        var dto = new BlogPostDto(
+            post.Id,
+            post.Title,
+            post.Slug,
+            post.ThumbnailUrl,
+            post.Summary,
+            post.Content,
+            post.IsPublished,
+            post.CreatedAt,
+            post.UpdatedAt,
+            post.ViewCount,
+            post.AuthorId,
+            post.Author.FullName,
+            post.CategoryId,
+            post.Category?.Name,
+            post.Category?.Slug
+        );
+
+        return Ok(ApiResponse.Ok(dto));
+    }
+
     // POST /api/blog/admin/posts
     [HttpPost("admin/posts")]
     [Authorize(Roles = "Admin,Teacher")]

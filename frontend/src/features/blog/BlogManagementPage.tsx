@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   FileText,
   Plus,
@@ -19,35 +20,22 @@ import { Input } from '@/shared/components/ui/input'
 import {
   useAdminBlogPosts,
   useBlogCategories,
-  useCreateBlogPost,
-  useUpdateBlogPost,
   useDeleteBlogPost,
   useCreateBlogCategory,
   useUpdateBlogCategory,
   useDeleteBlogCategory,
 } from './useBlog'
-import { RichTextEditor } from '@/shared/components/ui/RichTextEditor'
 import type { BlogPost, BlogCategory } from './blog.types'
 
 export default function BlogManagementPage() {
+  const navigate = useNavigate()
+
   // Tabs and view states
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState<number | ''>('')
   const [pubFilter, setPubFilter] = useState<boolean | ''>('')
   const [page, setPage] = useState(1)
   const pageSize = 8
-
-  // Modals / forms
-  const [showPostModal, setShowPostModal] = useState(false)
-  const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null)
-  
-  // Post form state
-  const [title, setTitle] = useState('')
-  const [thumbnailUrl, setThumbnailUrl] = useState('')
-  const [summary, setSummary] = useState('')
-  const [content, setContent] = useState('')
-  const [isPublished, setIsPublished] = useState(false)
-  const [categoryId, setCategoryId] = useState<number | ''>('')
 
   // Category management modal
   const [showCatModal, setShowCatModal] = useState(false)
@@ -66,8 +54,6 @@ export default function BlogManagementPage() {
 
   const { data: categories = [], isLoading: loadingCats } = useBlogCategories()
 
-  const createPostMutation = useCreateBlogPost()
-  const updatePostMutation = useUpdateBlogPost(selectedPost?.id ?? '')
   const deletePostMutation = useDeleteBlogPost()
 
   const createCatMutation = useCreateBlogCategory()
@@ -76,51 +62,11 @@ export default function BlogManagementPage() {
 
   // Actions
   const handleOpenAddPost = () => {
-    setSelectedPost(null)
-    setTitle('')
-    setThumbnailUrl('')
-    setSummary('')
-    setContent('')
-    setIsPublished(false)
-    setCategoryId(categories.length > 0 ? categories[0].id : '')
-    setShowPostModal(true)
+    navigate('/blog-management/editor')
   }
 
   const handleOpenEditPost = (post: BlogPost) => {
-    setSelectedPost(post)
-    setTitle(post.title)
-    setThumbnailUrl(post.thumbnailUrl || '')
-    setSummary(post.summary)
-    setContent(post.content)
-    setIsPublished(post.isPublished)
-    setCategoryId(post.categoryId ?? '')
-    setShowPostModal(true)
-  }
-
-  const handlePostSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!title.trim() || !summary.trim() || !content.trim()) return
-
-    const payload = {
-      title: title.trim(),
-      thumbnailUrl: thumbnailUrl.trim() || undefined,
-      summary: summary.trim(),
-      content: content.trim(),
-      isPublished,
-      categoryId: categoryId === '' ? undefined : Number(categoryId),
-    }
-
-    const callbacks = {
-      onSuccess: () => {
-        setShowPostModal(false)
-      },
-    }
-
-    if (selectedPost) {
-      updatePostMutation.mutate(payload, callbacks)
-    } else {
-      createPostMutation.mutate(payload, callbacks)
-    }
+    navigate(`/blog-management/editor/${post.id}`)
   }
 
   const handleDeletePost = (id: string) => {
@@ -436,128 +382,6 @@ export default function BlogManagementPage() {
         </div>
       )}
 
-      {/* ── CREATE / EDIT POST MODAL ────────────────────────────────────── */}
-      {showPostModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
-              <div>
-                <h2 className="font-bold text-gray-900 text-base">
-                  {selectedPost ? 'Chỉnh sửa bài viết' : 'Viết bài mới'}
-                </h2>
-                <p className="text-[11px] text-gray-400 mt-0.5">Soạn thảo và thiết kế nội dung bài viết tin tức</p>
-              </div>
-              <button
-                onClick={() => setShowPostModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Modal Body / Form */}
-            <form onSubmit={handlePostSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Title */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-gray-700">Tiêu đề bài viết <span className="text-red-500">*</span></label>
-                  <Input
-                    placeholder="VD: Bí quyết nhớ 100 từ vựng mỗi ngày..."
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Category Selection */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-gray-700">Danh mục bài viết</label>
-                  <select
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full h-[38px] px-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:border-amber-500"
-                  >
-                    <option value="">Chưa phân loại</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Cover image (Thumbnail Url) */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-gray-700">Ảnh bìa (Thumbnail URL)</label>
-                <Input
-                  placeholder="https://images.unsplash.com/photo-1546410531-bb4caa6b424d"
-                  value={thumbnailUrl}
-                  onChange={(e) => setThumbnailUrl(e.target.value)}
-                />
-                <p className="text-[10px] text-gray-400 mt-0.5">Dán link ảnh chất lượng cao để làm ảnh bìa bài viết.</p>
-              </div>
-
-              {/* Summary */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-gray-700">Tóm tắt ngắn gọn <span className="text-red-500">*</span></label>
-                <textarea
-                  placeholder="Mô tả ngắn gọn nội dung cốt lõi của bài viết..."
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  required
-                  rows={2}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 bg-white outline-none focus:border-amber-500 resize-none"
-                />
-              </div>
-
-              {/* Content Editor */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-gray-700">Nội dung bài viết <span className="text-red-500">*</span></label>
-                <RichTextEditor value={content} onChange={setContent} />
-              </div>
-
-              {/* Publish Toggle */}
-              <div className="flex items-center gap-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="pub-chk"
-                  checked={isPublished}
-                  onChange={(e) => setIsPublished(e.target.checked)}
-                  className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer"
-                />
-                <label htmlFor="pub-chk" className="text-xs font-bold text-gray-700 cursor-pointer select-none">
-                  Xuất bản ngay (Mọi người có thể đọc)
-                </label>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-2.5 pt-4 border-t border-gray-100">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="rounded-xl font-bold text-xs px-5 h-[38px]"
-                  onClick={() => setShowPostModal(false)}
-                >
-                  Huỷ bỏ
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={createPostMutation.isPending || updatePostMutation.isPending}
-                  className="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold text-xs rounded-xl px-6 h-[38px] flex items-center gap-1.5"
-                >
-                  {(createPostMutation.isPending || updatePostMutation.isPending) && (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  )}
-                  Lưu bài viết
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* ── CATEGORY MANAGEMENT MODAL ──────────────────────────────────── */}
       {showCatModal && (

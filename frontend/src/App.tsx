@@ -20,6 +20,7 @@ const SettingsPage      = lazy(() => import('@/features/settings/SettingsPage'))
 const BlogManagementPage = lazy(() => import('@/features/blog/BlogManagementPage'))
 const PublicBlogPage     = lazy(() => import('@/features/blog/PublicBlogPage'))
 const BlogPostDetailPage = lazy(() => import('@/features/blog/BlogPostDetailPage'))
+const BlogEditorPage     = lazy(() => import('@/features/blog/BlogEditorPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -63,6 +64,8 @@ export default function App() {
               
               {/* Fullscreen pages (no AppShell) */}
               <Route path="classes/:classId/assignments/:assignmentId/do" element={<DoAssignmentPage />} />
+              <Route path="blog-management/editor" element={<BlogEditorPage />} />
+              <Route path="blog-management/editor/:id" element={<BlogEditorPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
