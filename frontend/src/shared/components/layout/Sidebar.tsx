@@ -35,6 +35,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const isStudent = user?.roles.includes('Student') ?? false
   const isClassesActive = location.pathname.startsWith('/classes')
 
+  const displayNavItems = isStudent
+    ? [
+        { to: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
+        { to: '/classes', icon: BookOpen, label: 'Lớp học' },
+        { to: '/blog', icon: FileText, label: 'Blog chia sẻ' },
+      ]
+    : navItems
+
   const { data: myClasses = [] } = useQuery<any[]>({
     queryKey: ['my-classes'],
     queryFn: () => api.get<ApiResponse<any[]>>('/classes/my-classes').then((r) => r.data.data!),
@@ -115,13 +123,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* ── Nav ── */}
         <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-          {navItems
-            .filter(({ to }) => {
-              if (isStudent) {
-                return to === '/dashboard' || to === '/classes'
-              }
-              return true
-            })
+          {displayNavItems
             .map(({ to, icon: Icon, label, badge }) => {
               const showSubmenu = isStudent && to === '/classes'
 

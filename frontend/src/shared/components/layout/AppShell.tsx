@@ -190,6 +190,20 @@ export function AppShell() {
                   </div>
                 )}
               </div>
+
+              <NavLink
+                to="/blog"
+                className={({ isActive }) =>
+                  cn(
+                    "px-4 py-2 text-sm font-semibold rounded-xl transition-all",
+                    isActive || location.pathname.startsWith('/blog')
+                      ? "bg-amber-50 text-amber-700 shadow-sm"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-950"
+                  )
+                }
+              >
+                Blog chia sẻ
+              </NavLink>
             </nav>
 
             {/* Right Profile Area */}

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { useBlogPosts, useBlogCategories } from './useBlog'
+import { useAuthStore } from '@/features/auth/auth.store'
 
 export default function PublicBlogPage() {
   const [selectedCatSlug, setSelectedCatSlug] = useState<string>('')
@@ -32,6 +33,9 @@ export default function PublicBlogPage() {
     setPage(1)
   }
 
+  const user = useAuthStore((s) => s.user)
+  const isStudent = user?.roles.includes('Student') ?? false
+
   return (
     <div className="min-h-svh bg-gray-50 flex flex-col">
       
@@ -44,11 +48,20 @@ export default function PublicBlogPage() {
             </div>
             <span className="font-bold text-[17px] tracking-tight text-gray-900">Ms. Nhụ Fast English</span>
           </Link>
-          <Link to="/">
-            <Button size="sm" variant="outline" className="rounded-xl font-semibold">
-              Quay lại trang chủ
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {user && (
+              <Link to="/dashboard">
+                <Button size="sm" variant="outline" className="rounded-xl font-semibold border-amber-500/30 text-amber-700 hover:bg-amber-50">
+                  {isStudent ? 'Vào lớp học' : 'Trang quản lý'}
+                </Button>
+              </Link>
+            )}
+            <Link to="/">
+              <Button size="sm" variant="ghost" className="rounded-xl font-semibold">
+                Quay lại trang chủ
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
