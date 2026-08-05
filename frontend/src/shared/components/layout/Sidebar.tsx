@@ -28,7 +28,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
-  const { viewMode, setViewMode, user, logout } = useAuthStore()
+  const { user, logout } = useAuthStore()
   const isAdmin = user?.roles.includes('Admin')
   const location = useLocation()
   const [isClassesHovered, setIsClassesHovered] = useState(false)
@@ -127,45 +127,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        {/* ── Admin / Teacher toggle ── */}
-        {isAdmin && (
-          isCollapsed ? (
-            <div className="mt-3 flex justify-center shrink-0">
-              <button
-                onClick={() => setViewMode(viewMode === 'admin' ? 'teacher' : 'admin')}
-                title={viewMode === 'admin' ? 'Chuyển sang Chế độ Giáo viên' : 'Chuyển sang Chế độ Admin'}
-                className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-700 hover:bg-amber-100 hover:text-amber-800 transition-colors border border-gray-200 shadow-sm"
-              >
-                {viewMode === 'admin' ? 'AD' : 'GV'}
-              </button>
-            </div>
-          ) : (
-            <div className="mx-3 mt-3 flex rounded-xl bg-gray-100 p-1 text-xs font-medium shrink-0">
-              <button
-                onClick={() => setViewMode('admin')}
-                className={cn(
-                  'flex-1 rounded-lg py-1.5 transition-colors',
-                  viewMode === 'admin'
-                    ? 'bg-white shadow-sm text-gray-900 font-semibold'
-                    : 'text-gray-500 hover:text-gray-700'
-                )}
-              >
-                Admin
-              </button>
-              <button
-                onClick={() => setViewMode('teacher')}
-                className={cn(
-                  'flex-1 rounded-lg py-1.5 transition-colors',
-                  viewMode === 'teacher'
-                    ? 'bg-white shadow-sm text-gray-900 font-semibold'
-                    : 'text-gray-500 hover:text-gray-700'
-                )}
-              >
-                Giáo viên
-              </button>
-            </div>
-          )
-        )}
 
         {/* ── Nav ── */}
         <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
