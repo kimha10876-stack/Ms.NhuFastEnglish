@@ -224,11 +224,11 @@ export default function BlogManagementPage() {
               <thead>
                 <tr className="bg-gray-50">
                   <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Bài viết</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Danh mục</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Trạng thái</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Lượt xem</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Tác giả</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Ngày đăng</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400 min-w-[120px] whitespace-nowrap">Danh mục</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">Trạng thái</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">Lượt xem</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">Tác giả</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">Ngày đăng</th>
                   <th className="px-5 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-gray-400">Thao tác</th>
                 </tr>
               </thead>
@@ -257,9 +257,9 @@ export default function BlogManagementPage() {
                     </td>
 
                     {/* Category */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       {post.categoryName ? (
-                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">
                           {post.categoryName}
                         </span>
                       ) : (
@@ -268,14 +268,14 @@ export default function BlogManagementPage() {
                     </td>
 
                     {/* Status */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       {post.isPublished ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
                           <CheckCircle className="h-3.5 w-3.5" />
                           Đã xuất bản
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200 whitespace-nowrap">
                           <XCircle className="h-3.5 w-3.5" />
                           Bản nháp
                         </span>
@@ -283,19 +283,21 @@ export default function BlogManagementPage() {
                     </td>
 
                     {/* Views */}
-                    <td className="px-5 py-3.5 font-medium text-gray-700">
+                    <td className="px-5 py-3.5 font-medium text-gray-700 whitespace-nowrap">
                       {post.viewCount.toLocaleString()}
                     </td>
 
                     {/* Author */}
-                    <td className="px-5 py-3.5 text-gray-600 text-xs">
+                    <td className="px-5 py-3.5 text-gray-600 text-xs whitespace-nowrap">
                       {post.authorName}
                     </td>
 
                     {/* Date */}
-                    <td className="px-5 py-3.5 text-gray-600 text-xs flex items-center gap-1 mt-1">
-                      <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                      {new Date(post.createdAt).toLocaleDateString('vi-VN')}
+                    <td className="px-5 py-3.5 text-gray-600 text-xs whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                        {new Date(post.createdAt).toLocaleDateString('vi-VN')}
+                      </div>
                     </td>
 
                     {/* Actions */}
