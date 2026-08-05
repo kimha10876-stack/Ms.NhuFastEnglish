@@ -21,6 +21,7 @@ export interface ClassMember {
   avatarUrl: string | null
   status: string
   joinedAt: string
+  tuitionStatus: string
 }
 
 export interface ClassDetail {

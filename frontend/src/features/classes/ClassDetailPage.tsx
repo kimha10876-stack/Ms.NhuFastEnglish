@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Users, Info, Trash2, Plus, Copy, Link2,
+  ArrowLeft, Users, Info, Trash2, Plus, Copy, Link2, CreditCard,
   Loader2, Check, AlertTriangle, Search, Edit2,
   ChevronLeft, ChevronRight, ChevronDown, BookOpen, FileText, Calendar,
   Clock, Sparkles,
@@ -20,7 +20,7 @@ import {
   useClassAssignments, useCreateAssignment, useUpdateAssignment, useDeleteAssignment,
   useAssignmentSubmissions, useGradeSubmission,
   useCurriculumTemplates, useImportCurriculum,
-  useClassAttendance, useUpdateAttendance,
+  useClassAttendance, useUpdateAttendance, useUpdateMemberTuition,
   useClassAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDeleteAnnouncement,
   useCreateComment, useDeleteComment, useSubmitAssignment
 } from './useClasses'
@@ -31,7 +31,7 @@ import { classesApi } from './classes.api'
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 
-type Tab = 'announcements' | 'lessons' | 'assignments' | 'members' | 'info'
+type Tab = 'announcements' | 'lessons' | 'assignments' | 'members' | 'info' | 'tuition'
 
 const STATUS_OPTIONS = ['active', 'paused', 'ended']
 const STATUS_LABEL: Record<string, string> = {
@@ -187,6 +187,7 @@ export default function ClassDetailPage() {
   const { mutate: deleteClass, isPending: deleting } = useDeleteClass()
   const { mutate: addMember, isPending: adding }     = useAddMember(id)
   const { mutate: removeMember }                     = useRemoveMember(id)
+  const updateTuitionMutation = useUpdateMemberTuition(id)
   const { mutate: createInvite, isPending: creatingInvite } = useCreateInvite()
   const { data: searchResults = [] }                 = useSearchStudents(searchQ)
   const { data: activeInvite }                       = useActiveInvite(id)
@@ -869,58 +870,75 @@ export default function ClassDetailPage() {
           <Megaphone className="h-4 w-4" />
           Bảng tin
         </button>
-        <button
-          onClick={() => setTab('lessons')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
-            tab === 'lessons'
-              ? 'border-amber-500 text-amber-700 font-semibold'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <BookOpen className="h-4 w-4" />
-          Bài học & Tài liệu
-        </button>
-        <button
-          onClick={() => setTab('assignments')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
-            tab === 'assignments'
-              ? 'border-amber-500 text-amber-700 font-semibold'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <CheckSquare className="h-4 w-4" />
-          Bài tập về nhà
-          <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${tab === 'assignments' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
-            {assignments.length}
-          </span>
-        </button>
-        {!isStudent && (
+
+        {isAdmin ? (
           <button
-            onClick={() => setTab('members')}
+            onClick={() => setTab('tuition')}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
-              tab === 'members'
+              tab === 'tuition'
                 ? 'border-amber-500 text-amber-700 font-semibold'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             <Users className="h-4 w-4" />
-            Điểm danh & Thành viên
-            <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${tab === 'members' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
-              {cls.members.length}
-            </span>
+            Học phí
           </button>
+        ) : (
+          <>
+            <button
+              onClick={() => setTab('lessons')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
+                tab === 'lessons'
+                  ? 'border-amber-500 text-amber-700 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <BookOpen className="h-4 w-4" />
+              Bài học & Tài liệu
+            </button>
+            <button
+              onClick={() => setTab('assignments')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
+                tab === 'assignments'
+                  ? 'border-amber-500 text-amber-700 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <CheckSquare className="h-4 w-4" />
+              Bài tập về nhà
+              <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${tab === 'assignments' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                {assignments.length}
+              </span>
+            </button>
+            {!isStudent && (
+              <button
+                onClick={() => setTab('members')}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
+                  tab === 'members'
+                    ? 'border-amber-500 text-amber-700 font-semibold'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                Điểm danh & Thành viên
+                <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${tab === 'members' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                  {cls.members.length}
+                </span>
+              </button>
+            )}
+            <button
+              onClick={() => setTab('info')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
+                tab === 'info'
+                  ? 'border-amber-500 text-amber-700 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Info className="h-4 w-4" />
+              Thông tin lớp
+            </button>
+          </>
         )}
-        <button
-          onClick={() => setTab('info')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
-            tab === 'info'
-              ? 'border-amber-500 text-amber-700 font-semibold'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <Info className="h-4 w-4" />
-          Thông tin lớp
-        </button>
       </div>
 
       {/* ── 0. Announcements tab (Bảng tin) ── */}
@@ -2482,6 +2500,96 @@ export default function ClassDetailPage() {
             </div>
           )}
         </form>
+      )}
+
+      {/* ── 5. Tuition tab (Học phí) ── */}
+      {tab === 'tuition' && isAdmin && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4 text-left">
+          <div>
+            <h3 className="font-extrabold text-gray-900 text-base">Theo dõi học phí</h3>
+            <p className="text-xs text-gray-400 font-semibold mt-0.5">
+              Quản lý trạng thái đóng học phí của học viên tham gia lớp học
+            </p>
+          </div>
+
+          <div className="overflow-x-auto border border-gray-150 rounded-2xl">
+            <table className="w-full text-sm border-collapse bg-white">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-150">
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Học viên</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Trạng thái học phí</th>
+                  <th className="px-5 py-3.5 text-right text-[11px] font-bold uppercase tracking-wider text-gray-400">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {cls.members.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="px-5 py-12 text-center text-xs text-gray-400 font-medium">
+                      Lớp học chưa có thành viên nào.
+                    </td>
+                  </tr>
+                ) : (
+                  cls.members.map((member) => {
+                    const isPaid = member.tuitionStatus === 'paid'
+                    return (
+                      <tr key={member.memberId} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold shrink-0 text-xs">
+                              {member.avatarUrl ? (
+                                <img src={member.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                              ) : (
+                                member.fullName.substring(0, 2).toUpperCase()
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 text-xs">{member.fullName}</p>
+                              <p className="text-[10px] text-gray-400 font-semibold">{member.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          {isPaid ? (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                              <Check className="h-3 w-3" /> Đã đóng học phí
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100">
+                              <XCircle className="h-3 w-3" /> Chưa đóng học phí
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => {
+                              const nextStatus = isPaid ? 'unpaid' : 'paid'
+                              updateTuitionMutation.mutate({
+                                memberId: member.memberId,
+                                tuitionStatus: nextStatus,
+                              }, {
+                                onError: (err: any) => {
+                                  alert(err?.response?.data?.message || 'Không thể cập nhật học phí!')
+                                }
+                              })
+                            }}
+                            disabled={updateTuitionMutation.isPending}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all ${
+                              isPaid
+                                ? 'bg-white border-gray-200 text-rose-600 hover:bg-rose-50'
+                                : 'bg-amber-500 border-amber-500 text-gray-900 hover:bg-amber-600'
+                            }`}
+                          >
+                            {updateTuitionMutation.isPending ? 'Đang lưu...' : isPaid ? 'Đánh dấu chưa đóng' : 'Đánh dấu đã đóng'}
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {/* ── Add member modal ── */}

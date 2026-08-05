@@ -134,6 +134,11 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""AnnouncementComments"" ADD COLUMN IF NOT EXISTS ""ParentCommentId"" uuid NULL;
             ");
             
+            // Tự động thêm cột TuitionStatus nếu chưa có
+            db.Database.ExecuteSqlRaw(@"
+                ALTER TABLE ""ClassMembers"" ADD COLUMN IF NOT EXISTS ""TuitionStatus"" VARCHAR(50) NOT NULL DEFAULT 'unpaid';
+            ");
+            
             // Khởi tạo bảng SystemSettings nếu chưa tồn tại
             db.Database.ExecuteSqlRaw(@"
                 CREATE TABLE IF NOT EXISTS ""SystemSettings"" (

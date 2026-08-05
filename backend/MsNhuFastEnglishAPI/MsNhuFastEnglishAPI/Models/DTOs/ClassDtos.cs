@@ -32,6 +32,7 @@ public record UpdateClassRequest
 }
 
 public record AddMemberRequest(Guid StudentId);
+public record UpdateMemberTuitionRequest(string TuitionStatus);
 
 public record CreateInviteRequest(int ExpiryDays = 30);  // 0 = vĩnh viễn
 
@@ -97,7 +98,8 @@ public record ClassMemberDto(
     string   Email,
     string?  AvatarUrl,
     string   Status,
-    DateTime JoinedAt
+    DateTime JoinedAt,
+    string   TuitionStatus
 );
 
 public record InviteInfoDto(

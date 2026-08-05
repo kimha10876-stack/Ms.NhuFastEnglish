@@ -122,7 +122,8 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
                 Email:     m.Student.User.Email,
                 AvatarUrl: m.Student.User.AvatarUrl,
                 Status:    m.Status,
-                JoinedAt:  m.JoinedAt
+                JoinedAt:  m.JoinedAt,
+                TuitionStatus: m.TuitionStatus
             )).ToList()
         );
     }

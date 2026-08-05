@@ -154,6 +154,22 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
         return Ok(ApiResponse.Ok<object?>(null, "Đã xoá học sinh khỏi lớp"));
     }
 
+    // ── PUT /api/classes/{id}/members/{memberId}/tuition ──────────────────────
+
+    [HttpPut("{id:guid}/members/{memberId:guid}/tuition")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateMemberTuition(Guid id, Guid memberId, [FromBody] UpdateMemberTuitionRequest req)
+    {
+        var member = await db.ClassMembers.FirstOrDefaultAsync(m => m.ClassId == id && m.Id == memberId);
+        if (member is null)
+            return NotFound(ApiResponse.NotFound("Không tìm thấy thành viên"));
+
+        member.TuitionStatus = req.TuitionStatus;
+        await db.SaveChangesAsync();
+
+        return Ok(ApiResponse.Ok<object?>(null, "Cập nhật học phí thành công"));
+    }
+
     // ── GET /api/classes/categories ───────────────────────────────────────────
 
     [HttpGet("categories")]

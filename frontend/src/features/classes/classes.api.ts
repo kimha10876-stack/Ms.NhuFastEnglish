@@ -50,6 +50,9 @@ export const classesApi = {
   removeMember: (classId: string, memberId: string) =>
     api.delete<ApiResponse<null>>(`/classes/${classId}/members/${memberId}`).then((r) => r.data),
 
+  updateMemberTuition: (classId: string, memberId: string, tuitionStatus: string) =>
+    api.put<ApiResponse<null>>(`/classes/${classId}/members/${memberId}/tuition`, { tuitionStatus }).then((r) => r.data),
+
   searchStudents: (q: string) =>
     api
       .get<ApiResponse<StudentSearchResult[]>>('/classes/students/search', { params: { q } })

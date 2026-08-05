@@ -74,6 +74,15 @@ export function useRemoveMember(classId: string) {
   })
 }
 
+export function useUpdateMemberTuition(classId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ memberId, tuitionStatus }: { memberId: string; tuitionStatus: string }) =>
+      classesApi.updateMemberTuition(classId, memberId, tuitionStatus),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...CLASSES_KEY, classId] }),
+  })
+}
+
 export function useCreateInvite() {
   const qc = useQueryClient()
   return useMutation({
