@@ -880,7 +880,7 @@ export default function ClassDetailPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Users className="h-4 w-4" />
+            <CreditCard className="h-4 w-4" />
             Học phí
           </button>
         ) : (
