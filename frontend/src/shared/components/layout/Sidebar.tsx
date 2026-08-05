@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, BookOpen, GraduationCap,
-  CreditCard, FileText, MessageSquare, LogOut, Settings
+  CreditCard, FileText, MessageSquare, LogOut, Settings,
+  ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/shared/utils/cn'
@@ -31,6 +32,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const isAdmin = user?.roles.includes('Admin')
   const location = useLocation()
   const [isClassesHovered, setIsClassesHovered] = useState(false)
+
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true'
+  })
+
+  const toggleCollapse = () => {
+    const next = !isCollapsed
+    setIsCollapsed(next)
+    localStorage.setItem('sidebar-collapsed', String(next))
+  }
 
   const isStudent = user?.roles.includes('Student') ?? false
   const isClassesActive = location.pathname.startsWith('/classes')
@@ -77,48 +88,83 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-30 flex w-[220px] flex-col bg-white border-r border-gray-200',
-          'transition-transform duration-200',
+          'fixed inset-y-0 left-0 z-30 flex flex-col bg-white border-r border-gray-200',
+          'transition-all duration-200',
+          isCollapsed ? 'w-[220px] md:w-[68px]' : 'w-[220px]',
           open ? 'translate-x-0' : '-translate-x-full',
           isStudent ? 'md:hidden' : 'md:relative md:translate-x-0'
         )}
       >
-        {/* ── Logo ── */}
-        <div className="h-[60px] flex items-center gap-2.5 px-5 border-b border-gray-200">
-          <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
-            <BookOpen className="h-3.5 w-3.5 text-gray-900" />
+        {/* ── Logo & Toggle ── */}
+        <div className={cn(
+          "h-[60px] flex items-center border-b border-gray-200 px-4 relative justify-between shrink-0",
+          isCollapsed && "md:px-0 md:justify-center"
+        )}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center shrink-0 shadow-sm">
+              <BookOpen className="h-3.5 w-3.5 text-gray-900" />
+            </div>
+            <span className={cn(
+              "font-bold text-[13px] text-gray-900 tracking-tight leading-tight truncate transition-all duration-200",
+              isCollapsed && "md:hidden"
+            )}>
+              Ms. Nhụ<br />Fast English
+            </span>
           </div>
-          <span className="font-bold text-[14px] text-gray-900 tracking-tight leading-tight">
-            Ms. Nhụ<br />Fast English
-          </span>
+
+          <button
+            onClick={toggleCollapse}
+            className={cn(
+              "hidden md:flex p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors shrink-0",
+              isCollapsed && "md:absolute md:-right-3 md:top-4 md:bg-white md:border md:border-gray-200 md:shadow-md md:rounded-full md:p-1 md:z-50"
+            )}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-3.5 w-3.5 text-gray-600" />
+            ) : (
+              <ChevronLeft className="h-3.5 w-3.5" />
+            )}
+          </button>
         </div>
 
         {/* ── Admin / Teacher toggle ── */}
         {isAdmin && (
-          <div className="mx-3 mt-3 flex rounded-xl bg-gray-100 p-1 text-xs font-medium">
-            <button
-              onClick={() => setViewMode('admin')}
-              className={cn(
-                'flex-1 rounded-lg py-1.5 transition-colors',
-                viewMode === 'admin'
-                  ? 'bg-white shadow-sm text-gray-900 font-semibold'
-                  : 'text-gray-500 hover:text-gray-700'
-              )}
-            >
-              Admin
-            </button>
-            <button
-              onClick={() => setViewMode('teacher')}
-              className={cn(
-                'flex-1 rounded-lg py-1.5 transition-colors',
-                viewMode === 'teacher'
-                  ? 'bg-white shadow-sm text-gray-900 font-semibold'
-                  : 'text-gray-500 hover:text-gray-700'
-              )}
-            >
-              Giáo viên
-            </button>
-          </div>
+          isCollapsed ? (
+            <div className="mt-3 flex justify-center shrink-0">
+              <button
+                onClick={() => setViewMode(viewMode === 'admin' ? 'teacher' : 'admin')}
+                title={viewMode === 'admin' ? 'Chuyển sang Chế độ Giáo viên' : 'Chuyển sang Chế độ Admin'}
+                className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-700 hover:bg-amber-100 hover:text-amber-800 transition-colors border border-gray-200 shadow-sm"
+              >
+                {viewMode === 'admin' ? 'AD' : 'GV'}
+              </button>
+            </div>
+          ) : (
+            <div className="mx-3 mt-3 flex rounded-xl bg-gray-100 p-1 text-xs font-medium shrink-0">
+              <button
+                onClick={() => setViewMode('admin')}
+                className={cn(
+                  'flex-1 rounded-lg py-1.5 transition-colors',
+                  viewMode === 'admin'
+                    ? 'bg-white shadow-sm text-gray-900 font-semibold'
+                    : 'text-gray-500 hover:text-gray-700'
+                )}
+              >
+                Admin
+              </button>
+              <button
+                onClick={() => setViewMode('teacher')}
+                className={cn(
+                  'flex-1 rounded-lg py-1.5 transition-colors',
+                  viewMode === 'teacher'
+                    ? 'bg-white shadow-sm text-gray-900 font-semibold'
+                    : 'text-gray-500 hover:text-gray-700'
+                )}
+              >
+                Giáo viên
+              </button>
+            </div>
+          )
         )}
 
         {/* ── Nav ── */}
@@ -138,16 +184,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                       'flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
                       isActive
                         ? 'bg-amber-50 text-amber-700'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+                      isCollapsed && 'md:justify-center md:px-0 md:w-10 md:h-10 md:mx-auto md:relative'
                     )
                   }
+                  title={isCollapsed ? label : undefined}
                 >
                   {({ isActive }) => (
                     <>
                       <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-amber-600' : 'text-gray-400')} />
-                      <span className="flex-1">{label}</span>
+                      <span className={cn("flex-1", isCollapsed && "md:hidden")}>{label}</span>
                       {badge && (
-                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none">
+                        <span className={cn(
+                          "bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none",
+                          isCollapsed && "md:absolute md:top-1.5 md:right-1.5 md:min-w-[8px] md:h-2 md:w-2 md:p-0 md:text-[0px]"
+                        )}>
                           {badge}
                         </span>
                       )}
@@ -203,14 +254,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   'flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
                   isActive
                     ? 'bg-amber-50 text-amber-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+                  isCollapsed && 'md:justify-center md:px-0 md:w-10 md:h-10 md:mx-auto md:relative'
                 )
               }
+              title={isCollapsed ? 'Cấu hình' : undefined}
             >
               {({ isActive }) => (
                 <>
                   <Settings className={cn('h-4 w-4 shrink-0', isActive ? 'text-amber-600' : 'text-gray-400')} />
-                  <span className="flex-1">Cấu hình</span>
+                  <span className={cn("flex-1", isCollapsed && "md:hidden")}>Cấu hình</span>
                 </>
               )}
             </NavLink>
@@ -218,19 +271,25 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         {/* ── User profile ── */}
-        <div className="border-t border-gray-200 p-3">
-          <div className="flex items-center gap-2.5 rounded-xl px-2 py-2">
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-bold shrink-0">
+        <div className={cn("border-t border-gray-200 p-3", isCollapsed && "md:p-2")}>
+          <div className={cn(
+            "flex items-center gap-2.5 rounded-xl px-2 py-2",
+            isCollapsed && "md:flex-col md:px-0 md:py-1 md:gap-2"
+          )}>
+            <div 
+              title={user?.fullName}
+              className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-bold shrink-0 shadow-inner"
+            >
               {initials}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className={cn("flex-1 min-w-0", isCollapsed && "md:hidden")}>
               <p className="text-[13px] font-semibold text-gray-900 truncate">{user?.fullName}</p>
               <p className="text-[11px] text-gray-500 truncate">{user?.email}</p>
             </div>
             <button
               onClick={handleLogout}
               title="Đăng xuất"
-              className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50"
+              className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50 shrink-0"
             >
               <LogOut className="h-3.5 w-3.5" />
             </button>
