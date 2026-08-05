@@ -13,7 +13,14 @@ import { api } from '@/shared/api/client'
 import type { ApiResponse } from '@/shared/api/types'
 import { useNewConsultationsCount } from '@/features/consultations/useConsultation'
 
-const navItems = [
+interface SidebarNavItem {
+  to: string
+  icon: any
+  label: string
+  badge?: number
+}
+
+const navItems: SidebarNavItem[] = [
   { to: '/dashboard',     icon: LayoutDashboard, label: 'Tổng quan' },
   { to: '/students',      icon: GraduationCap,   label: 'Học viên' },
   { to: '/classes',       icon: BookOpen,         label: 'Lớp học' },
@@ -49,7 +56,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const isStudent = user?.roles.includes('Student') ?? false
   const isClassesActive = location.pathname.startsWith('/classes')
 
-  const displayNavItems = isStudent
+  const displayNavItems: SidebarNavItem[] = isStudent
     ? [
         { to: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
         { to: '/classes', icon: BookOpen, label: 'Lớp học' },

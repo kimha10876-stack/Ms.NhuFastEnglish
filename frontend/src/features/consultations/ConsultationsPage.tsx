@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import {
   MessageSquare, Search, Trash2, Edit2, Phone, Mail, Clock,
-  Calendar, CheckCircle2, AlertCircle, Eye, ArrowLeft,
-  ChevronLeft, ChevronRight, Loader2, Info
+  AlertCircle, ChevronLeft, ChevronRight, Loader2, Info
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
