@@ -5,7 +5,6 @@ import {
   Eye,
   Edit3,
   Save,
-  Plus,
   Trash2,
   ChevronUp,
   ChevronDown,
@@ -15,10 +14,8 @@ import {
   List,
   Loader2,
   CheckCircle,
-  Folder,
   Calendar,
   User,
-  ExternalLink,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -28,7 +25,6 @@ import {
   useUpdateBlogPost,
   useBlogCategories,
 } from './useBlog'
-import type { BlogPost } from './blog.types'
 
 interface Block {
   id: string
