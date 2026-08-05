@@ -335,48 +335,50 @@ export default function BlogManagementPage() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {posts.length > 0 && (
             <div className="flex justify-between items-center bg-white border border-gray-200 rounded-2xl px-5 py-3 shadow-sm text-xs font-semibold text-gray-500">
               <span>
                 Hiển thị từ <span className="text-gray-900">{((page - 1) * pageSize) + 1}</span> đến{' '}
                 <span className="text-gray-900">{Math.min(page * pageSize, totalCount)}</span> trên{' '}
                 <span className="text-gray-900">{totalCount}</span> bài viết
               </span>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                  disabled={page === 1}
-                  className="rounded-lg text-xs"
-                >
-                  Trước
-                </Button>
-                <div className="flex gap-1">
-                  {Array.from({ length: totalPages }).map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setPage(idx + 1)}
-                      className={`w-7 h-7 rounded-lg border font-semibold flex items-center justify-center transition-colors ${
-                        page === idx + 1
-                          ? 'bg-amber-500 border-amber-500 text-gray-900'
-                          : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                      }`}
-                    >
-                      {idx + 1}
-                    </button>
-                  ))}
+              {totalPages > 1 && (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                    disabled={page === 1}
+                    className="rounded-lg text-xs"
+                  >
+                    Trước
+                  </Button>
+                  <div className="flex gap-1">
+                    {Array.from({ length: totalPages }).map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setPage(idx + 1)}
+                        className={`w-7 h-7 rounded-lg border font-semibold flex items-center justify-center transition-colors ${
+                          page === idx + 1
+                            ? 'bg-amber-500 border-amber-500 text-gray-900'
+                            : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                        }`}
+                      >
+                        {idx + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                    disabled={page === totalPages}
+                    className="rounded-lg text-xs"
+                  >
+                    Sau
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                  disabled={page === totalPages}
-                  className="rounded-lg text-xs"
-                >
-                  Sau
-                </Button>
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -386,7 +388,7 @@ export default function BlogManagementPage() {
       {/* ── CATEGORY MANAGEMENT MODAL ──────────────────────────────────── */}
       {showCatModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
               <div>
@@ -407,100 +409,107 @@ export default function BlogManagementPage() {
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 flex-1 overflow-y-auto space-y-5">
-              
-              {/* Category creation / edit form */}
-              <form onSubmit={handleCatSubmit} className="bg-gray-50 p-4 border rounded-xl space-y-3">
-                <p className="text-xs font-bold text-gray-800">
-                  {editingCatId ? 'Cập nhật danh mục' : 'Thêm danh mục mới'}
-                </p>
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Tên danh mục (VD: Hướng dẫn học)..."
-                    value={newCatName}
-                    onChange={(e) => setNewCatName(e.target.value)}
-                    required
-                    className="h-[36px] bg-white border-gray-200"
-                  />
-                  <div className="flex gap-2.5 items-center">
-                    <span className="text-xs text-gray-500 font-semibold shrink-0">Thứ tự hiển thị:</span>
-                    <Input
-                      type="number"
-                      value={newCatSortOrder}
-                      onChange={(e) => setNewCatSortOrder(Number(e.target.value))}
-                      className="w-20 h-[36px] bg-white border-gray-200 text-center"
-                    />
-                    <div className="flex-1 flex justify-end gap-1.5">
-                      {editingCatId && (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => {
-                            setEditingCatId(null)
-                            setNewCatName('')
-                            setNewCatSortOrder(0)
-                          }}
-                          className="h-[36px] rounded-lg text-xs"
-                        >
-                          Hủy
-                        </Button>
-                      )}
-                      <Button
-                        type="submit"
-                        disabled={createCatMutation.isPending || updateCatMutation.isPending}
-                        className="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold text-xs h-[36px] rounded-lg"
-                      >
-                        Lưu
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-
-              {/* Categories list */}
-              <div className="space-y-2">
-                <p className="text-xs font-bold text-gray-700">Danh mục hiện có</p>
-                {loadingCats ? (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="h-5 w-5 text-amber-500 animate-spin" />
-                  </div>
-                ) : categories.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-4">Chưa có danh mục nào.</p>
-                ) : (
-                  <div className="border border-gray-100 rounded-xl divide-y divide-gray-100 bg-white">
-                    {categories.map((c) => (
-                      <div key={c.id} className="flex justify-between items-center p-3 hover:bg-gray-50 transition-colors">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
-                            {c.name}
-                          </p>
-                          <p className="text-[10px] text-gray-400 mt-0.5">
-                            Slug: {c.slug} · Sắp xếp: {c.sortOrder}
-                          </p>
-                        </div>
-                        <div className="flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleEditCatClick(c)}
-                            className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCat(c.id)}
-                            className="p-1 rounded hover:bg-red-50 text-red-500 hover:text-red-700 transition-colors"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
+            <div className="p-6 flex-1 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                
+                {/* Left Column: Form */}
+                <div className="md:col-span-5">
+                  <form onSubmit={handleCatSubmit} className="bg-gray-50 p-4 border border-gray-150 rounded-2xl space-y-4">
+                    <p className="text-xs font-bold text-gray-800">
+                      {editingCatId ? 'Cập nhật danh mục' : 'Thêm danh mục mới'}
+                    </p>
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tên danh mục</label>
+                        <Input
+                          placeholder="VD: Hướng dẫn học..."
+                          value={newCatName}
+                          onChange={(e) => setNewCatName(e.target.value)}
+                          required
+                          className="h-[38px] bg-white border-gray-200 rounded-xl"
+                        />
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Thứ tự hiển thị</label>
+                        <Input
+                          type="number"
+                          value={newCatSortOrder}
+                          onChange={(e) => setNewCatSortOrder(Number(e.target.value))}
+                          className="h-[38px] bg-white border-gray-200 text-center rounded-xl"
+                        />
+                      </div>
+                      <div className="flex gap-2.5 pt-2">
+                        {editingCatId && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => {
+                              setEditingCatId(null)
+                              setNewCatName('')
+                              setNewCatSortOrder(0)
+                            }}
+                            className="flex-1 h-[38px] rounded-xl text-xs font-bold"
+                          >
+                            Hủy
+                          </Button>
+                        )}
+                        <Button
+                          type="submit"
+                          disabled={createCatMutation.isPending || updateCatMutation.isPending}
+                          className="flex-1 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold text-xs h-[38px] rounded-xl"
+                        >
+                          Lưu
+                        </Button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
 
+                {/* Right Column: List */}
+                <div className="md:col-span-7 space-y-2">
+                  <p className="text-xs font-bold text-gray-700">Danh mục hiện có</p>
+                  {loadingCats ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-6 w-6 text-amber-500 animate-spin" />
+                    </div>
+                  ) : categories.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-6">Chưa có danh mục nào.</p>
+                  ) : (
+                    <div className="border border-gray-150 rounded-2xl divide-y divide-gray-100 bg-white max-h-[350px] overflow-y-auto">
+                      {categories.map((c) => (
+                        <div key={c.id} className="flex justify-between items-center p-3 hover:bg-gray-50 transition-colors">
+                          <div className="min-w-0 flex-1 pr-2">
+                            <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                              <span className="inline-block w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                              <span className="truncate">{c.name}</span>
+                            </p>
+                            <p className="text-[10px] text-gray-400 mt-0.5 truncate font-medium">
+                              Slug: {c.slug} · Thứ tự: {c.sortOrder}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleEditCatClick(c)}
+                              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCat(c.id)}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-700 transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
             </div>
           </div>
         </div>
