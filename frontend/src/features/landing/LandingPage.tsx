@@ -80,7 +80,6 @@ export default function LandingPage() {
     setIsHydrated(true)
   }, [])
 
-  const isStudent = isHydrated && user && user.roles.includes('Student')
   const isLoggedIn = isHydrated && !!user
   
   const { data: blogData } = useBlogPosts({ page: 1, pageSize: 3 })
@@ -98,17 +97,6 @@ export default function LandingPage() {
             </div>
             <span className="font-bold text-[17px] tracking-tight">Ms. Nhụ Fast English</span>
           </div>
-          {isLoggedIn ? (
-            <Link to="/dashboard">
-              <Button size="sm" variant="outline">
-                {isStudent ? 'Vào lớp học' : 'Trang quản lý'}
-              </Button>
-            </Link>
-          ) : (
-            <Link to="/login">
-              <Button size="sm">Đăng nhập</Button>
-            </Link>
-          )}
         </div>
       </header>
 
@@ -127,32 +115,16 @@ export default function LandingPage() {
             hiện đại và giáo viên tận tâm.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {isLoggedIn ? (
-              <Link to="/dashboard">
-                <Button size="lg" className="w-full sm:w-auto px-8">
-                  {isStudent ? 'Vào lớp học ngay' : 'Vào trang quản lý'}
-                  <ChevronRight className="h-4 w-4 ml-0.5" />
-                </Button>
-              </Link>
-            ) : (
-              <>
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto px-8"
-                  onClick={() => {
-                    document.getElementById('dang-ky-tu-van')?.scrollIntoView({ behavior: 'smooth' })
-                  }}
-                >
-                  Đăng ký tư vấn miễn phí
-                  <ChevronRight className="h-4 w-4 ml-0.5" />
-                </Button>
-                <Link to="/login">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto px-8">
-                    Học viên / Giáo viên
-                  </Button>
-                </Link>
-              </>
-            )}
+            <Button
+              size="lg"
+              className="w-full sm:w-auto px-8"
+              onClick={() => {
+                document.getElementById('dang-ky-tu-van')?.scrollIntoView({ behavior: 'smooth' })
+              }}
+            >
+              Đăng ký tư vấn miễn phí
+              <ChevronRight className="h-4 w-4 ml-0.5" />
+            </Button>
           </div>
         </div>
       </section>
@@ -386,26 +358,15 @@ export default function LandingPage() {
           <p className="text-white/70 mb-6 text-sm">
             Tư vấn miễn phí · Không cam kết · Không áp lực
           </p>
-          {isLoggedIn ? (
-            <Link to="/dashboard">
-              <Button
-                size="lg"
-                className="bg-white text-primary hover:bg-white/90 font-semibold px-8"
-              >
-                {isStudent ? 'Vào lớp học ngay' : 'Vào trang quản lý'}
-              </Button>
-            </Link>
-          ) : (
-            <Button
-              size="lg"
-              className="bg-white text-primary hover:bg-white/90 font-semibold px-8"
-              onClick={() => {
-                document.getElementById('dang-ky-tu-van')?.scrollIntoView({ behavior: 'smooth' })
-              }}
-            >
-              Đăng ký ngay
-            </Button>
-          )}
+          <Button
+            size="lg"
+            className="bg-white text-primary hover:bg-white/90 font-semibold px-8"
+            onClick={() => {
+              document.getElementById('dang-ky-tu-van')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+          >
+            Đăng ký ngay
+          </Button>
         </div>
       </section>
 
