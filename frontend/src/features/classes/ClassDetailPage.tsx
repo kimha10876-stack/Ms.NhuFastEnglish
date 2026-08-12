@@ -513,7 +513,8 @@ export default function ClassDetailPage() {
     })
   }
 
-  const startEdit = () => {
+  const startEdit = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault()
     if (!cls) return
     setEditError('')
     setUpdateSuccess(false)
@@ -533,9 +534,13 @@ export default function ClassDetailPage() {
     })
   }
 
-  const handleUpdate = (e: { preventDefault(): void }) => {
-    e.preventDefault()
+  const handleSaveClassInfo = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault()
     if (!editForm) return
+    if (!editForm.name?.trim()) {
+      setEditError('Tên lớp học không được để trống')
+      return
+    }
     setEditError('')
     update(editForm, {
       onSuccess: () => {
@@ -2218,7 +2223,7 @@ export default function ClassDetailPage() {
       )}
 
       {tab === 'info' && (
-        <form onSubmit={handleUpdate} className="space-y-6 text-left">
+        <div className="space-y-6 text-left">
           {/* Header of Info Tab */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-sm max-w-4xl">
             <div className="flex items-center gap-3">
@@ -2249,8 +2254,9 @@ export default function ClassDetailPage() {
                       Hủy bỏ
                     </Button>
                     <Button
-                      type="submit"
+                      type="button"
                       disabled={updating}
+                      onClick={handleSaveClassInfo}
                       className="font-bold rounded-xl text-xs px-5 h-9 bg-amber-500 hover:bg-amber-600 text-gray-950 gap-1.5 shadow-sm"
                     >
                       {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -2635,17 +2641,32 @@ export default function ClassDetailPage() {
             <div className="pt-2 flex justify-start gap-3 max-w-4xl">
               {editForm ? (
                 <>
-                  <Button type="submit" disabled={updating} className="font-bold rounded-xl text-xs px-5 h-9 bg-amber-500 hover:bg-amber-600 text-gray-900 gap-1.5 shadow-sm">
+                  <Button
+                    type="button"
+                    disabled={updating}
+                    onClick={handleSaveClassInfo}
+                    className="font-bold rounded-xl text-xs px-5 h-9 bg-amber-500 hover:bg-amber-600 text-gray-900 gap-1.5 shadow-sm"
+                  >
                     {updating ? <Loader2 className="h-4 w-4 animate-spin text-gray-900" /> : <Save className="h-4 w-4" />}
                     Lưu thay đổi
                   </Button>
-                  <Button type="button" onClick={() => { setEditForm(null); setEditError('') }} variant="secondary" className="font-semibold rounded-xl text-xs px-5 h-9">
+                  <Button
+                    type="button"
+                    onClick={() => { setEditForm(null); setEditError('') }}
+                    variant="secondary"
+                    className="font-semibold rounded-xl text-xs px-5 h-9"
+                  >
                     Hủy bỏ
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button type="button" onClick={startEdit} variant="secondary" className="font-semibold gap-1.5 rounded-xl text-xs px-4 h-9">
+                  <Button
+                    type="button"
+                    onClick={startEdit}
+                    variant="secondary"
+                    className="font-semibold gap-1.5 rounded-xl text-xs px-4 h-9"
+                  >
                     <Edit2 className="h-3.5 w-3.5" />
                     Chỉnh sửa thông tin
                   </Button>
@@ -2665,7 +2686,7 @@ export default function ClassDetailPage() {
               )}
             </div>
           )}
-        </form>
+        </div>
       )}
 
       {/* ── 5. Tuition tab (Học phí) ── */}
