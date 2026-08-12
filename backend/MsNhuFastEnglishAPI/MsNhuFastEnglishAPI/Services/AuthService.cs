@@ -31,6 +31,11 @@ public class AuthService(
         if (!user.IsActive)
             return (null, "Tài khoản của bạn đã bị khóa");
 
+        // Nếu người dùng chọn portal (Admin/Teacher/Student) thì phải thuộc role đó
+        if (!string.IsNullOrEmpty(req.Role) &&
+            !user.UserRoles.Any(ur => ur.Role.Name == req.Role))
+            return (null, $"Tài khoản không có quyền truy cập khu vực {req.Role}");
+
         var response = await IssueTokensAsync(user);
         return (response, null);
     }

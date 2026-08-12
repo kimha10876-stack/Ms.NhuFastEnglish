@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from '@/shared/components/layout/AppShell'
 import { AuthGuard } from '@/shared/components/layout/AuthGuard'
+import { RoleGuard } from '@/shared/components/layout/RoleGuard'
 
 const LandingPage       = lazy(() => import('@/features/landing/LandingPage'))
 const LoginPage         = lazy(() => import('@/features/auth/LoginPage'))
@@ -52,20 +53,33 @@ export default function App() {
             {/* Protected */}
             <Route element={<AuthGuard />}>
               <Route element={<AppShell />}>
-                <Route path="dashboard"        element={<DashboardPage />} />
-                <Route path="students"         element={<StudentsPage />} />
-                <Route path="classes"          element={<ClassesPage />} />
-                <Route path="classes/:id"      element={<ClassDetailPage />} />
-                <Route path="teachers"         element={<TeachersPage />} />
-                <Route path="consultations"    element={<ConsultationsPage />} />
-                <Route path="settings"         element={<SettingsPage />} />
-                <Route path="blog-management"  element={<BlogManagementPage />} />
+                {/* General dashboard (renders role-specific view inside) */}
+                <Route path="dashboard" element={<DashboardPage />} />
+
+                {/* Common classes */}
+                <Route path="classes" element={<ClassesPage />} />
+                <Route path="classes/:id" element={<ClassDetailPage />} />
+
+                {/* Admin-only routes */}
+                <Route element={<RoleGuard allowedRoles={['Admin']} />}>
+                  <Route path="students" element={<StudentsPage />} />
+                  <Route path="teachers" element={<TeachersPage />} />
+                  <Route path="consultations" element={<ConsultationsPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                </Route>
+
+                {/* Admin & Teacher routes */}
+                <Route element={<RoleGuard allowedRoles={['Admin', 'Teacher']} />}>
+                  <Route path="blog-management" element={<BlogManagementPage />} />
+                </Route>
               </Route>
               
               {/* Fullscreen pages (no AppShell) */}
               <Route path="classes/:classId/assignments/:assignmentId/do" element={<DoAssignmentPage />} />
-              <Route path="blog-management/editor" element={<BlogEditorPage />} />
-              <Route path="blog-management/editor/:id" element={<BlogEditorPage />} />
+              <Route element={<RoleGuard allowedRoles={['Admin', 'Teacher']} />}>
+                <Route path="blog-management/editor" element={<BlogEditorPage />} />
+                <Route path="blog-management/editor/:id" element={<BlogEditorPage />} />
+              </Route>
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

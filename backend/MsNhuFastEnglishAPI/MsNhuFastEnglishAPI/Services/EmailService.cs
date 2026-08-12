@@ -7,10 +7,10 @@ namespace MsNhuFastEnglishAPI.Services;
 public class EmailService(IConfiguration config, ILogger<EmailService> logger)
 {
     public Task SendWelcomeAsync(string toEmail, string fullName, string tempPassword) =>
-        SendAsync(toEmail, "Chào mừng đến với Ms. Nhụ Fast English!", $"""
+        SendAsync(toEmail, "Chào mừng đến với Ms Nhu Fast English!", $"""
             <div style="font-family:sans-serif;max-width:520px;margin:0 auto">
               <h2 style="color:#007AFF">Chào {fullName}!</h2>
-              <p>Tài khoản của bạn đã được tạo thành công tại <strong>Ms. Nhụ Fast English</strong>.</p>
+              <p>Tài khoản của bạn đã được tạo thành công tại <strong>Ms Nhu Fast English</strong>.</p>
               <table style="border-collapse:collapse;width:100%;margin:20px 0">
                 <tr><td style="padding:8px;background:#f5f5f7;font-weight:600">Email</td>
                     <td style="padding:8px;border:1px solid #e5e5ea">{toEmail}</td></tr>
@@ -22,7 +22,7 @@ public class EmailService(IConfiguration config, ILogger<EmailService> logger)
             """);
 
     public Task SendOtpAsync(string toEmail, string fullName, string otp) =>
-        SendAsync(toEmail, "Mã OTP đặt lại mật khẩu — Ms. Nhụ Fast English", $"""
+        SendAsync(toEmail, "Mã OTP đặt lại mật khẩu — Ms Nhu Fast English", $"""
             <div style="font-family:sans-serif;max-width:520px;margin:0 auto">
               <h2 style="color:#007AFF">Xin chào {fullName},</h2>
               <p>Bạn vừa yêu cầu đặt lại mật khẩu. Nhập mã OTP bên dưới:</p>
@@ -42,7 +42,7 @@ public class EmailService(IConfiguration config, ILogger<EmailService> logger)
         {
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(
-                config["Smtp:FromName"] ?? "Ms. Nhụ Fast English",
+                config["Smtp:FromName"] ?? "Ms Nhu Fast English",
                 config["Smtp:FromEmail"]!));
             message.To.Add(MailboxAddress.Parse(toEmail));
             message.Subject = subject;

@@ -34,7 +34,7 @@ export default function JoinClassPage() {
         <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center">
           <BookOpen className="h-5 w-5 text-gray-900" />
         </div>
-        <span className="font-bold text-[17px] tracking-tight text-gray-900">Ms. Nhụ Fast English</span>
+        <span className="font-bold text-[17px] tracking-tight text-gray-900">Ms Nhu Fast English</span>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm w-full max-w-sm">

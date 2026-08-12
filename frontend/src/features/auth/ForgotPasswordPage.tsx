@@ -68,7 +68,7 @@ export default function ForgotPasswordPage() {
             <BookOpen className="h-4 w-4 text-white" />
           </div>
           <span className="font-bold text-white text-[17px] tracking-tight">
-            Ms. Nhụ Fast English
+            Ms Nhu Fast English
           </span>
         </div>
         <div>
@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
             Nhập email đăng ký, chúng tôi sẽ gửi mã OTP để xác thực và đặt lại mật khẩu.
           </p>
         </div>
-        <p className="text-white/30 text-xs">© 2025 Ms. Nhụ Fast English</p>
+        <p className="text-white/30 text-xs">© 2025 Ms Nhu Fast English</p>
       </div>
 
       {/* ── Form panel ──────────────────────────────────────────────────── */}
@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
             <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center">
               <BookOpen className="h-4 w-4 text-white" />
             </div>
-            <span className="font-bold text-[17px] tracking-tight">Ms. Nhụ Fast English</span>
+            <span className="font-bold text-[17px] tracking-tight">Ms Nhu Fast English</span>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-black/[0.06] p-7">

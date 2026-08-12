@@ -1,4 +1,4 @@
-# Ms. Nhụ Fast English — Project Guide
+# Ms Nhu Fast English — Project Guide
 
 ## Stack
 - **Frontend**: React 18 + Vite + TypeScript, TanStack Query, Zustand, React Router v6

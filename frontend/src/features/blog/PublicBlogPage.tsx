@@ -46,7 +46,7 @@ export default function PublicBlogPage() {
             <div className="w-7 h-7 bg-amber-500 rounded-lg flex items-center justify-center">
               <BookOpen className="h-4 w-4 text-gray-900" />
             </div>
-            <span className="font-bold text-[17px] tracking-tight text-gray-900">Ms. Nhụ Fast English</span>
+            <span className="font-bold text-[17px] tracking-tight text-gray-900">Ms Nhu Fast English</span>
           </Link>
           <div className="flex items-center gap-2">
             {user && (
@@ -236,7 +236,7 @@ export default function PublicBlogPage() {
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer className="py-6 px-5 border-t text-center text-xs text-gray-400 bg-white shrink-0">
-        © 2025 Ms. Nhụ Fast English · Trung tâm Anh ngữ
+        © 2025 Ms Nhu Fast English · Trung tâm Anh ngữ
       </footer>
 
     </div>

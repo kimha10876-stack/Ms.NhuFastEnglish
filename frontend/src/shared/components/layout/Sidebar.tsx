@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, BookOpen, GraduationCap,
-  CreditCard, FileText, MessageSquare, LogOut, Settings,
+  FileText, MessageSquare, LogOut, Settings,
   ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -20,16 +20,6 @@ interface SidebarNavItem {
   badge?: number
 }
 
-const navItems: SidebarNavItem[] = [
-  { to: '/dashboard',     icon: LayoutDashboard, label: 'Tổng quan' },
-  { to: '/students',      icon: GraduationCap,   label: 'Học viên' },
-  { to: '/classes',       icon: BookOpen,         label: 'Lớp học' },
-  { to: '/teachers',      icon: Users,            label: 'Giáo viên' },
-  { to: '/tuition',       icon: CreditCard,       label: 'Học phí' },
-  { to: '/consultations', icon: MessageSquare,    label: 'Tư vấn' },
-  { to: '/blog-management', icon: FileText,         label: 'Blog' },
-]
-
 interface SidebarProps {
   open: boolean
   onClose: () => void
@@ -38,6 +28,9 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore()
   const isAdmin = user?.roles.includes('Admin') ?? false
+  const isTeacher = user?.roles.includes('Teacher') ?? false
+  const isStudent = user?.roles.includes('Student') ?? false
+
   const location = useLocation()
   const [isClassesHovered, setIsClassesHovered] = useState(false)
 
@@ -53,26 +46,38 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     localStorage.setItem('sidebar-collapsed', String(next))
   }
 
-  const isStudent = user?.roles.includes('Student') ?? false
   const isClassesActive = location.pathname.startsWith('/classes')
 
-  const displayNavItems: SidebarNavItem[] = isStudent
-    ? [
-        { to: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
-        { to: '/classes', icon: BookOpen, label: 'Lớp học' },
-        { to: '/blog', icon: FileText, label: 'Blog chia sẻ' },
-      ]
-    : navItems
-        .map((item) => {
-          if (item.to === '/consultations') {
-            return { ...item, badge: newConsultationsCount > 0 ? newConsultationsCount : undefined }
-          }
-          return item
-        })
-        .filter((item) => {
-          if (item.to === '/consultations') return isAdmin
-          return true
-        })
+  // Configure navigation items strictly based on role
+  let displayNavItems: SidebarNavItem[] = []
+  if (isStudent) {
+    displayNavItems = [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
+      { to: '/classes', icon: BookOpen, label: 'Lớp học của tôi' },
+      { to: '/blog', icon: FileText, label: 'Blog chia sẻ' },
+    ]
+  } else if (isTeacher && !isAdmin) {
+    displayNavItems = [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
+      { to: '/classes', icon: BookOpen, label: 'Lớp học phụ trách' },
+      { to: '/blog-management', icon: FileText, label: 'Góc chia sẻ / Blog' },
+    ]
+  } else {
+    // Admin
+    displayNavItems = [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
+      { to: '/students', icon: GraduationCap, label: 'Học viên' },
+      { to: '/classes', icon: BookOpen, label: 'Lớp học' },
+      { to: '/teachers', icon: Users, label: 'Giáo viên' },
+      {
+        to: '/consultations',
+        icon: MessageSquare,
+        label: 'Tư vấn',
+        badge: newConsultationsCount > 0 ? newConsultationsCount : undefined,
+      },
+      { to: '/blog-management', icon: FileText, label: 'Quản lý Blog' },
+    ]
+  }
 
   const { data: myClasses = [] } = useQuery<any[]>({
     queryKey: ['my-classes'],
@@ -128,7 +133,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               "font-bold text-[13px] text-gray-900 tracking-tight leading-tight truncate transition-all duration-200",
               isCollapsed && "md:hidden"
             )}>
-              Ms. Nhụ<br />Fast English
+              Ms Nhu<br />Fast English
             </span>
           </div>
 
@@ -264,15 +269,34 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               {initials}
             </div>
             <div className={cn("flex-1 min-w-0", isCollapsed && "md:hidden")}>
-              <p className="text-[13px] font-semibold text-gray-900 truncate">{user?.fullName}</p>
-              <p className="text-[11px] text-gray-500 truncate">{user?.email}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[13px] font-semibold text-gray-900 truncate">{user?.fullName}</p>
+              </div>
+              <div className="flex items-center gap-1 mt-0.5">
+                {isAdmin && (
+                  <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-red-100 text-red-700 tracking-wider">
+                    Admin
+                  </span>
+                )}
+                {isTeacher && !isAdmin && (
+                  <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 tracking-wider">
+                    Giáo viên
+                  </span>
+                )}
+                {isStudent && (
+                  <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 tracking-wider">
+                    Học viên
+                  </span>
+                )}
+                <span className="text-[11px] text-gray-400 truncate">{user?.email}</span>
+              </div>
             </div>
             <button
               onClick={handleLogout}
               title="Đăng xuất"
-              className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50 shrink-0"
+              className="text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-50 shrink-0"
             >
-              <LogOut className="h-3.5 w-3.5" />
+              <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>

@@ -1,7 +1,7 @@
 namespace MsNhuFastEnglishAPI.Models.DTOs;
 
 // ── Login ─────────────────────────────────────────────────────────────────────
-public record LoginRequest(string Email, string Password);
+public record LoginRequest(string Email, string Password, string? Role = null);
 
 // ── Register (Admin only) ─────────────────────────────────────────────────────
 public record RegisterRequest

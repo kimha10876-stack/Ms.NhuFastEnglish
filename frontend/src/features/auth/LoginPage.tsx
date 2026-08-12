@@ -39,7 +39,7 @@ export default function LoginPage() {
             <BookOpen className="h-4 w-4 text-white" />
           </div>
           <span className="font-bold text-white text-[17px] tracking-tight">
-            Ms. Nhụ Fast English
+            Ms Nhu Fast English
           </span>
         </div>
 
@@ -56,7 +56,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <p className="text-white/30 text-xs">© 2025 Ms. Nhụ Fast English</p>
+        <p className="text-white/30 text-xs">© 2025 Ms Nhu Fast English</p>
       </div>
 
       {/* ── Form panel ──────────────────────────────────────────────────── */}
@@ -68,7 +68,7 @@ export default function LoginPage() {
             <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center">
               <BookOpen className="h-4 w-4 text-white" />
             </div>
-            <span className="font-bold text-[17px] tracking-tight">Ms. Nhụ Fast English</span>
+            <span className="font-bold text-[17px] tracking-tight">Ms Nhu Fast English</span>
           </div>
 
           {/* Card */}

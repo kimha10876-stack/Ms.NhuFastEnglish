@@ -274,8 +274,12 @@ export default function ClassesPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">Quản lý</p>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Lớp học</h1>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">
+            {isAdmin ? 'Quản lý hệ thống' : 'Giảng dạy'}
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            {isAdmin ? 'Danh sách Lớp học' : 'Lớp học phụ trách'}
+          </h1>
         </div>
         <Button onClick={openCreateModal} className="gap-1.5 rounded-xl font-bold text-xs">
           <Plus className="h-4 w-4" />

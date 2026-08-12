@@ -171,7 +171,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         // ── Seed SystemSettings ──────────────────────────────────────────
         mb.Entity<SystemSetting>().HasData(
-            new SystemSetting { Key = "CenterName", Value = "Ms. Nhụ Fast English", Description = "Tên trung tâm" },
+            new SystemSetting { Key = "CenterName", Value = "Ms Nhu Fast English", Description = "Tên trung tâm" },
             new SystemSetting { Key = "Hotline", Value = "0905 123 456", Description = "Số điện thoại hotline" },
             new SystemSetting { Key = "Address", Value = "123 Đường Ba Tháng Hai, Đà Nẵng", Description = "Địa chỉ trung tâm" },
             new SystemSetting { Key = "FacebookUrl", Value = "https://facebook.com/msnhu.fastenglish", Description = "Liên kết trang Facebook" },

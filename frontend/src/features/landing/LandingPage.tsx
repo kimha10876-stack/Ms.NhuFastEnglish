@@ -15,7 +15,7 @@ const features = [
   {
     icon: GraduationCap,
     title: 'Giáo viên tận tâm',
-    desc: 'Ms. Nhụ với nhiều năm kinh nghiệm giảng dạy, cam kết theo sát và đồng hành cùng bạn.',
+    desc: 'Ms Nhu với nhiều năm kinh nghiệm giảng dạy, cam kết theo sát và đồng hành cùng bạn.',
   },
   {
     icon: TrendingUp,
@@ -95,7 +95,7 @@ export default function LandingPage() {
             <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
               <BookOpen className="h-4 w-4 text-white" />
             </div>
-            <span className="font-bold text-[17px] tracking-tight">Ms. Nhụ Fast English</span>
+            <span className="font-bold text-[17px] tracking-tight">Ms Nhu Fast English</span>
           </div>
         </div>
       </header>
@@ -152,7 +152,7 @@ export default function LandingPage() {
       <section className="py-16 px-5 bg-white">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-[26px] font-bold text-center mb-2 text-balance">
-            Tại sao chọn Ms. Nhụ Fast English?
+            Tại sao chọn Ms Nhu Fast English?
           </h2>
           <p className="text-muted-foreground text-center mb-10">
             Chúng tôi cam kết mang lại trải nghiệm học tập tốt nhất.
@@ -243,7 +243,7 @@ export default function LandingPage() {
               </span>
               <h2 className="text-2xl font-bold text-gray-900 mt-3">Đăng ký nhận lộ trình học</h2>
               <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                Để lại thông tin bên dưới, Ms. Nhụ sẽ trực tiếp liên hệ và tư vấn lộ trình học phù hợp nhất cho bạn.
+                Để lại thông tin bên dưới, Ms Nhu sẽ trực tiếp liên hệ và tư vấn lộ trình học phù hợp nhất cho bạn.
               </p>
             </div>
 
@@ -372,7 +372,7 @@ export default function LandingPage() {
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer className="mt-auto py-6 px-5 border-t text-center text-xs text-muted-foreground">
-        © 2025 Ms. Nhụ Fast English · Trung tâm Anh ngữ
+        © 2025 Ms Nhu Fast English · Trung tâm Anh ngữ
       </footer>
 
     </div>

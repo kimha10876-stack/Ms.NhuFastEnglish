@@ -540,7 +540,7 @@ export default function SettingsPage() {
                     <Input
                       value={settingsForm.CenterName ?? ''}
                       onChange={(e) => setSettingsForm((p) => ({ ...p, CenterName: e.target.value }))}
-                      placeholder="VD: Ms. Nhụ Fast English"
+                      placeholder="VD: Ms Nhu Fast English"
                       required
                     />
                   </div>

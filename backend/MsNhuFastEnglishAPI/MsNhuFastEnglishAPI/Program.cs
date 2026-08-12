@@ -455,7 +455,7 @@ using (var scope = app.Services.CreateScope())
             if (!db.SystemSettings.Any())
             {
                 db.SystemSettings.AddRange(
-                    new SystemSetting { Key = "CenterName", Value = "Ms. Nhụ Fast English", Description = "Tên trung tâm" },
+                    new SystemSetting { Key = "CenterName", Value = "Ms Nhu Fast English", Description = "Tên trung tâm" },
                     new SystemSetting { Key = "Hotline", Value = "0905 123 456", Description = "Số điện thoại hotline" },
                     new SystemSetting { Key = "Address", Value = "123 Đường Ba Tháng Hai, Đà Nẵng", Description = "Địa chỉ trung tâm" },
                     new SystemSetting { Key = "FacebookUrl", Value = "https://facebook.com/msnhu.fastenglish", Description = "Liên kết trang Facebook" },
@@ -679,7 +679,7 @@ using (var scope = app.Services.CreateScope())
                 var template1 = new CurriculumTemplate
                 {
                     Id = Guid.NewGuid(),
-                    Name = "Chương trình Giao tiếp tiếng Anh cơ bản (Ms. Nhụ Fast English)",
+                    Name = "Chương trình Giao tiếp tiếng Anh cơ bản (Ms Nhu Fast English)",
                     Description = "Lộ trình học giao tiếp 12 buổi thiết kế dành riêng cho học viên mất gốc tiếng Anh, tập trung phát âm chuẩn IPA và phản xạ giao tiếp tự nhiên.",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -706,7 +706,7 @@ using (var scope = app.Services.CreateScope())
                 var template2 = new CurriculumTemplate
                 {
                     Id = Guid.NewGuid(),
-                    Name = "Lộ trình luyện thi IELTS Starter 5.0 (Ms. Nhụ Fast English)",
+                    Name = "Lộ trình luyện thi IELTS Starter 5.0 (Ms Nhu Fast English)",
                     Description = "Khung giáo trình luyện thi IELTS giai đoạn khởi động (24 buổi), giúp học viên xây dựng nền tảng từ vựng, ngữ pháp cốt lõi và làm quen 4 kỹ năng theo format đề thi chuẩn.",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow

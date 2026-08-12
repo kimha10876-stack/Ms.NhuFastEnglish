@@ -122,7 +122,7 @@ export function AppShell() {
                 <BookOpen className="h-4.5 w-4.5 text-gray-900" />
               </div>
               <span className="font-extrabold text-[15px] text-gray-900 tracking-tight leading-tight hidden sm:block">
-                Ms. Nhụ Fast English
+                Ms Nhu Fast English
               </span>
             </div>
 
@@ -235,7 +235,10 @@ export function AppShell() {
                 {isProfileOpen && (
                   <div className="absolute right-0 mt-1 w-52 rounded-2xl bg-white border border-gray-150 shadow-xl py-2 animate-in fade-in slide-in-from-top-2 duration-150 z-50">
                     <div className="px-4 py-2 border-b border-gray-50 mb-1">
-                      <p className="text-xs font-bold text-gray-950 truncate">{user?.fullName}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-gray-950 truncate">{user?.fullName}</p>
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Học viên</span>
+                      </div>
                       <p className="text-[10px] text-gray-400 truncate mt-0.5">{user?.email}</p>
                     </div>
                     <button
@@ -277,7 +280,7 @@ export function AppShell() {
                 <div className="w-6 h-6 rounded-md bg-amber-500 flex items-center justify-center">
                   <BookOpen className="h-3.5 w-3.5 text-gray-900" />
                 </div>
-                <span className="font-semibold text-sm text-gray-900">Ms. Nhụ English</span>
+                <span className="font-semibold text-sm text-gray-900">Ms Nhu English</span>
               </div>
             </header>
           )}
