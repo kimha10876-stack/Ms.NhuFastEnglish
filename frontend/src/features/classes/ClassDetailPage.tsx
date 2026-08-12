@@ -2224,59 +2224,6 @@ export default function ClassDetailPage() {
 
       {tab === 'info' && (
         <div className="space-y-6 text-left">
-          {/* Header of Info Tab */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-sm max-w-4xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-                <Info className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-gray-900 text-base">Thông tin chi tiết lớp học</h3>
-                <p className="text-xs text-gray-400">
-                  {editForm ? 'Đang trong chế độ chỉnh sửa thông tin' : 'Xem và quản lý thông tin cấu hình lớp học'}
-                </p>
-              </div>
-            </div>
-
-            {isStaff && (
-              <div className="flex items-center gap-2 shrink-0">
-                {editForm ? (
-                  <>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setEditForm(null)
-                        setEditError('')
-                      }}
-                      variant="secondary"
-                      className="font-bold rounded-xl text-xs px-4 h-9"
-                    >
-                      Hủy bỏ
-                    </Button>
-                    <Button
-                      type="button"
-                      disabled={updating}
-                      onClick={handleSaveClassInfo}
-                      className="font-bold rounded-xl text-xs px-5 h-9 bg-amber-500 hover:bg-amber-600 text-gray-950 gap-1.5 shadow-sm"
-                    >
-                      {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      Lưu thay đổi
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={startEdit}
-                    className="font-bold rounded-xl text-xs px-4 h-9 bg-amber-500 hover:bg-amber-600 text-gray-950 gap-1.5 shadow-sm"
-                  >
-                    <Edit2 className="h-3.5 w-3.5" />
-                    Chỉnh sửa thông tin
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-
           {/* Success / Error Alerts */}
           {updateSuccess && (
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2.5 max-w-4xl animate-in fade-in duration-200">
