@@ -241,6 +241,8 @@ export default function ClassDetailPage() {
   // Tuition hooks
   const { data: tuitionRecords = [], isLoading: loadingTuitions } = useClassTuitions(id)
   const confirmTuitionMutation = useConfirmTuitionPayment(id)
+  const [showMonthlyFeeModal, setShowMonthlyFeeModal] = useState(false)
+  const [newMonthlyFee, setNewMonthlyFee] = useState<number>(0)
 
   // Announcements and Comments states & hooks
   const { data: announcements = [], isLoading: loadingAnnouncements } = useClassAnnouncements(id)
@@ -845,6 +847,17 @@ export default function ClassDetailPage() {
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${STATUS_COLOR[cls.status] ?? STATUS_COLOR.active}`}>
               {STATUS_LABEL[cls.status] ?? cls.status}
             </span>
+            {cls.monthlyFee > 0 ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200">
+                <CreditCard className="h-3.5 w-3.5 text-amber-600" />
+                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cls.monthlyFee)}/tháng
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-md border border-gray-200">
+                <CreditCard className="h-3.5 w-3.5 text-gray-400" />
+                Chưa đặt học phí
+              </span>
+            )}
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 truncate">{cls.name}</h1>
           <p className="text-sm text-gray-500 mt-0.5">Giáo viên: {cls.teacherName}</p>
@@ -876,7 +889,51 @@ export default function ClassDetailPage() {
           Bảng tin
         </button>
 
-        {isAdmin ? (
+        <button
+          onClick={() => setTab('lessons')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
+            tab === 'lessons'
+              ? 'border-amber-500 text-amber-700 font-semibold'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <BookOpen className="h-4 w-4" />
+          Bài học & Tài liệu
+        </button>
+
+        <button
+          onClick={() => setTab('assignments')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
+            tab === 'assignments'
+              ? 'border-amber-500 text-amber-700 font-semibold'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <CheckSquare className="h-4 w-4" />
+          Bài tập về nhà
+          <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${tab === 'assignments' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+            {assignments.length}
+          </span>
+        </button>
+
+        {!isStudent && (
+          <button
+            onClick={() => setTab('members')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
+              tab === 'members'
+                ? 'border-amber-500 text-amber-700 font-semibold'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            Điểm danh & Thành viên
+            <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${tab === 'members' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+              {cls.members.length}
+            </span>
+          </button>
+        )}
+
+        {isAdmin && (
           <button
             onClick={() => setTab('tuition')}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
@@ -888,62 +945,19 @@ export default function ClassDetailPage() {
             <CreditCard className="h-4 w-4" />
             Học phí
           </button>
-        ) : (
-          <>
-            <button
-              onClick={() => setTab('lessons')}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
-                tab === 'lessons'
-                  ? 'border-amber-500 text-amber-700 font-semibold'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <BookOpen className="h-4 w-4" />
-              Bài học & Tài liệu
-            </button>
-            <button
-              onClick={() => setTab('assignments')}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
-                tab === 'assignments'
-                  ? 'border-amber-500 text-amber-700 font-semibold'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <CheckSquare className="h-4 w-4" />
-              Bài tập về nhà
-              <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${tab === 'assignments' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
-                {assignments.length}
-              </span>
-            </button>
-            {!isStudent && (
-              <button
-                onClick={() => setTab('members')}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
-                  tab === 'members'
-                    ? 'border-amber-500 text-amber-700 font-semibold'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Users className="h-4 w-4" />
-                Điểm danh & Thành viên
-                <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${tab === 'members' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
-                  {cls.members.length}
-                </span>
-              </button>
-            )}
-            <button
-              onClick={() => setTab('info')}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
-                tab === 'info'
-                  ? 'border-amber-500 text-amber-700 font-semibold'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Info className="h-4 w-4" />
-              Thông tin lớp
-            </button>
-          </>
         )}
+
+        <button
+          onClick={() => setTab('info')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
+            tab === 'info'
+              ? 'border-amber-500 text-amber-700 font-semibold'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Info className="h-4 w-4" />
+          Thông tin lớp
+        </button>
       </div>
 
       {/* ── 0. Announcements tab (Bảng tin) ── */}
@@ -2536,13 +2550,28 @@ export default function ClassDetailPage() {
         <div className="space-y-6 text-left">
           {/* Tuition Metrics Summary */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-sm">
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Học phí mỗi tháng</p>
-              <p className="text-xl font-black text-amber-700 mt-1">
-                {cls.monthlyFee > 0
-                  ? `${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cls.monthlyFee)}`
-                  : 'Chưa cấu hình'}
-              </p>
+            <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Học phí mỗi tháng</p>
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        setNewMonthlyFee(cls.monthlyFee ?? 0)
+                        setShowMonthlyFeeModal(true)
+                      }}
+                      className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline"
+                    >
+                      Cài đặt
+                    </button>
+                  )}
+                </div>
+                <p className="text-xl font-black text-amber-700 mt-1">
+                  {cls.monthlyFee > 0
+                    ? `${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cls.monthlyFee)}`
+                    : 'Chưa cấu hình'}
+                </p>
+              </div>
               <p className="text-[11px] text-gray-400 mt-0.5">Áp dụng cho mỗi học viên</p>
             </div>
 
@@ -2761,6 +2790,63 @@ export default function ClassDetailPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Cài đặt học phí lớp ── */}
+      {showMonthlyFeeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">Cài đặt học phí lớp</h3>
+                <p className="text-xs text-gray-400">Áp dụng số tiền thu hàng tháng cho học viên</p>
+              </div>
+              <button
+                onClick={() => setShowMonthlyFeeModal(false)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700">Mức học phí hàng tháng (VNĐ)</label>
+              <Input
+                type="number"
+                min={0}
+                step={50000}
+                value={newMonthlyFee}
+                onChange={(e) => setNewMonthlyFee(Number(e.target.value) || 0)}
+                placeholder="VD: 800000"
+                className="w-full text-sm font-bold rounded-xl"
+              />
+              <p className="text-[11px] text-gray-400">
+                Hiển thị: <strong>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(newMonthlyFee)}</strong> / tháng
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="secondary"
+                className="flex-1 rounded-xl text-xs font-bold"
+                onClick={() => setShowMonthlyFeeModal(false)}
+              >
+                Hủy
+              </Button>
+              <Button
+                disabled={updating}
+                className="flex-1 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-gray-950"
+                onClick={() => {
+                  update({ monthlyFee: newMonthlyFee }, {
+                    onSuccess: () => setShowMonthlyFeeModal(false)
+                  })
+                }}
+              >
+                {updating ? 'Đang lưu...' : 'Lưu học phí'}
+              </Button>
             </div>
           </div>
         </div>
