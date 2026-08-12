@@ -4,7 +4,7 @@ import {
   ArrowLeft, Users, Info, Trash2, Plus, Copy, Link2, CreditCard,
   Loader2, Check, AlertTriangle, Search, Edit2,
   ChevronLeft, ChevronRight, ChevronDown, BookOpen, FileText, Calendar,
-  Clock, Sparkles,
+  Clock, Sparkles, MapPin, Save, CheckCircle2, AlertCircle,
   Paperclip, ExternalLink, Send, Download, PlusCircle,
   GraduationCap, File, CheckSquare, XCircle, Megaphone, Bold, Italic, Underline, MoreVertical
 } from 'lucide-react'
@@ -181,6 +181,7 @@ export default function ClassDetailPage() {
   }
   const [editForm, setEditForm]     = useState<UpdateClassRequest | null>(null)
   const [editError, setEditError]   = useState('')
+  const [updateSuccess, setUpdateSuccess] = useState(false)
 
   // Query Hooks
   const { data: cls, isLoading: loadingClass }       = useClassDetail(id)
@@ -514,11 +515,20 @@ export default function ClassDetailPage() {
 
   const startEdit = () => {
     if (!cls) return
+    setEditError('')
+    setUpdateSuccess(false)
     setEditForm({
-      name: cls.name, categoryId: cls.categoryId, teacherId: cls.teacherId,
-      status: cls.status, monthlyFee: cls.monthlyFee ?? 0, scheduleDays: cls.scheduleDays ?? '', scheduleTime: cls.scheduleTime ?? '',
-      room: cls.room ?? '', note: cls.note ?? '', maxStudents: cls.maxStudents ?? undefined,
-      endDate: cls.endDate ?? undefined,
+      name: cls.name,
+      categoryId: cls.categoryId,
+      teacherId: cls.teacherId,
+      status: cls.status,
+      monthlyFee: cls.monthlyFee ?? 0,
+      scheduleDays: cls.scheduleDays ?? '',
+      scheduleTime: cls.scheduleTime ?? '',
+      room: cls.room ?? '',
+      note: cls.note ?? '',
+      maxStudents: cls.maxStudents ?? undefined,
+      endDate: cls.endDate ? cls.endDate.split('T')[0] : undefined,
       startDate: cls.startDate ? cls.startDate.split('T')[0] : undefined,
     })
   }
@@ -528,7 +538,11 @@ export default function ClassDetailPage() {
     if (!editForm) return
     setEditError('')
     update(editForm, {
-      onSuccess: () => setEditForm(null),
+      onSuccess: () => {
+        setEditForm(null)
+        setUpdateSuccess(true)
+        setTimeout(() => setUpdateSuccess(false), 3500)
+      },
       onError: (err: any) => {
         const msg = err?.response?.data?.message
         setEditError(msg ?? 'Cập nhật thất bại')
@@ -2205,21 +2219,87 @@ export default function ClassDetailPage() {
 
       {tab === 'info' && (
         <form onSubmit={handleUpdate} className="space-y-6 text-left">
+          {/* Header of Info Tab */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-sm max-w-4xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                <Info className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-gray-900 text-base">Thông tin chi tiết lớp học</h3>
+                <p className="text-xs text-gray-400">
+                  {editForm ? 'Đang trong chế độ chỉnh sửa thông tin' : 'Xem và quản lý thông tin cấu hình lớp học'}
+                </p>
+              </div>
+            </div>
+
+            {isStaff && (
+              <div className="flex items-center gap-2 shrink-0">
+                {editForm ? (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setEditForm(null)
+                        setEditError('')
+                      }}
+                      variant="secondary"
+                      className="font-bold rounded-xl text-xs px-4 h-9"
+                    >
+                      Hủy bỏ
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={updating}
+                      className="font-bold rounded-xl text-xs px-5 h-9 bg-amber-500 hover:bg-amber-600 text-gray-950 gap-1.5 shadow-sm"
+                    >
+                      {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      Lưu thay đổi
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={startEdit}
+                    className="font-bold rounded-xl text-xs px-4 h-9 bg-amber-500 hover:bg-amber-600 text-gray-950 gap-1.5 shadow-sm"
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                    Chỉnh sửa thông tin
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Success / Error Alerts */}
+          {updateSuccess && (
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2.5 max-w-4xl animate-in fade-in duration-200">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+              <span>Đã cập nhật thông tin lớp học thành công!</span>
+            </div>
+          )}
+
+          {editError && (
+            <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2.5 max-w-4xl animate-in fade-in duration-200">
+              <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+              <span>{editError}</span>
+            </div>
+          )}
+
+          {/* Basic Info Card (Tên lớp) */}
           {editForm && (
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4 max-w-2xl animate-in fade-in duration-200">
-              <h4 className="font-extrabold text-gray-900 text-sm border-b border-gray-100 pb-2">
-                Thông tin cơ bản lớp học
-              </h4>
-              <div className="space-y-3.5">
-                <div className="flex flex-col gap-1.5 text-xs">
-                  <span className="text-gray-400 font-bold uppercase tracking-wider">Tên lớp học <span className="text-red-500">*</span></span>
-                  <Input
-                    value={editForm.name ?? ''}
-                    onChange={(e) => setEditForm(p => p ? { ...p, name: e.target.value } : p)}
-                    className="font-bold text-gray-950 rounded-xl"
-                    required
-                  />
-                </div>
+            <div className="bg-amber-50/40 border border-amber-200 rounded-2xl p-5 shadow-sm space-y-3 max-w-4xl animate-in fade-in duration-200">
+              <div className="flex flex-col gap-1.5 text-xs">
+                <span className="text-amber-900 font-extrabold uppercase tracking-wider flex items-center gap-1">
+                  Tên lớp học <span className="text-red-500">*</span>
+                </span>
+                <Input
+                  value={editForm.name ?? ''}
+                  onChange={(e) => setEditForm(p => p ? { ...p, name: e.target.value } : p)}
+                  className="font-bold text-gray-950 text-sm rounded-xl bg-white border-amber-300 focus:border-amber-500"
+                  placeholder="Nhập tên lớp học..."
+                  required
+                />
               </div>
             </div>
           )}
@@ -2299,6 +2379,33 @@ export default function ClassDetailPage() {
                         month: '2-digit',
                         year: 'numeric'
                       })}
+                    </span>
+                  )}
+                </div>
+
+                {/* Ngày kết thúc */}
+                <div className="flex items-center justify-between text-xs gap-3">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Ngày kết thúc</span>
+                  {editForm ? (
+                    <div className="w-56 shrink-0">
+                      <Input
+                        type="date"
+                        value={editForm.endDate ?? ''}
+                        onChange={(e) => setEditForm(p => p ? { ...p, endDate: e.target.value || undefined } : p)}
+                        className="w-full text-xs font-bold rounded-xl"
+                      />
+                    </div>
+                  ) : (
+                    <span className="font-bold text-gray-900">
+                      {cls.endDate ? (
+                        new Date(cls.endDate).toLocaleDateString('vi-VN', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })
+                      ) : (
+                        <span className="text-gray-400 italic">Chưa thiết lập</span>
+                      )}
                     </span>
                   )}
                 </div>
@@ -2425,6 +2532,27 @@ export default function ClassDetailPage() {
                   )}
                 </div>
 
+                {/* Phòng học */}
+                <div className="flex items-center justify-between text-xs gap-3">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Phòng học</span>
+                  {editForm ? (
+                    <div className="w-56 shrink-0">
+                      <Input
+                        type="text"
+                        placeholder="VD: Phòng 201"
+                        value={editForm.room ?? ''}
+                        onChange={(e) => setEditForm(p => p ? { ...p, room: e.target.value } : p)}
+                        className="w-full text-xs font-bold rounded-xl h-8"
+                      />
+                    </div>
+                  ) : (
+                    <span className="font-bold text-gray-900 flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                      {cls.room || 'Chưa thiết lập'}
+                    </span>
+                  )}
+                </div>
+
                 {/* Học phí mỗi tháng */}
                 <div className="flex items-center justify-between text-xs gap-3">
                   <span className="text-gray-400 font-bold uppercase tracking-wider">Học phí mỗi tháng</span>
@@ -2502,21 +2630,16 @@ export default function ClassDetailPage() {
             )
           )}
 
-          {editError && (
-            <div className="bg-red-50 border-l-4 border-red-500 px-4 py-2.5 rounded-r-xl max-w-4xl">
-              <p className="text-[13px] text-red-700 font-semibold">{editError}</p>
-            </div>
-          )}
-
-          {/* Action Buttons - Chỉ hiển thị cho Giáo viên và Admin */}
+          {/* Bottom Action Buttons - Chỉ hiển thị cho Giáo viên và Admin */}
           {isStaff && (
-            <div className="pt-2 flex justify-start gap-3">
+            <div className="pt-2 flex justify-start gap-3 max-w-4xl">
               {editForm ? (
                 <>
-                  <Button type="submit" disabled={updating} className="font-bold rounded-xl text-xs px-5 h-9 bg-amber-500 hover:bg-amber-600 text-gray-900">
-                    {updating ? <Loader2 className="h-4 w-4 animate-spin text-gray-900" /> : 'Lưu thay đổi'}
+                  <Button type="submit" disabled={updating} className="font-bold rounded-xl text-xs px-5 h-9 bg-amber-500 hover:bg-amber-600 text-gray-900 gap-1.5 shadow-sm">
+                    {updating ? <Loader2 className="h-4 w-4 animate-spin text-gray-900" /> : <Save className="h-4 w-4" />}
+                    Lưu thay đổi
                   </Button>
-                  <Button type="button" onClick={() => setEditForm(null)} variant="secondary" className="font-semibold rounded-xl text-xs px-5 h-9">
+                  <Button type="button" onClick={() => { setEditForm(null); setEditError('') }} variant="secondary" className="font-semibold rounded-xl text-xs px-5 h-9">
                     Hủy bỏ
                   </Button>
                 </>
