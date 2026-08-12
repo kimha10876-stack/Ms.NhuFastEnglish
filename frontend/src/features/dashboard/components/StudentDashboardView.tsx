@@ -23,6 +23,7 @@ import {
   Award,
   CheckCircle2,
   X,
+  ChevronRight,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/features/auth/auth.store'
@@ -50,6 +51,7 @@ export function StudentDashboardView() {
   const queryClient = useQueryClient()
 
   // State
+  const [showHomeworkModal, setShowHomeworkModal] = useState(false)
   const [assignmentTab, setAssignmentTab] = useState<'pending' | 'completed'>('pending')
   const [selectedPayTuition, setSelectedPayTuition] = useState<StudentMonthlyTuitionSummary | null>(null)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
@@ -70,7 +72,7 @@ export function StudentDashboardView() {
   })
 
   // 3. Fetch My Assignments
-  const { data: myAssignments = [], isLoading: loadingAssignments } = useQuery<StudentAssignmentItem[]>({
+  const { data: myAssignments = [] } = useQuery<StudentAssignmentItem[]>({
     queryKey: ['my-assignments'],
     queryFn: () => classesApi.getMyAssignments(),
   })
@@ -134,7 +136,7 @@ export function StudentDashboardView() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-5xl mx-auto">
       {/* ── Welcome Banner ── */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 p-6 sm:p-8 text-gray-950 shadow-lg">
         <div className="relative z-10 space-y-2 max-w-lg">
@@ -153,12 +155,49 @@ export function StudentDashboardView() {
         <div className="absolute right-0 bottom-0 top-0 w-1/3 bg-white/10 skew-x-12 translate-x-10 pointer-events-none" />
       </div>
 
+      {/* ── NOTIFICATION COMPACT WIDGET: BÀI TẬP VỀ NHÀ CẦN LÀM ── */}
+      {pendingAssignments.length > 0 ? (
+        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-gray-950 flex items-center justify-center shrink-0 shadow-sm font-black">
+              <FileCheck className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-bold text-gray-900">
+                  Bạn có <span className="text-amber-700 font-extrabold">{pendingAssignments.length} bài tập về nhà</span> cần làm
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black animate-pulse">
+                  Chưa nộp
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 truncate mt-0.5">
+                Bài gần nhất: <strong className="text-gray-800">{pendingAssignments[0].title}</strong> ({pendingAssignments[0].className})
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            <Button
+              onClick={() => {
+                setAssignmentTab('pending')
+                setShowHomeworkModal(true)
+              }}
+              className="h-8.5 px-4 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-gray-950 shadow-sm gap-1"
+            >
+              Xem & làm bài
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {/* ── UNPAID TUITION ALERT BANNER (ONLY SHOW WHEN UNPAID) ── */}
       {unpaidTuitions.length > 0 && (
-        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-red-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-red-500/20">
+              <div className="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-red-500/20">
                 <CreditCard className="h-5 w-5" />
               </div>
               <div>
@@ -169,14 +208,14 @@ export function StudentDashboardView() {
                   </span>
                 </h3>
                 <p className="text-xs text-gray-600 mt-0.5">
-                  Bạn có <strong className="text-red-700">{unpaidTuitions.length} lớp học</strong> chưa hoàn tất học phí tháng này. Vui lòng đóng học phí để duy trì quyền lợi học tập.
+                  Bạn có <strong className="text-red-700">{unpaidTuitions.length} lớp học</strong> chưa hoàn tất học phí tháng này.
                 </p>
               </div>
             </div>
 
             <Button
               onClick={() => setSelectedPayTuition(unpaidTuitions[0])}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md shadow-red-600/20 shrink-0 gap-1.5"
+              className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md shadow-red-600/20 shrink-0 gap-1.5 h-8.5 px-4"
             >
               <QrCode className="h-4 w-4" />
               Đóng học phí ngay
@@ -208,210 +247,33 @@ export function StudentDashboardView() {
 
       {/* ── Target Level & Goal Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-colors">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
-            <GraduationCap className="h-6 w-6 text-blue-600" />
+        <div className="bg-white border border-gray-150 rounded-2xl p-4 sm:p-5 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-colors">
+          <div className="w-11 h-11 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
+            <GraduationCap className="h-5 w-5 text-blue-600" />
           </div>
           <div>
-            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Trình độ mục tiêu</p>
-            <p className="font-extrabold text-gray-800 text-base sm:text-lg mt-0.5">
+            <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Trình độ mục tiêu</p>
+            <p className="font-extrabold text-gray-800 text-base mt-0.5">
               {studentProfile?.level || 'Đang cập nhật'}
             </p>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-colors">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
-            <TrendingUp className="h-6 w-6 text-emerald-600" />
+        <div className="bg-white border border-gray-150 rounded-2xl p-4 sm:p-5 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-colors">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
+            <TrendingUp className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
-            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Mục tiêu học tập</p>
-            <p className="font-extrabold text-gray-800 text-base sm:text-lg mt-0.5">
+            <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Mục tiêu học tập</p>
+            <p className="font-extrabold text-gray-800 text-base mt-0.5">
               {studentProfile?.goal || 'Đang cập nhật'}
             </p>
           </div>
         </div>
       </div>
 
-      {/* ── WIDGET: BÀI TẬP VỀ NHÀ CẦN LÀM ── */}
-      <div className="bg-white border border-gray-150 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-gray-950 flex items-center justify-center font-bold shadow-md shadow-amber-500/20">
-              <FileCheck className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
-                <span>Bài tập về nhà cần làm</span>
-                {pendingAssignments.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-[11px] font-black animate-pulse">
-                    {pendingAssignments.length} bài cần nộp
-                  </span>
-                )}
-              </h2>
-              <p className="text-xs text-gray-400">Danh sách bài tập và bài kiểm tra được giao từ các lớp học</p>
-            </div>
-          </div>
-
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-xl self-start sm:self-auto">
-            <button
-              onClick={() => setAssignmentTab('pending')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                assignmentTab === 'pending'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              <span>Cần làm</span>
-              {pendingAssignments.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-red-500 text-white text-[10px] font-extrabold leading-tight">
-                  {pendingAssignments.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setAssignmentTab('completed')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                assignmentTab === 'completed'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              <span>Đã hoàn thành</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-gray-200 text-gray-700 text-[10px] font-extrabold leading-tight">
-                {completedAssignments.length}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Assignment List Content */}
-        {loadingAssignments ? (
-          <div className="p-8 text-center text-xs text-gray-400">Đang tải danh sách bài tập...</div>
-        ) : myAssignments.length === 0 ? (
-          <div className="p-10 text-center space-y-2.5">
-            <BookOpen className="h-10 w-10 text-amber-500/70 mx-auto" />
-            <p className="font-bold text-sm text-gray-800">Hiện tại chưa có bài tập về nhà nào được giao</p>
-            <p className="text-xs text-gray-400 max-w-sm mx-auto">
-              Khi giáo viên tạo bài tập hoặc bài kiểm tra trong lớp học của bạn, danh sách bài tập cần làm sẽ xuất hiện ngay tại đây.
-            </p>
-          </div>
-        ) : assignmentTab === 'pending' ? (
-          pendingAssignments.length === 0 ? (
-            <div className="p-10 text-center space-y-2">
-              <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
-              <p className="font-bold text-sm text-gray-800">Tuyệt vời! Bạn đã hoàn thành tất cả bài tập.</p>
-              <p className="text-xs text-gray-400">Không có bài tập nào đang chờ nộp.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {pendingAssignments.map((a) => (
-                <div
-                  key={a.assignmentId}
-                  className={`rounded-2xl p-4 border transition-all flex flex-col justify-between ${
-                    a.isOverdue
-                      ? 'bg-red-50/30 border-red-200 hover:border-red-300'
-                      : 'bg-white border-gray-150 hover:border-amber-300 shadow-sm hover:shadow-md'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-md text-white truncate max-w-[150px]"
-                        style={{ backgroundColor: a.categoryColorHex || '#4F46E5' }}
-                      >
-                        {a.className}
-                      </span>
-                      {a.isOverdue ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 flex items-center gap-1 shrink-0">
-                          <AlertCircle className="h-3 w-3" />
-                          Quá hạn nộp
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 shrink-0">
-                          {a.assignmentType === 'Quiz' ? 'Trắc nghiệm' : 'Tự luận'}
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="font-bold text-gray-900 text-sm line-clamp-1">{a.title}</h3>
-                    {a.description && (
-                      <p className="text-xs text-gray-500 line-clamp-2">{a.description}</p>
-                    )}
-
-                    <div className="text-xs text-gray-500 flex items-center gap-1.5 pt-1">
-                      <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                      <span>Hạn nộp: <strong className={a.isOverdue ? 'text-red-600' : 'text-gray-700'}>{formatDate(a.dueDate)}</strong></span>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-[11px] text-gray-400">GV: {a.teacherName}</span>
-                    <Link to={`/classes/${a.classId}/assignments/${a.assignmentId}/do`}>
-                      <Button size="sm" className="h-8 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-gray-950 shadow-sm gap-1">
-                        Làm bài ngay
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-        ) : (
-          completedAssignments.length === 0 ? (
-            <div className="p-8 text-center text-xs text-gray-400">Bạn chưa nộp bài tập nào.</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {completedAssignments.map((a) => (
-                <div
-                  key={a.assignmentId}
-                  className="rounded-2xl p-4 border border-gray-150 bg-gray-50/50 flex flex-col justify-between gap-3"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-200 text-gray-700 truncate">
-                        {a.className}
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Đã nộp bài
-                      </span>
-                    </div>
-
-                    <h3 className="font-bold text-gray-900 text-sm line-clamp-1">{a.title}</h3>
-
-                    {a.grade !== null && a.grade !== undefined ? (
-                      <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-50 border border-amber-200/60 text-xs">
-                        <Award className="h-4 w-4 text-amber-600 shrink-0" />
-                        <span className="font-bold text-amber-900">Điểm số: {a.grade}/10</span>
-                        {a.teacherFeedback && (
-                          <span className="text-gray-600 truncate">• {a.teacherFeedback}</span>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 italic">Đang chờ giáo viên chấm điểm</p>
-                    )}
-                  </div>
-
-                  <div className="pt-2 border-t border-gray-200/60 flex items-center justify-between">
-                    <span className="text-[11px] text-gray-400">Nộp lúc: {formatDate(a.submittedAt)}</span>
-                    <Link to={`/classes/${a.classId}/assignments/${a.assignmentId}/do`}>
-                      <button className="text-xs font-bold text-amber-700 hover:underline">
-                        Xem lại bài
-                      </button>
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-        )}
-      </div>
-
       {/* ── Main Content Layout ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* My Classes Column */}
         <div className="md:col-span-2 space-y-4">
           <div className="flex justify-between items-center">
@@ -495,7 +357,27 @@ export function StudentDashboardView() {
             Tiện ích & Hỗ trợ
           </h2>
 
-          <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-sm space-y-3.5">
+            {/* Homework Button */}
+            <button
+              onClick={() => setShowHomeworkModal(true)}
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-amber-50/60 hover:bg-amber-100/70 border border-amber-200/70 text-xs font-bold text-gray-800 hover:text-amber-950 transition-all group"
+            >
+              <div className="flex items-center gap-2">
+                <FileCheck className="h-4 w-4 text-amber-600 group-hover:scale-110 transition-transform" />
+                <span>Bài tập của tôi</span>
+              </div>
+              {pendingAssignments.length > 0 ? (
+                <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-extrabold">
+                  {pendingAssignments.length} cần làm
+                </span>
+              ) : (
+                <span className="text-[11px] text-gray-400 font-semibold">
+                  {completedAssignments.length} đã xong
+                </span>
+              )}
+            </button>
+
             {/* Payment History Button */}
             <button
               onClick={() => setShowHistoryModal(true)}
@@ -537,6 +419,192 @@ export function StudentDashboardView() {
           </div>
         </div>
       </div>
+
+      {/* ── MODAL CHI TIẾT BÀI TẬP CỦA TÔI (GỌN GÀNG, KHÔNG LÀM TRÀN DASHBOARD) ── */}
+      {showHomeworkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <FileCheck className="h-4 w-4" />
+                </div>
+                <div>
+                  <h2 className="font-extrabold text-gray-900 text-base">Bài tập của tôi</h2>
+                  <p className="text-xs text-gray-400">Danh sách bài tập và bài kiểm tra từ các lớp học</p>
+                </div>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-xl mr-2">
+                <button
+                  onClick={() => setAssignmentTab('pending')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    assignmentTab === 'pending'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  <span>Cần làm</span>
+                  {pendingAssignments.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-red-500 text-white text-[10px] font-extrabold">
+                      {pendingAssignments.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setAssignmentTab('completed')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    assignmentTab === 'completed'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  <span>Đã hoàn thành</span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-gray-200 text-gray-700 text-[10px] font-extrabold">
+                    {completedAssignments.length}
+                  </span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => setShowHomeworkModal(false)}
+                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-3">
+              {myAssignments.length === 0 ? (
+                <div className="p-10 text-center space-y-2.5">
+                  <BookOpen className="h-10 w-10 text-gray-300 mx-auto" />
+                  <p className="font-bold text-sm text-gray-800">Hiện tại chưa có bài tập nào được giao</p>
+                  <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                    Khi giáo viên giao bài tập trong lớp học của bạn, bài tập sẽ xuất hiện tại đây.
+                  </p>
+                </div>
+              ) : assignmentTab === 'pending' ? (
+                pendingAssignments.length === 0 ? (
+                  <div className="p-10 text-center space-y-2">
+                    <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
+                    <p className="font-bold text-sm text-gray-800">Tuyệt vời! Bạn đã hoàn thành tất cả bài tập.</p>
+                    <p className="text-xs text-gray-400">Không có bài tập nào đang chờ nộp.</p>
+                  </div>
+                ) : (
+                  pendingAssignments.map((a) => (
+                    <div
+                      key={a.assignmentId}
+                      className={`rounded-2xl p-4 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        a.isOverdue
+                          ? 'bg-red-50/30 border-red-200'
+                          : 'bg-gray-50/60 border-gray-150 hover:border-amber-300'
+                      }`}
+                    >
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-md text-white truncate max-w-[140px]"
+                            style={{ backgroundColor: a.categoryColorHex || '#4F46E5' }}
+                          >
+                            {a.className}
+                          </span>
+                          {a.isOverdue ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              Quá hạn nộp
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                              {a.assignmentType === 'Quiz' ? 'Trắc nghiệm' : 'Tự luận'}
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="font-bold text-gray-900 text-sm truncate">{a.title}</h3>
+                        <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                          <span>Hạn nộp: <strong className={a.isOverdue ? 'text-red-600' : 'text-gray-700'}>{formatDate(a.dueDate)}</strong></span>
+                          <span className="text-gray-300">•</span>
+                          <span>GV: {a.teacherName}</span>
+                        </p>
+                      </div>
+
+                      <Link
+                        to={`/classes/${a.classId}/assignments/${a.assignmentId}/do`}
+                        onClick={() => setShowHomeworkModal(false)}
+                        className="shrink-0"
+                      >
+                        <Button size="sm" className="h-8.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-gray-950 shadow-sm gap-1 w-full sm:w-auto">
+                          Làm bài ngay
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  ))
+                )
+              ) : (
+                completedAssignments.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-gray-400">Bạn chưa nộp bài tập nào.</div>
+                ) : (
+                  completedAssignments.map((a) => (
+                    <div
+                      key={a.assignmentId}
+                      className="rounded-2xl p-4 border border-gray-150 bg-gray-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-200 text-gray-700 truncate">
+                            {a.className}
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Đã nộp bài
+                          </span>
+                        </div>
+
+                        <h3 className="font-bold text-gray-900 text-sm truncate">{a.title}</h3>
+
+                        {a.grade !== null && a.grade !== undefined ? (
+                          <div className="flex items-center gap-2 text-xs">
+                            <Award className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                            <span className="font-bold text-amber-900">Điểm: {a.grade}/10</span>
+                            {a.teacherFeedback && (
+                              <span className="text-gray-500 truncate">• {a.teacherFeedback}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-400 italic">Đang chờ chấm điểm</p>
+                        )}
+                      </div>
+
+                      <Link
+                        to={`/classes/${a.classId}/assignments/${a.assignmentId}/do`}
+                        onClick={() => setShowHomeworkModal(false)}
+                        className="shrink-0"
+                      >
+                        <button className="text-xs font-bold text-amber-700 hover:underline">
+                          Xem lại bài làm
+                        </button>
+                      </Link>
+                    </div>
+                  ))
+                )
+              )}
+            </div>
+
+            <div className="p-4 border-t border-gray-100 bg-gray-50 text-right">
+              <Button
+                variant="secondary"
+                className="rounded-xl text-xs font-bold px-5"
+                onClick={() => setShowHomeworkModal(false)}
+              >
+                Đóng
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── MODAL THANH TOÁN HỌC PHÍ VIETQR ── */}
       {selectedPayTuition && (
