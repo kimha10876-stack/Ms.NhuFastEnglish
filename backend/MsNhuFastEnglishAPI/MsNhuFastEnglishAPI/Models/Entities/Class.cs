@@ -17,6 +17,7 @@ public class Class
     public int? MaxStudents { get; set; }
     public DateOnly StartDate { get; set; }
     public DateOnly? EndDate { get; set; }
+    public decimal MonthlyFee { get; set; } = 0;
     public DateTime CreatedAt { get; set; }
 
     public User Teacher { get; set; } = default!;
@@ -25,4 +26,5 @@ public class Class
     public ICollection<ClassSession> Sessions { get; set; } = new List<ClassSession>();
     public ICollection<ClassDocument> Documents { get; set; } = new List<ClassDocument>();
     public ICollection<ClassAssignment> Assignments { get; set; } = new List<ClassAssignment>();
+    public ICollection<TuitionPayment> TuitionPayments { get; set; } = new List<TuitionPayment>();
 }

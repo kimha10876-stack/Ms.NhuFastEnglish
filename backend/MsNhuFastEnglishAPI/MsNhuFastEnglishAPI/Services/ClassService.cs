@@ -73,6 +73,7 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
             CategoryColorHex: c.Category.ColorHex,
             TeacherName:      c.Teacher.FullName,
             Status:           c.Status,
+            MonthlyFee:       c.MonthlyFee,
             MemberCount:      c.ClassMembers.Count(m => m.Status == "active"),
             ScheduleDays:     c.ScheduleDays,
             ScheduleTime:     c.ScheduleTime,
@@ -107,6 +108,7 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
             TeacherId:        c.TeacherId,
             TeacherName:      c.Teacher.FullName,
             Status:           c.Status,
+            MonthlyFee:       c.MonthlyFee,
             ScheduleDays:     c.ScheduleDays,
             ScheduleTime:     c.ScheduleTime,
             Room:             c.Room,
@@ -145,6 +147,7 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
             TeacherId    = req.TeacherId,
             CategoryId   = req.CategoryId,
             Status       = "active",
+            MonthlyFee   = req.MonthlyFee,
             ScheduleDays = req.ScheduleDays ?? "",
             ScheduleTime = req.ScheduleTime ?? "",
             Room         = req.Room,
@@ -164,6 +167,7 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
             CategoryColorHex: category.ColorHex,
             TeacherName:      teacher.FullName,
             Status:           c.Status,
+            MonthlyFee:       c.MonthlyFee,
             MemberCount:      0,
             ScheduleDays:     c.ScheduleDays,
             ScheduleTime:     c.ScheduleTime,
@@ -180,6 +184,7 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
 
         if (req.Name          is not null) c.Name         = req.Name;
         if (req.Status        is not null) c.Status       = req.Status;
+        if (req.MonthlyFee.HasValue)       c.MonthlyFee   = req.MonthlyFee.Value;
         if (req.ScheduleDays  is not null) c.ScheduleDays = req.ScheduleDays;
         if (req.ScheduleTime  is not null) c.ScheduleTime = req.ScheduleTime;
         if (req.Room          is not null) c.Room         = req.Room;

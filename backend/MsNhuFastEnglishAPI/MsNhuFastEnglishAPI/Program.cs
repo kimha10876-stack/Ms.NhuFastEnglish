@@ -433,7 +433,7 @@ using (var scope = app.Services.CreateScope())
                 }
             }
 
-            // Migration: Thêm các cột mới cho Assignment và Submission nếu chưa có
+            // Migration: Thêm các cột mới cho Assignment, Submission, MonthlyFee và TuitionPayments nếu chưa có
             if (db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
             {
                 db.Database.ExecuteSqlRaw(@"
@@ -441,6 +441,23 @@ using (var scope = app.Services.CreateScope())
                     ALTER TABLE ""ClassAssignments"" ADD COLUMN IF NOT EXISTS ""AllowLateSubmission"" BOOLEAN NOT NULL DEFAULT TRUE;
                     ALTER TABLE ""ClassAssignments"" ADD COLUMN IF NOT EXISTS ""QuestionsJson"" TEXT;
                     ALTER TABLE ""AssignmentSubmissions"" ADD COLUMN IF NOT EXISTS ""AnswersJson"" TEXT;
+                    ALTER TABLE ""Classes"" ADD COLUMN IF NOT EXISTS ""MonthlyFee"" NUMERIC(18,2) NOT NULL DEFAULT 0;
+
+                    CREATE TABLE IF NOT EXISTS ""TuitionPayments"" (
+                        ""Id"" UUID PRIMARY KEY,
+                        ""ClassId"" UUID NOT NULL REFERENCES ""Classes""(""Id"") ON DELETE CASCADE,
+                        ""StudentId"" UUID NOT NULL REFERENCES ""StudentProfiles""(""Id"") ON DELETE CASCADE,
+                        ""Month"" INT NOT NULL,
+                        ""Year"" INT NOT NULL,
+                        ""Amount"" NUMERIC(18,2) NOT NULL DEFAULT 0,
+                        ""Status"" VARCHAR(50) NOT NULL DEFAULT 'paid',
+                        ""PaymentMethod"" VARCHAR(50) NOT NULL DEFAULT 'VietQR',
+                        ""TransactionCode"" VARCHAR(255),
+                        ""PaidAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                        ""ConfirmedBy"" UUID,
+                        ""ConfirmedAt"" TIMESTAMP WITH TIME ZONE,
+                        ""Note"" TEXT
+                    );
                 ");
             }
             else
@@ -449,6 +466,7 @@ using (var scope = app.Services.CreateScope())
                 try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""ClassAssignments"" ADD COLUMN ""AllowLateSubmission"" INTEGER NOT NULL DEFAULT 1;"); } catch {}
                 try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""ClassAssignments"" ADD COLUMN ""QuestionsJson"" TEXT;"); } catch {}
                 try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""AssignmentSubmissions"" ADD COLUMN ""AnswersJson"" TEXT;"); } catch {}
+                try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""Classes"" ADD COLUMN ""MonthlyFee"" NUMERIC NOT NULL DEFAULT 0;"); } catch {}
             }
 
             // Gieo dữ liệu SystemSettings mặc định nếu bảng trống

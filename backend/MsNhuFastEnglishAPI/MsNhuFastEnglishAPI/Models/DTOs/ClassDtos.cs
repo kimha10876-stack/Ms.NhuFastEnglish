@@ -8,6 +8,7 @@ public record CreateClassRequest
     public required int      CategoryId   { get; init; }
     public required Guid     TeacherId    { get; init; }
     public required DateOnly StartDate    { get; init; }
+    public decimal   MonthlyFee   { get; init; } = 0;
     public string?   ScheduleDays  { get; init; }
     public string?   ScheduleTime  { get; init; }
     public string?   Room          { get; init; }
@@ -22,6 +23,7 @@ public record UpdateClassRequest
     public int?      CategoryId    { get; init; }
     public Guid?     TeacherId     { get; init; }
     public string?   Status        { get; init; }
+    public decimal?  MonthlyFee    { get; init; }
     public string?   ScheduleDays  { get; init; }
     public string?   ScheduleTime  { get; init; }
     public string?   Room          { get; init; }
@@ -63,6 +65,7 @@ public record ClassSummaryDto(
     string   CategoryColorHex,
     string   TeacherName,
     string   Status,
+    decimal  MonthlyFee,
     int      MemberCount,
     string?  ScheduleDays,
     string?  ScheduleTime,
@@ -80,6 +83,7 @@ public record ClassDetailDto(
     Guid     TeacherId,
     string   TeacherName,
     string   Status,
+    decimal  MonthlyFee,
     string?  ScheduleDays,
     string?  ScheduleTime,
     string?  Room,
@@ -300,5 +304,74 @@ public record AnnouncementCommentDto(
     string CreatorRole,
     DateTime CreatedAt,
     Guid? ParentCommentId
+);
+
+// ── Student Assignments DTO ──────────────────────────────────────────────────
+public record StudentAssignmentItemDto(
+    Guid AssignmentId,
+    Guid ClassId,
+    string ClassName,
+    string CategoryName,
+    string CategoryColorHex,
+    string TeacherName,
+    string Title,
+    string Description,
+    DateTime? DueDate,
+    DateTime CreatedAt,
+    string AssignmentType,
+    bool AllowLateSubmission,
+    bool IsSubmitted,
+    DateTime? SubmittedAt,
+    float? Grade,
+    string? TeacherFeedback,
+    bool IsOverdue
+);
+
+// ── Tuition DTOs ─────────────────────────────────────────────────────────────
+public record TuitionPaymentDto(
+    Guid Id,
+    Guid ClassId,
+    string ClassName,
+    Guid StudentId,
+    string StudentName,
+    string StudentEmail,
+    int Month,
+    int Year,
+    decimal Amount,
+    string Status,
+    string PaymentMethod,
+    string? TransactionCode,
+    DateTime PaidAt,
+    Guid? ConfirmedBy,
+    DateTime? ConfirmedAt,
+    string? Note
+);
+
+public record PayTuitionRequest(
+    int Month,
+    int Year,
+    decimal Amount,
+    string PaymentMethod = "VietQR",
+    string? TransactionCode = null,
+    string? Note = null
+);
+
+public record ConfirmTuitionPaymentRequest(
+    string Status = "paid", // "paid" | "rejected"
+    string? Note = null
+);
+
+public record StudentMonthlyTuitionSummaryDto(
+    Guid ClassId,
+    string ClassName,
+    string CategoryName,
+    string CategoryColorHex,
+    decimal MonthlyFee,
+    int CurrentMonth,
+    int CurrentYear,
+    bool IsCurrentMonthPaid,
+    DateTime? CurrentMonthPaidAt,
+    string CurrentMonthPaymentStatus, // "paid" | "unpaid" | "pending"
+    IList<TuitionPaymentDto> History
 );
 

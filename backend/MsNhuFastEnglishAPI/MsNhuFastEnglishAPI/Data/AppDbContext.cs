@@ -26,6 +26,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ClassAttendance> ClassAttendances => Set<ClassAttendance>();
     public DbSet<ClassAnnouncement> ClassAnnouncements => Set<ClassAnnouncement>();
     public DbSet<AnnouncementComment> AnnouncementComments => Set<AnnouncementComment>();
+    public DbSet<TuitionPayment> TuitionPayments => Set<TuitionPayment>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -251,6 +252,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(ac => ac.Creator)
              .WithMany()
              .HasForeignKey(ac => ac.CreatedBy)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── TuitionPayment ────────────────────────────────────────────────
+        mb.Entity<TuitionPayment>(e =>
+        {
+            e.Property(tp => tp.PaidAt).HasDefaultValueSql("NOW()");
+            e.HasOne(tp => tp.Class)
+             .WithMany(c => c.TuitionPayments)
+             .HasForeignKey(tp => tp.ClassId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(tp => tp.Student)
+             .WithMany()
+             .HasForeignKey(tp => tp.StudentId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 

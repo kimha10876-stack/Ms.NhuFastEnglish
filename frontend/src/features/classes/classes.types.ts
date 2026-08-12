@@ -5,6 +5,7 @@ export interface ClassSummary {
   categoryColorHex: string
   teacherName: string
   status: 'active' | 'paused' | 'ended'
+  monthlyFee: number
   memberCount: number
   scheduleDays: string | null
   scheduleTime: string | null
@@ -33,6 +34,7 @@ export interface ClassDetail {
   teacherId: string
   teacherName: string
   status: string
+  monthlyFee: number
   scheduleDays: string | null
   scheduleTime: string | null
   room: string | null
@@ -49,6 +51,7 @@ export interface CreateClassRequest {
   categoryId: number
   teacherId: string
   startDate: string
+  monthlyFee?: number
   scheduleDays?: string
   scheduleTime?: string
   room?: string
@@ -62,6 +65,7 @@ export interface UpdateClassRequest {
   categoryId?: number
   teacherId?: string
   status?: string
+  monthlyFee?: number
   scheduleDays?: string
   scheduleTime?: string
   room?: string
@@ -286,5 +290,72 @@ export interface ClassAnnouncement {
   creatorRole: string
   createdAt: string
   comments: AnnouncementComment[]
+}
+
+export interface StudentAssignmentItem {
+  assignmentId: string
+  classId: string
+  className: string
+  categoryName: string
+  categoryColorHex: string
+  teacherName: string
+  title: string
+  description: string
+  dueDate: string | null
+  createdAt: string
+  assignmentType: 'Upload' | 'Quiz'
+  allowLateSubmission: boolean
+  isSubmitted: boolean
+  submittedAt: string | null
+  grade: number | null
+  teacherFeedback: string | null
+  isOverdue: boolean
+}
+
+export interface TuitionPayment {
+  id: string
+  classId: string
+  className: string
+  studentId: string
+  studentName: string
+  studentEmail: string
+  month: number
+  year: number
+  amount: number
+  status: 'paid' | 'pending' | 'rejected'
+  paymentMethod: 'VietQR' | 'Transfer' | 'OnlineGateway' | 'Cash'
+  transactionCode: string | null
+  paidAt: string
+  confirmedBy: string | null
+  confirmedAt: string | null
+  note: string | null
+}
+
+export interface PayTuitionRequest {
+  month: number
+  year: number
+  amount: number
+  paymentMethod?: string
+  transactionCode?: string | null
+  note?: string | null
+}
+
+export interface ConfirmTuitionPaymentRequest {
+  status: 'paid' | 'rejected'
+  note?: string | null
+}
+
+export interface StudentMonthlyTuitionSummary {
+  classId: string
+  className: string
+  categoryName: string
+  categoryColorHex: string
+  monthlyFee: number
+  currentMonth: number
+  currentYear: number
+  isCurrentMonthPaid: boolean
+  currentMonthPaidAt: string | null
+  currentMonthPaymentStatus: 'paid' | 'unpaid' | 'pending'
+  history: TuitionPayment[]
 }
 

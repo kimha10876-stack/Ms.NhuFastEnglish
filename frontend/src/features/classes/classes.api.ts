@@ -26,6 +26,11 @@ import type {
   GradeSubmissionRequest,
   ClassAnnouncement,
   AnnouncementComment,
+  StudentAssignmentItem,
+  TuitionPayment,
+  PayTuitionRequest,
+  ConfirmTuitionPaymentRequest,
+  StudentMonthlyTuitionSummary,
 } from './classes.types'
 
 export const classesApi = {
@@ -180,5 +185,21 @@ export const classesApi = {
     api.post<ApiResponse<AnnouncementComment>>(`/classes/${classId}/announcements/${announcementId}/comments`, body).then((r) => r.data.data!),
 
   deleteComment: (classId: string, announcementId: string, commentId: string) =>
-    api.delete<ApiResponse<any>>(`/classes/${classId}/announcements/${announcementId}/comments/${commentId}`).then((r) => r.data)
+    api.delete<ApiResponse<any>>(`/classes/${classId}/announcements/${announcementId}/comments/${commentId}`).then((r) => r.data),
+
+  // ── STUDENT ASSIGNMENTS & TUITIONS ──
+  getMyAssignments: () =>
+    api.get<ApiResponse<StudentAssignmentItem[]>>('/classes/my-assignments').then((r) => r.data.data!),
+
+  getMyTuitions: () =>
+    api.get<ApiResponse<StudentMonthlyTuitionSummary[]>>('/classes/my-tuitions').then((r) => r.data.data!),
+
+  payTuition: (classId: string, body: PayTuitionRequest) =>
+    api.post<ApiResponse<null>>(`/classes/${classId}/tuition/pay`, body).then((r) => r.data),
+
+  getClassTuitionRecords: (classId: string) =>
+    api.get<ApiResponse<TuitionPayment[]>>(`/classes/${classId}/tuition-records`).then((r) => r.data.data!),
+
+  confirmTuitionPayment: (paymentId: string, body: ConfirmTuitionPaymentRequest) =>
+    api.put<ApiResponse<null>>(`/classes/tuitions/${paymentId}/confirm`, body).then((r) => r.data),
 }

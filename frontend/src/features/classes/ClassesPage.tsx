@@ -30,6 +30,7 @@ const EMPTY_FORM: CreateClassRequest = {
   categoryId:   1,
   teacherId:    '',
   startDate:    new Date().toISOString().slice(0, 10),
+  monthlyFee:   0,
   scheduleDays: '',
   scheduleTime: '',
   room:         '',
@@ -439,10 +440,17 @@ export default function ClassesPage() {
                   </span>
                 </div>
 
-                {/* Class name */}
-                <h3 className="font-bold text-[15px] text-gray-900 leading-snug mb-0.5 group-hover:text-amber-700 transition-colors">
-                  {cls.name}
-                </h3>
+                {/* Class name & fee */}
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-bold text-[15px] text-gray-900 leading-snug mb-0.5 group-hover:text-amber-700 transition-colors">
+                    {cls.name}
+                  </h3>
+                  {cls.monthlyFee > 0 && (
+                    <span className="text-[11px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200 shrink-0">
+                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cls.monthlyFee)}/tháng
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-500 mb-4">{cls.teacherName}</p>
 
                 {/* Meta + arrow */}
@@ -579,6 +587,30 @@ export default function ClassesPage() {
                   />
                 </div>
               )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Học phí mỗi tháng (VNĐ)</label>
+                  <Input
+                    type="number"
+                    placeholder="VD: 800000"
+                    value={form.monthlyFee ?? 0}
+                    onChange={(e) => setForm((p) => ({ ...p, monthlyFee: Number(e.target.value) || 0 }))}
+                    min={0}
+                    step={50000}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Số học viên tối đa</label>
+                  <Input
+                    type="number"
+                    placeholder="Không giới hạn"
+                    value={form.maxStudents ?? ''}
+                    onChange={(e) => setForm((p) => ({ ...p, maxStudents: e.target.value ? Number(e.target.value) : undefined }))}
+                    min={1}
+                  />
+                </div>
+              </div>
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700">Lịch học</label>
