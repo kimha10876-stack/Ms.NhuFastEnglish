@@ -53,7 +53,8 @@ public record AuthUserDto(
     string   FullName,
     string[] Roles,
     string?  AvatarUrl,
-    bool     MustChangePassword = false
+    bool     MustChangePassword = false,
+    string?  Username = null
 );
 
 public record RegisterResponse(Guid Id, string Email, string FullName, string[] Roles);
@@ -71,3 +72,13 @@ public record ResetPasswordRequest
 }
 
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+
+public record UpdateProfileRequest(
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Họ tên không được để trống")]
+    string FullName,
+    
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Username không được để trống")]
+    string Username,
+    
+    string? AvatarUrl
+);

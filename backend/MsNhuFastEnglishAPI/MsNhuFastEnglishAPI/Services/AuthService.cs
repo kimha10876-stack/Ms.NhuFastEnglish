@@ -7,6 +7,7 @@ using MsNhuFastEnglishAPI.Data;
 using MsNhuFastEnglishAPI.Models.DTOs;
 using MsNhuFastEnglishAPI.Models.Entities;
 using StackExchange.Redis;
+using MsNhuFastEnglishAPI.Shared;
 
 namespace MsNhuFastEnglishAPI.Services;
 
@@ -21,9 +22,10 @@ public class AuthService(
     // ── Login ──────────────────────────────────────────────────────────────────
     public async Task<(AuthResponse? Result, string? Error)> LoginAsync(LoginRequest req)
     {
+        var input = req.Email.Trim().ToLower();
         var user = await db.Users
             .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Email == req.Email.ToLower());
+            .FirstOrDefaultAsync(u => u.Email == input || u.Username == input);
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
             return (null, "Email hoặc mật khẩu không đúng");
@@ -54,6 +56,7 @@ public class AuthService(
             Id           = Guid.NewGuid(),
             FullName     = req.FullName,
             Email        = req.Email.ToLower(),
+            Username     = await UsernameHelper.GenerateUniqueUsernameAsync(db, req.FullName),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
             IsActive     = true,
         };
@@ -117,6 +120,7 @@ public class AuthService(
             Id           = Guid.NewGuid(),
             FullName     = req.FullName,
             Email        = req.Email.ToLower(),
+            Username     = await UsernameHelper.GenerateUniqueUsernameAsync(db, req.FullName),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
             IsActive     = true,
         };
@@ -255,7 +259,7 @@ public class AuthService(
         return new AuthResponse(
             AccessToken:  GenerateJwt(user, roles),
             RefreshToken: $"{user.Id}:{tokenId}",
-            User: new AuthUserDto(user.Id, user.Email, user.FullName, roles, user.AvatarUrl, user.MustChangePassword)
+            User: new AuthUserDto(user.Id, user.Email, user.FullName, roles, user.AvatarUrl, user.MustChangePassword, user.Username)
         );
     }
 
@@ -281,6 +285,38 @@ public class AuthService(
                 claims:             claims,
                 expires:            expiry,
                 signingCredentials: creds));
+    }
+
+    public async Task<(AuthUserDto? Result, string? Error)> UpdateProfileAsync(Guid userId, UpdateProfileRequest req)
+    {
+        var username = req.Username.Trim().ToLower();
+        var fullName = req.FullName.Trim();
+        var avatarUrl = req.AvatarUrl?.Trim();
+
+        // Check if username contains invalid characters
+        if (System.Text.RegularExpressions.Regex.IsMatch(username, @"[^a-zA-Z0-9_\.]"))
+            return (null, "Username chỉ được chứa chữ cái, số, dấu gạch dưới và dấu chấm");
+
+        // Check duplicate
+        var duplicate = await db.Users.AnyAsync(u => u.Id != userId && u.Username == username);
+        if (duplicate) return (null, "Username đã tồn tại");
+
+        var user = await db.Users
+            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+
+        if (user is null) return (null, "Tài khoản không tồn tại");
+
+        user.FullName = fullName;
+        user.Username = username;
+        user.AvatarUrl = avatarUrl;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync();
+
+        var roles = user.UserRoles.Select(ur => ur.Role.Name).ToArray();
+        var dto = new AuthUserDto(user.Id, user.Email, user.FullName, roles, user.AvatarUrl, user.MustChangePassword, user.Username);
+        return (dto, null);
     }
 
     public async Task<(bool Ok, string? Error)> ChangePasswordAsync(Guid userId, ChangePasswordRequest req)

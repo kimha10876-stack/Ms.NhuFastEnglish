@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from './auth.api'
 import { useAuthStore } from './auth.store'
-import type { LoginRequest, RegisterStudentRequest, ForgotPasswordRequest, VerifyOtpRequest, ResetPasswordRequest } from './auth.types'
+import type { LoginRequest, RegisterStudentRequest, ForgotPasswordRequest, VerifyOtpRequest, ResetPasswordRequest, UpdateProfileReq } from './auth.types'
 
 export function useLogin(redirectTo?: string) {
   const setUser  = useAuthStore((s) => s.setUser)
@@ -96,6 +96,17 @@ export function useChangePassword() {
       if (user) {
         setUser({ ...user, mustChangePassword: false })
       }
+    },
+  })
+}
+
+export function useUpdateProfile() {
+  const setUser = useAuthStore((s) => s.setUser)
+
+  return useMutation({
+    mutationFn: (body: UpdateProfileReq) => authApi.updateProfile(body),
+    onSuccess: (data) => {
+      setUser(data)
     },
   })
 }

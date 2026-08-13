@@ -23,9 +23,10 @@ interface SidebarNavItem {
 interface SidebarProps {
   open: boolean
   onClose: () => void
+  onEditProfile?: () => void
 }
 
-export function Sidebar({ open, onClose }: SidebarProps) {
+export function Sidebar({ open, onClose, onEditProfile }: SidebarProps) {
   const { user, logout } = useAuthStore()
   const isAdmin = user?.roles.includes('Admin') ?? false
   const isTeacher = user?.roles.includes('Teacher') ?? false
@@ -262,13 +263,27 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             "flex items-center gap-2.5 rounded-xl px-2 py-2",
             isCollapsed && "md:flex-col md:px-0 md:py-1 md:gap-2"
           )}>
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.fullName}
+                onClick={onEditProfile}
+                className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                title="Chỉnh sửa hồ sơ"
+              />
+            ) : (
+              <div 
+                title="Chỉnh sửa hồ sơ"
+                onClick={onEditProfile}
+                className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-bold shrink-0 shadow-inner cursor-pointer hover:bg-amber-200 transition-colors"
+              >
+                {initials}
+              </div>
+            )}
             <div 
-              title={user?.fullName}
-              className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-bold shrink-0 shadow-inner"
+              onClick={onEditProfile}
+              className={cn("flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity", isCollapsed && "md:hidden")}
             >
-              {initials}
-            </div>
-            <div className={cn("flex-1 min-w-0", isCollapsed && "md:hidden")}>
               <div className="flex items-center gap-1.5">
                 <p className="text-[13px] font-semibold text-gray-900 truncate">{user?.fullName}</p>
               </div>

@@ -153,6 +153,7 @@ public class StudentService(AppDbContext db)
             Id                 = Guid.NewGuid(),
             FullName           = req.FullName.Trim(),
             Email              = email,
+            Username           = await MsNhuFastEnglishAPI.Shared.UsernameHelper.GenerateUniqueUsernameAsync(db, req.FullName.Trim()),
             PasswordHash       = BCrypt.Net.BCrypt.HashPassword(rawPassword),
             IsActive           = true,
             MustChangePassword = true,

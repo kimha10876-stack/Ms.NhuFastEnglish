@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Menu, BookOpen, AlertTriangle, Loader2, LogOut, Key, ChevronDown } from 'lucide-react'
+import { Menu, BookOpen, AlertTriangle, Loader2, LogOut, Key, ChevronDown, User } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Sidebar } from './Sidebar'
 import { useAuthStore } from '@/features/auth/auth.store'
 import { useChangePassword } from '@/features/auth/useAuth'
+import { EditProfileModal } from '@/features/auth/components/EditProfileModal'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { cn } from '@/shared/utils/cn'
@@ -15,6 +16,7 @@ import { authApi } from '@/features/auth/auth.api'
 export function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -223,9 +225,17 @@ export function AppShell() {
                 onMouseLeave={() => setIsProfileOpen(false)}
               >
                 <button className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-150">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-bold shrink-0 shadow-inner">
-                    {initials}
-                  </div>
+                  {user?.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.fullName}
+                      className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-bold shrink-0 shadow-inner">
+                      {initials}
+                    </div>
+                  )}
                   <span className="text-xs font-bold text-gray-700 hidden sm:block truncate max-w-[120px]">
                     {user?.fullName}
                   </span>
@@ -241,6 +251,13 @@ export function AppShell() {
                       </div>
                       <p className="text-[10px] text-gray-400 truncate mt-0.5">{user?.email}</p>
                     </div>
+                    <button
+                      onClick={() => setShowEditProfileModal(true)}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-semibold transition-colors text-left"
+                    >
+                      <User className="h-4 w-4 text-gray-400 shrink-0" />
+                      Cập nhật hồ sơ
+                    </button>
                     <button
                       onClick={handleOpenChangePassword}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-semibold transition-colors text-left"
@@ -264,7 +281,11 @@ export function AppShell() {
       )}
 
       <div className="flex flex-1 overflow-hidden relative">
-        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar 
+          open={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)} 
+          onEditProfile={() => setShowEditProfileModal(true)} 
+        />
 
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Mobile top bar (only show for admin/teacher since student has header) */}
@@ -385,6 +406,12 @@ export function AppShell() {
           </div>
         </div>
       )}
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal 
+        isOpen={showEditProfileModal} 
+        onClose={() => setShowEditProfileModal(false)} 
+      />
     </div>
   )
 }

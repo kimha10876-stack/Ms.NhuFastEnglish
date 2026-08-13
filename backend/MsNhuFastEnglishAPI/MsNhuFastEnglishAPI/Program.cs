@@ -435,6 +435,35 @@ using (var scope = app.Services.CreateScope())
                 }
             }
 
+            // Migration: Thêm cột Username vào bảng Users nếu chưa có
+            if (db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            {
+                db.Database.ExecuteSqlRaw(@"
+                    ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""Username"" VARCHAR(255);
+                    CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Users_Username"" ON ""Users"" (""Username"");
+                ");
+            }
+            else
+            {
+                try
+                {
+                    db.Database.ExecuteSqlRaw(@"ALTER TABLE ""Users"" ADD COLUMN ""Username"" TEXT;");
+                    db.Database.ExecuteSqlRaw(@"CREATE UNIQUE INDEX IF NOT EXISTS IX_Users_Username ON Users (Username);");
+                }
+                catch { }
+            }
+
+            // Populate empty usernames for existing users
+            var usersWithoutUsername = db.Users.Where(u => u.Username == null || u.Username == "").ToList();
+            if (usersWithoutUsername.Any())
+            {
+                foreach (var u in usersWithoutUsername)
+                {
+                    u.Username = UsernameHelper.GenerateUniqueUsernameAsync(db, u.FullName).GetAwaiter().GetResult();
+                }
+                db.SaveChanges();
+            }
+
             // Migration: Thêm các cột mới cho Assignment, Submission, MonthlyFee và TuitionPayments nếu chưa có
             if (db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
             {
@@ -514,6 +543,7 @@ using (var scope = app.Services.CreateScope())
             Id           = Guid.NewGuid(),
             FullName     = "Kim Hà",
             Email        = "admin",
+            Username     = "admin",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
             IsActive     = true,
         };
@@ -530,6 +560,7 @@ using (var scope = app.Services.CreateScope())
             Id           = Guid.NewGuid(),
             FullName     = "Nam Phan",
             Email        = "nampnhse173502@fpt.edu.vn",
+            Username     = "namph",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
             IsActive     = true,
         };
@@ -554,6 +585,7 @@ using (var scope = app.Services.CreateScope())
             Id           = Guid.NewGuid(),
             FullName     = "Giáo viên",
             Email        = "teacher",
+            Username     = "teacher",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
             IsActive     = true,
         };
@@ -582,6 +614,7 @@ using (var scope = app.Services.CreateScope())
                 Id           = Guid.NewGuid(),
                 FullName     = $"Học viên {i}",
                 Email        = email,
+                Username     = $"user{i}",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
                 IsActive     = true,
                 CreatedAt    = DateTime.UtcNow

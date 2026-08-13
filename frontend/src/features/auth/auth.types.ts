@@ -13,9 +13,16 @@ export interface AuthUser {
   id: string
   fullName: string
   email: string
+  username?: string
   avatarUrl?: string
   roles: string[]
   mustChangePassword?: boolean
+}
+
+export interface UpdateProfileReq {
+  fullName: string
+  username: string
+  avatarUrl?: string
 }
 
 export interface RegisterStudentRequest {

@@ -1,6 +1,6 @@
 import { api } from '@/shared/api/client'
 import type { ApiResponse } from '@/shared/api/types'
-import type { LoginRequest, AuthResponse, RegisterStudentRequest, ForgotPasswordRequest, VerifyOtpRequest, ResetPasswordRequest } from './auth.types'
+import type { LoginRequest, AuthResponse, RegisterStudentRequest, ForgotPasswordRequest, VerifyOtpRequest, ResetPasswordRequest, UpdateProfileReq, AuthUser } from './auth.types'
 
 export const authApi = {
   login: (body: LoginRequest) =>
@@ -26,4 +26,7 @@ export const authApi = {
 
   changePassword: (body: any) =>
     api.post<ApiResponse<null>>('/auth/change-password', body).then((r) => r.data),
+
+  updateProfile: (body: UpdateProfileReq) =>
+    api.put<ApiResponse<AuthUser>>('/auth/profile', body).then((r) => r.data.data!),
 }

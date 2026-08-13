@@ -98,4 +98,14 @@ public class AuthController(AuthService authService) : ControllerBase
         if (!ok) return BadRequest(ApiResponse.BadRequest(error!));
         return Ok(ApiResponse.Ok<object?>(null, "Thay đổi mật khẩu thành công"));
     }
+
+    [HttpPut("profile")]
+    [Authorize]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest req)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var (result, error) = await authService.UpdateProfileAsync(userId, req);
+        if (error is not null) return BadRequest(ApiResponse.BadRequest(error));
+        return Ok(ApiResponse.Ok(result, "Cập nhật thông tin cá nhân thành công"));
+    }
 }

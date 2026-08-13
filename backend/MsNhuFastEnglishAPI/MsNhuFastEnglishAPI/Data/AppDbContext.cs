@@ -42,6 +42,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         mb.Entity<User>(e =>
         {
             e.HasIndex(u => u.Email).IsUnique();
+            e.HasIndex(u => u.Username).IsUnique();
             e.Property(u => u.CreatedAt).HasDefaultValueSql("NOW()");
             e.Property(u => u.UpdatedAt).HasDefaultValueSql("NOW()");
         });
