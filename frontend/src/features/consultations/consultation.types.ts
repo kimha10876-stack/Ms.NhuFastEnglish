@@ -8,6 +8,7 @@ export interface ConsultationRequest {
   message?: string
   status: ConsultationStatus
   adminNote?: string
+  requestCount: number
   createdAt: string
   contactedAt?: string
 }

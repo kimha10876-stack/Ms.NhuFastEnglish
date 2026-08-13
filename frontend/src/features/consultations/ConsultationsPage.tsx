@@ -223,7 +223,16 @@ export default function ConsultationsPage() {
                     onClick={() => handleOpenDetail(req)}
                     className="hover:bg-gray-50/50 transition-colors cursor-pointer border-t border-gray-100"
                   >
-                    <td className="px-5 py-3.5 font-bold text-gray-900">{req.fullName}</td>
+                    <td className="px-5 py-3.5 font-bold text-gray-900">
+                      <div className="flex items-center gap-2">
+                        {req.fullName}
+                        {req.requestCount > 1 && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-red-50 text-red-600 border border-red-100">
+                            {req.requestCount} lần yêu cầu
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-5 py-3.5 text-gray-600 font-medium">
                       <span className="flex items-center gap-1.5">
                         <Phone className="h-3.5 w-3.5 text-gray-400" />
@@ -371,7 +380,14 @@ export default function ConsultationsPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Học viên</span>
-                    <strong className="text-base text-gray-900 font-bold">{selectedRequest.fullName}</strong>
+                    <strong className="text-base text-gray-900 font-bold flex items-center gap-2">
+                      {selectedRequest.fullName}
+                      {selectedRequest.requestCount > 1 && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-red-50 text-red-600 border border-red-100">
+                          Yêu cầu {selectedRequest.requestCount} lần
+                        </span>
+                      )}
+                    </strong>
                   </div>
                   <div>
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block text-right">Ngày gửi</span>

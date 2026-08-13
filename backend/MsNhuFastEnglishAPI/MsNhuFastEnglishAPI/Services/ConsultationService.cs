@@ -10,14 +10,33 @@ public class ConsultationService(AppDbContext db)
     // Create new consultation request from LandingPage
     public async Task<ConsultationRequestDto> CreateConsultationAsync(CreateConsultationRequest req)
     {
+        var phoneTrimmed = req.Phone.Trim();
+        var existing = await db.ConsultationRequests
+            .FirstOrDefaultAsync(c => c.Phone == phoneTrimmed);
+
+        if (existing != null)
+        {
+            existing.FullName = req.FullName.Trim();
+            existing.Email = req.Email?.Trim();
+            existing.Message = req.Message?.Trim();
+            existing.Status = "new"; // Reset status to new so admin can see it again
+            existing.RequestCount += 1;
+            existing.CreatedAt = DateTime.UtcNow; // Update latest request time
+            existing.ContactedAt = null; // Reset contacted time since it's a new request now
+            
+            await db.SaveChangesAsync();
+            return MapToDto(existing);
+        }
+
         var consultation = new ConsultationRequest
         {
             Id = Guid.NewGuid(),
             FullName = req.FullName.Trim(),
-            Phone = req.Phone.Trim(),
+            Phone = phoneTrimmed,
             Email = req.Email?.Trim(),
             Message = req.Message?.Trim(),
             Status = "new",
+            RequestCount = 1,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -111,6 +130,7 @@ public class ConsultationService(AppDbContext db)
             c.Message,
             c.Status,
             c.AdminNote,
+            c.RequestCount,
             c.CreatedAt,
             c.ContactedAt
         );

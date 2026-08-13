@@ -10,6 +10,7 @@ public class ConsultationRequest
     /// <summary>"new" | "contacted" | "enrolled" | "rejected"</summary>
     public string Status { get; set; } = "new";
     public string? AdminNote { get; set; }
+    public int RequestCount { get; set; } = 1;
     public DateTime CreatedAt { get; set; }
     public DateTime? ContactedAt { get; set; }
 }

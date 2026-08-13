@@ -249,6 +249,7 @@ using (var scope = app.Services.CreateScope())
                         ""Message"" TEXT,
                         ""Status"" VARCHAR(50) NOT NULL DEFAULT 'new',
                         ""AdminNote"" TEXT,
+                        ""RequestCount"" INT NOT NULL DEFAULT 1,
                         ""CreatedAt"" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
                         ""ContactedAt"" TIMESTAMP WITHOUT TIME ZONE
                     );
@@ -363,6 +364,7 @@ using (var scope = app.Services.CreateScope())
                             Message TEXT,
                             Status TEXT NOT NULL DEFAULT 'new',
                             AdminNote TEXT,
+                            RequestCount INTEGER NOT NULL DEFAULT 1,
                             CreatedAt TEXT NOT NULL,
                             ContactedAt TEXT
                         );
@@ -442,6 +444,7 @@ using (var scope = app.Services.CreateScope())
                     ALTER TABLE ""ClassAssignments"" ADD COLUMN IF NOT EXISTS ""QuestionsJson"" TEXT;
                     ALTER TABLE ""AssignmentSubmissions"" ADD COLUMN IF NOT EXISTS ""AnswersJson"" TEXT;
                     ALTER TABLE ""Classes"" ADD COLUMN IF NOT EXISTS ""MonthlyFee"" NUMERIC(18,2) NOT NULL DEFAULT 0;
+                    ALTER TABLE ""ConsultationRequests"" ADD COLUMN IF NOT EXISTS ""RequestCount"" INT NOT NULL DEFAULT 1;
 
                     CREATE TABLE IF NOT EXISTS ""TuitionPayments"" (
                         ""Id"" UUID PRIMARY KEY,
@@ -467,6 +470,7 @@ using (var scope = app.Services.CreateScope())
                 try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""ClassAssignments"" ADD COLUMN ""QuestionsJson"" TEXT;"); } catch {}
                 try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""AssignmentSubmissions"" ADD COLUMN ""AnswersJson"" TEXT;"); } catch {}
                 try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""Classes"" ADD COLUMN ""MonthlyFee"" NUMERIC NOT NULL DEFAULT 0;"); } catch {}
+                try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""ConsultationRequests"" ADD COLUMN ""RequestCount"" INTEGER NOT NULL DEFAULT 1;"); } catch {}
             }
 
             // Gieo dữ liệu SystemSettings mặc định nếu bảng trống

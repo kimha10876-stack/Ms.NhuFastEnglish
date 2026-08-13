@@ -11,6 +11,7 @@ public record ConsultationRequestDto(
     string? Message,
     string Status,
     string? AdminNote,
+    int RequestCount,
     DateTime CreatedAt,
     DateTime? ContactedAt
 );
