@@ -5,7 +5,7 @@ public class User
     public Guid Id { get; set; }
     public string FullName { get; set; } = default!;
     public string Email { get; set; } = default!;
-    public string Username { get; set; } = default!;
+    public string? Username { get; set; }
     public string PasswordHash { get; set; } = default!;
     public string? AvatarUrl { get; set; }
     public bool IsActive { get; set; } = true;
