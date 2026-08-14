@@ -32,7 +32,18 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
     {
         var profile = await db.StudentProfiles.FirstOrDefaultAsync(sp => sp.UserId == UserId);
         if (profile == null)
-            return NotFound(ApiResponse.NotFound("Không tìm thấy hồ sơ học viên"));
+        {
+            profile = new StudentProfile
+            {
+                Id = Guid.NewGuid(),
+                UserId = UserId,
+                Level = "Mới bắt đầu",
+                Goal = "Giao tiếp cơ bản",
+                Status = "active"
+            };
+            db.StudentProfiles.Add(profile);
+            await db.SaveChangesAsync();
+        }
 
         var classMembers = await db.ClassMembers
             .Include(m => m.Class)

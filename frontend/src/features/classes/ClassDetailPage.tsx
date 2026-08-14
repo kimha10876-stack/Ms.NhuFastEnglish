@@ -73,7 +73,7 @@ export default function ClassDetailPage() {
   const isStudent    = user?.roles.includes('Student') ?? false
   const isAdmin      = user?.roles.includes('Admin') ?? false
   const isTeacher    = user?.roles.includes('Teacher') ?? false
-  const isStaff      = isAdmin || isTeacher
+  const isStaff      = isTeacher
 
   // Default tab is 'lessons' (Units & Documents)
   const [tab, setTab]               = useState<Tab>('announcements')
@@ -920,22 +920,24 @@ export default function ClassDetailPage() {
           Bài học & Tài liệu
         </button>
 
-        <button
-          onClick={() => setTab('assignments')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
-            tab === 'assignments'
-              ? 'border-amber-500 text-amber-700 font-semibold'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <CheckSquare className="h-4 w-4" />
-          Bài tập về nhà
-          <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${tab === 'assignments' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
-            {assignments.length}
-          </span>
-        </button>
+        {isTeacher && (
+          <button
+            onClick={() => setTab('assignments')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
+              tab === 'assignments'
+                ? 'border-amber-500 text-amber-700 font-semibold'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <CheckSquare className="h-4 w-4" />
+            Bài tập về nhà
+            <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${tab === 'assignments' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+              {assignments.length}
+            </span>
+          </button>
+        )}
 
-        {!isStudent && (
+        {isTeacher && (
           <button
             onClick={() => setTab('members')}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
@@ -952,31 +954,19 @@ export default function ClassDetailPage() {
           </button>
         )}
 
-        {isAdmin && (
+        {isTeacher && (
           <button
-            onClick={() => setTab('tuition')}
+            onClick={() => setTab('info')}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
-              tab === 'tuition'
+              tab === 'info'
                 ? 'border-amber-500 text-amber-700 font-semibold'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <CreditCard className="h-4 w-4" />
-            Học phí
+            <Info className="h-4 w-4" />
+            Thông tin lớp
           </button>
         )}
-
-        <button
-          onClick={() => setTab('info')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
-            tab === 'info'
-              ? 'border-amber-500 text-amber-700 font-semibold'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <Info className="h-4 w-4" />
-          Thông tin lớp
-        </button>
       </div>
 
       {/* ── 0. Announcements tab (Bảng tin) ── */}

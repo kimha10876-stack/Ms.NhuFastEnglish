@@ -8,16 +8,11 @@ export default function DashboardPage() {
 
   const isAdmin = user?.roles.includes('Admin') ?? false
   const isTeacher = user?.roles.includes('Teacher') ?? false
-  // 1. Admin Role has top priority for managerial dashboard
-  if (isAdmin) {
-    return <AdminDashboardView />
-  }
-
-  // 2. Teacher Role gets dedicated teaching dashboard
+  // 1. Teacher Role gets dedicated teaching dashboard
   if (isTeacher) {
     return <TeacherDashboardView />
   }
 
-  // 3. Student Role (or default fallback)
+  // 2. Student & Admin Roles see StudentDashboardView
   return <StudentDashboardView />
 }
