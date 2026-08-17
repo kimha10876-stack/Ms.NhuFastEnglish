@@ -29,6 +29,7 @@ import type { UpdateClassRequest, ClassSession, ClassAssignment, AssignmentSubmi
 import TeacherSelect from './TeacherSelect'
 import { CustomDropdown } from '@/shared/components/ui/CustomDropdown'
 import { classesApi } from './classes.api'
+import { useTeachers } from '@/features/teachers/useTeachers'
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 
@@ -95,7 +96,8 @@ export default function ClassDetailPage() {
     startTime: '18:00',
     endTime: '19:30',
     topic: '',
-    note: ''
+    note: '',
+    guestTeacherId: ''
   })
   
   const [showAddDoc, setShowAddDoc] = useState(false)
@@ -198,6 +200,8 @@ export default function ClassDetailPage() {
   // Sessions and Assignments Query Hooks
   const { data: sessionData, isLoading: loadingSessions } = useClassSessions(id)
   const { data: assignments = [], isLoading: loadingAssignments } = useClassAssignments(id)
+  const { data: teachersData } = useTeachers({ pageSize: 100 })
+  const teachersList = teachersData?.items ?? []
   
   const createSessionMutation = useCreateSession(id)
   const updateSessionMutation = useUpdateSession(id)
@@ -568,6 +572,7 @@ export default function ClassDetailPage() {
           endTime: sessionForm.endTime,
           topic: sessionForm.topic,
           note: sessionForm.note,
+          guestTeacherId: sessionForm.guestTeacherId || undefined
         }
       }, {
         onSuccess: () => {
@@ -576,7 +581,15 @@ export default function ClassDetailPage() {
         }
       })
     } else {
-      createSessionMutation.mutate(sessionForm, {
+      createSessionMutation.mutate({
+        sessionNumber: sessionForm.sessionNumber,
+        sessionDate: sessionForm.sessionDate,
+        startTime: sessionForm.startTime,
+        endTime: sessionForm.endTime,
+        topic: sessionForm.topic,
+        note: sessionForm.note,
+        guestTeacherId: sessionForm.guestTeacherId || undefined
+      }, {
         onSuccess: () => {
           setShowAddSession(false)
         }
@@ -592,7 +605,8 @@ export default function ClassDetailPage() {
       startTime: '18:00',
       endTime: '19:30',
       topic: '',
-      note: ''
+      note: '',
+      guestTeacherId: ''
     })
     setShowAddSession(true)
   }
@@ -605,7 +619,8 @@ export default function ClassDetailPage() {
       startTime: s.startTime,
       endTime: s.endTime,
       topic: s.topic ?? '',
-      note: s.note ?? ''
+      note: s.note ?? '',
+      guestTeacherId: s.guestTeacherId ?? ''
     })
     setShowAddSession(true)
   }
@@ -3188,6 +3203,18 @@ export default function ClassDetailPage() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Chủ đề (Topic)</label>
                 <Input value={sessionForm.topic} onChange={(e) => setSessionForm({ ...sessionForm, topic: e.target.value })} placeholder="ví dụ: Unit 1: Pronunciation" required className="rounded-xl" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Giáo viên dạy thay (Tùy chọn)</label>
+                <CustomDropdown
+                  value={sessionForm.guestTeacherId || 'none'}
+                  options={[
+                    { id: 'none', name: 'Giáo viên chính của lớp' },
+                    ...teachersList.map((t) => ({ id: t.userId, name: t.fullName }))
+                  ]}
+                  onChange={(val) => setSessionForm({ ...sessionForm, guestTeacherId: val === 'none' ? '' : val })}
+                />
               </div>
 
               <div className="space-y-1">
