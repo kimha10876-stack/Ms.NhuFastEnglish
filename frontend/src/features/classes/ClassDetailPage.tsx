@@ -74,7 +74,7 @@ export default function ClassDetailPage() {
   const isStudent    = user?.roles.includes('Student') ?? false
   const isAdmin      = user?.roles.includes('Admin') ?? false
   const isTeacher    = user?.roles.includes('Teacher') ?? false
-  const isStaff      = isTeacher
+  const isStaff      = isAdmin || isTeacher
 
   // Default tab is 'lessons' (Units & Documents)
   const [tab, setTab]               = useState<Tab>('announcements')
