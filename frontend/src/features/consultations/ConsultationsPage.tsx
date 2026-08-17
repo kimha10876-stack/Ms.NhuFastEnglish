@@ -115,25 +115,25 @@ export default function ConsultationsPage() {
     switch (status) {
       case 'new':
         return (
-          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">
             Yêu cầu mới
           </span>
         )
       case 'contacted':
         return (
-          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-100 whitespace-nowrap">
             Đã liên hệ
           </span>
         )
       case 'enrolled':
         return (
-          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
             Đã nhập học
           </span>
         )
       case 'rejected':
         return (
-          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-100">
+          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-100 whitespace-nowrap">
             Từ chối
           </span>
         )
@@ -227,7 +227,7 @@ export default function ConsultationsPage() {
                       <div className="flex items-center gap-2">
                         {req.fullName}
                         {req.requestCount > 1 && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-red-50 text-red-600 border border-red-100">
+                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-red-50 text-red-600 border border-red-100 whitespace-nowrap">
                             {req.requestCount} lần yêu cầu
                           </span>
                         )}
@@ -383,7 +383,7 @@ export default function ConsultationsPage() {
                     <strong className="text-base text-gray-900 font-bold flex items-center gap-2">
                       {selectedRequest.fullName}
                       {selectedRequest.requestCount > 1 && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-red-50 text-red-600 border border-red-100">
+                        <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-red-50 text-red-600 border border-red-100 whitespace-nowrap">
                           Yêu cầu {selectedRequest.requestCount} lần
                         </span>
                       )}

@@ -8,11 +8,17 @@ export default function DashboardPage() {
 
   const isAdmin = user?.roles.includes('Admin') ?? false
   const isTeacher = user?.roles.includes('Teacher') ?? false
-  // 1. Teacher Role gets dedicated teaching dashboard
+
+  // 1. Admin Role gets dedicated admin dashboard
+  if (isAdmin) {
+    return <AdminDashboardView />
+  }
+
+  // 2. Teacher Role gets dedicated teaching dashboard
   if (isTeacher) {
     return <TeacherDashboardView />
   }
 
-  // 2. Student & Admin Roles see StudentDashboardView
+  // 3. Student Roles see StudentDashboardView
   return <StudentDashboardView />
 }

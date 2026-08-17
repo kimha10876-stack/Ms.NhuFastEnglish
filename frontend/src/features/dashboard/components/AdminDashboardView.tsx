@@ -275,7 +275,7 @@ export function AdminDashboardView() {
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold text-gray-900 truncate">{c.fullName}</p>
                       <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap ${
                           c.status === 'new'
                             ? 'bg-red-50 text-red-600 border border-red-100'
                             : 'bg-gray-100 text-gray-600'
