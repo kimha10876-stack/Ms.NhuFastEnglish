@@ -837,23 +837,43 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
             if (!sessionExists) return BadRequest(ApiResponse.BadRequest("Buổi học không tồn tại"));
         }
 
-        var doc = new ClassDocument
+        var classIds = req.ShareClassIds ?? new System.Collections.Generic.List<Guid>();
+        if (!classIds.Contains(id))
         {
-            Id = Guid.NewGuid(),
-            ClassId = id,
-            SessionId = req.SessionId,
-            Title = req.Title,
-            FileUrl = req.FileUrl,
-            FileType = req.FileType,
-            FileSizeKb = req.FileSizeKb,
-            UploadedBy = UserId,
-            CreatedAt = DateTime.UtcNow
-        };
+            classIds.Add(id);
+        }
 
-        db.ClassDocuments.Add(doc);
+        var firstDocId = Guid.Empty;
+
+        foreach (var classId in classIds)
+        {
+            var targetClass = await db.Classes.FindAsync(classId);
+            if (targetClass == null) continue;
+
+            var doc = new ClassDocument
+            {
+                Id = Guid.NewGuid(),
+                ClassId = classId,
+                SessionId = classId == id ? req.SessionId : null,
+                Title = req.Title,
+                FileUrl = req.FileUrl,
+                FileType = req.FileType,
+                FileSizeKb = req.FileSizeKb,
+                UploadedBy = UserId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            if (firstDocId == Guid.Empty)
+            {
+                firstDocId = doc.Id;
+            }
+
+            db.ClassDocuments.Add(doc);
+        }
+
         await db.SaveChangesAsync();
 
-        return StatusCode(201, ApiResponse.Created(new { doc.Id }, "Thêm tài liệu thành công"));
+        return StatusCode(201, ApiResponse.Created(new { Id = firstDocId }, "Thêm tài liệu thành công"));
     }
 
     [HttpDelete("documents/{documentId:guid}")]

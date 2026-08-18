@@ -12,7 +12,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useAuthStore } from '@/features/auth/auth.store'
 import {
-  useClassDetail, useUpdateClass, useDeleteClass, useClassCategories,
+  useClasses, useClassDetail, useUpdateClass, useDeleteClass, useClassCategories,
   useAddMember, useRemoveMember, useCreateInvite, useSearchStudents,
   useActiveInvite, useRevokeInvite,
   useClassSessions, useCreateSession, useUpdateSession, useDeleteSession,
@@ -108,6 +108,7 @@ export default function ClassDetailPage() {
     fileType: 'pdf',
     fileSizeKb: 100
   })
+  const [shareClassIds, setShareClassIds] = useState<string[]>([])
 
   // Assignments states
   const [showAddAssignment, setShowAddAssignment] = useState(false)
@@ -202,6 +203,13 @@ export default function ClassDetailPage() {
   const { data: assignments = [], isLoading: loadingAssignments } = useClassAssignments(id)
   const { data: teachersData } = useTeachers({ pageSize: 100 })
   const teachersList = teachersData?.items ?? []
+  const { data: classesData } = useClasses({ status: 'active', pageSize: 100 })
+  const allActiveClasses = classesData?.items ?? []
+  const otherActiveClasses = allActiveClasses.filter((c) => {
+    if (c.id === id) return false
+    if (isTeacher) return c.teacherName === user?.fullName
+    return isAdmin
+  })
   
   const createSessionMutation = useCreateSession(id)
   const updateSessionMutation = useUpdateSession(id)
@@ -642,7 +650,8 @@ export default function ClassDetailPage() {
     e.preventDefault()
     createDocMutation.mutate({
       ...docForm,
-      sessionId: selectedSessionForDoc ?? undefined
+      sessionId: selectedSessionForDoc ?? undefined,
+      shareClassIds: shareClassIds.length > 0 ? shareClassIds : undefined
     }, {
       onSuccess: () => {
         setShowAddDoc(false)
@@ -652,6 +661,7 @@ export default function ClassDetailPage() {
           fileType: 'pdf',
           fileSizeKb: 100
         })
+        setShareClassIds([])
       }
     })
   }
@@ -1660,8 +1670,44 @@ export default function ClassDetailPage() {
           return b.sessionNumber - a.sessionNumber
         })
         const isAllExpanded = sortedSessions.length > 0 && sortedSessions.every(s => expandedSessions[s.id])
+
+        const allDocs = [...generalDocuments]
+        sessions.forEach(s => {
+          if (s.documents) {
+            allDocs.push(...s.documents)
+          }
+        })
+        const sortedDocs = [...allDocs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        const latestDoc = sortedDocs.length > 0 ? sortedDocs[0] : null
+
         return (
           <div className="space-y-6">
+            {latestDoc && (
+              <div className="bg-amber-50 border border-amber-200/60 rounded-2xl p-4 flex items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="p-2.5 bg-amber-100/80 text-amber-700 rounded-xl">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Tài liệu chuẩn bị cho buổi học tiếp theo</h4>
+                    <p className="text-sm font-bold text-gray-900 mt-0.5 truncate">{latestDoc.title}</p>
+                    <p className="text-[10px] text-gray-500 font-semibold mt-0.5">
+                      Được chia sẻ lúc: {new Date(latestDoc.createdAt).toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={latestDoc.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 h-9 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-gray-900 text-xs font-bold rounded-xl transition-all duration-200 shrink-0 shadow-sm"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Xem / Tải xuống
+                </a>
+              </div>
+            )}
+
             {/* General Documents Box */}
             <div className="bg-gray-50/50 border border-gray-200/80 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3.5 flex-wrap gap-2">
@@ -3271,6 +3317,35 @@ export default function ClassDetailPage() {
                   <Input type="number" min="1" value={docForm.fileSizeKb} onChange={(e) => setDocForm({ ...docForm, fileSizeKb: Number(e.target.value) })} required className="rounded-xl" />
                 </div>
               </div>
+
+              {otherActiveClasses.length > 0 && (
+                <div className="space-y-1.5 border-t border-gray-100 pt-3">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Chia sẻ tài liệu này với các lớp khác</label>
+                  <p className="text-[10px] text-gray-400 font-semibold mb-2">Chọn lớp học để chia sẻ tài liệu này:</p>
+                  <div className="max-h-[120px] overflow-y-auto space-y-2 border border-gray-100 rounded-xl p-3 bg-gray-50/50">
+                    {otherActiveClasses.map((c) => {
+                      const checked = shareClassIds.includes(c.id);
+                      return (
+                        <label key={c.id} className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              if (checked) {
+                                setShareClassIds(shareClassIds.filter((cid) => cid !== c.id));
+                              } else {
+                                setShareClassIds([...shareClassIds, c.id]);
+                              }
+                            }}
+                            className="rounded text-amber-500 focus:ring-amber-500/20 w-3.5 h-3.5"
+                          />
+                          <span className="truncate">{c.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="secondary" className="flex-1 rounded-xl" onClick={() => setShowAddDoc(false)}>Huỷ</Button>

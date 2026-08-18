@@ -237,6 +237,7 @@ export interface CreateDocumentRequest {
   fileUrl: string
   fileType: string
   fileSizeKb: number
+  shareClassIds?: string[]
 }
 
 export interface CreateAssignmentRequest {

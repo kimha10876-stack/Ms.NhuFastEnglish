@@ -181,7 +181,8 @@ public record CreateDocumentRequest(
     string Title,
     string FileUrl,
     string FileType,
-    int FileSizeKb
+    int FileSizeKb,
+    System.Collections.Generic.List<Guid>? ShareClassIds = null
 );
 
 public record ClassDocumentDto(
