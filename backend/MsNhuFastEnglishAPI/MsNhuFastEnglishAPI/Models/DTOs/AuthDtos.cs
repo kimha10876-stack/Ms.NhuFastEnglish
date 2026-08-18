@@ -6,6 +6,7 @@ public record LoginRequest(string Email, string Password, string? Role = null);
 // ── Register (Admin only) ─────────────────────────────────────────────────────
 public record RegisterRequest
 {
+    [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Email không đúng định dạng")]
     public required string Email    { get; init; }
     public required string Password { get; init; }
     public required string FullName { get; init; }
@@ -30,6 +31,8 @@ public record RegisterRequest
 public record RegisterStudentRequest
 {
     public required string FullName { get; init; }
+    
+    [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Email không đúng định dạng")]
     public required string Email    { get; init; }
     public required string Password { get; init; }
     public string? Phone       { get; init; }
@@ -60,12 +63,20 @@ public record AuthUserDto(
 public record RegisterResponse(Guid Id, string Email, string FullName, string[] Roles);
 
 // ── Forgot / Reset password (OTP) ────────────────────────────────────────────
-public record ForgotPasswordRequest(string Email);
+public record ForgotPasswordRequest(
+    [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+    string Email
+);
 
-public record VerifyOtpRequest(string Email, string Otp);
+public record VerifyOtpRequest(
+    [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+    string Email, 
+    string Otp
+);
 
 public record ResetPasswordRequest
 {
+    [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Email không đúng định dạng")]
     public required string Email       { get; init; }
     public required string Otp         { get; init; }
     public required string NewPassword { get; init; }

@@ -573,7 +573,7 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
             Topic: s.Topic,
             Note: s.Note,
             GuestTeacherId: s.GuestTeacherId,
-            GuestTeacherName: s.GuestTeacher?.FullName,
+            GuestTeacherName: s.GuestTeacherId.HasValue ? s.GuestTeacher?.FullName : s.GuestTeacherName,
             Documents: s.Documents.Select(d => new ClassDocumentDto(
                 Id: d.Id,
                 ClassId: d.ClassId,
@@ -626,6 +626,7 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
             Topic = req.Topic,
             Note = req.Note,
             GuestTeacherId = req.GuestTeacherId,
+            GuestTeacherName = req.GuestTeacherName,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -803,6 +804,7 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
         if (req.Topic != null) session.Topic = req.Topic;
         if (req.Note != null) session.Note = req.Note;
         session.GuestTeacherId = req.GuestTeacherId;
+        session.GuestTeacherName = req.GuestTeacherName;
 
         await db.SaveChangesAsync();
         return Ok(ApiResponse.Ok<object?>(null, "Cập nhật buổi học thành công"));

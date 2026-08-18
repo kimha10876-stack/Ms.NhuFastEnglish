@@ -145,7 +145,8 @@ public record CreateSessionRequest(
     string EndTime,
     string? Topic,
     string? Note,
-    Guid? GuestTeacherId
+    Guid? GuestTeacherId,
+    string? GuestTeacherName = null
 );
 
 public record UpdateSessionRequest(
@@ -155,7 +156,8 @@ public record UpdateSessionRequest(
     string? EndTime,
     string? Topic,
     string? Note,
-    Guid? GuestTeacherId
+    Guid? GuestTeacherId,
+    string? GuestTeacherName = null
 );
 
 public record ClassSessionDto(

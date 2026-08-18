@@ -135,6 +135,22 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""AnnouncementComments"" ADD COLUMN IF NOT EXISTS ""ParentCommentId"" uuid NULL;
             ");
             
+            // Tự động thêm cột GuestTeacherName vào bảng ClassSessions nếu chưa có
+            if (db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            {
+                db.Database.ExecuteSqlRaw(@"
+                    ALTER TABLE ""ClassSessions"" ADD COLUMN IF NOT EXISTS ""GuestTeacherName"" VARCHAR(255) NULL;
+                ");
+            }
+            else
+            {
+                try
+                {
+                    db.Database.ExecuteSqlRaw(@"ALTER TABLE ""ClassSessions"" ADD COLUMN ""GuestTeacherName"" TEXT;");
+                }
+                catch { }
+            }
+            
             // Tự động thêm cột TuitionStatus nếu chưa có
             db.Database.ExecuteSqlRaw(@"
                 ALTER TABLE ""ClassMembers"" ADD COLUMN IF NOT EXISTS ""TuitionStatus"" VARCHAR(50) NOT NULL DEFAULT 'unpaid';
@@ -525,6 +541,64 @@ using (var scope = app.Services.CreateScope())
                 );
                 db.SaveChanges();
             }
+
+            // ── Update old seed data formats if they exist ───────────────────
+            // 1. Update Admin (admin -> admin@gmail.com)
+            var oldAdmin = db.Users.FirstOrDefault(u => u.Email == "admin" || u.Username == "admin");
+            if (oldAdmin != null)
+            {
+                oldAdmin.Email = "admin@gmail.com";
+                oldAdmin.Username = "admin";
+            }
+
+            // 2. Update Teacher 1 (nampnhse173502@fpt.edu.vn -> teacher1@gmail.com)
+            var oldTeacher1 = db.Users.FirstOrDefault(u => u.Email == "nampnhse173502@fpt.edu.vn" || u.Username == "namph");
+            if (oldTeacher1 != null)
+            {
+                oldTeacher1.Email = "teacher1@gmail.com";
+                oldTeacher1.Username = "teacher1";
+                oldTeacher1.FullName = "Giáo viên 1";
+            }
+
+            // 3. Update Teacher 2 (teacher -> teacher2@gmail.com)
+            var oldTeacher2 = db.Users.FirstOrDefault(u => u.Email == "teacher" || u.Username == "teacher");
+            if (oldTeacher2 != null)
+            {
+                oldTeacher2.Email = "teacher2@gmail.com";
+                oldTeacher2.Username = "teacher2";
+                oldTeacher2.FullName = "Giáo viên 2";
+            }
+
+            // 4. Update Students (user1@gmail.com -> student1@gmail.com)
+            for (int i = 1; i <= 30; i++)
+            {
+                var oldEmail = $"user{i}@gmail.com";
+                var studentUser = db.Users.FirstOrDefault(u => u.Email == oldEmail || u.Username == $"user{i}");
+                if (studentUser != null)
+                {
+                    studentUser.Email = $"student{i}@gmail.com";
+                    studentUser.Username = $"student{i}";
+                    studentUser.FullName = $"Học viên {i}";
+                }
+            }
+            db.SaveChanges();
+
+            // ── Add Email CHECK constraint ─────────────────────────────────────
+            if (db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            {
+                db.Database.ExecuteSqlRaw(@"
+                    ALTER TABLE ""Users"" DROP CONSTRAINT IF EXISTS ""CK_User_Email_Format"";
+                    ALTER TABLE ""Users"" ADD CONSTRAINT ""CK_User_Email_Format"" CHECK (""Email"" LIKE '%@%');
+                ");
+            }
+            else
+            {
+                try
+                {
+                    db.Database.ExecuteSqlRaw(@"ALTER TABLE ""Users"" ADD CONSTRAINT ""CK_User_Email_Format"" CHECK (""Email"" LIKE '%@%');");
+                }
+                catch { }
+            }
             break; 
         }
         catch (Exception ex)
@@ -535,14 +609,14 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // Seed Admin — admin
-    if (!db.Users.Any(u => u.Email == "admin"))
+    // Seed Admin — admin@gmail.com
+    if (!db.Users.Any(u => u.Email == "admin@gmail.com"))
     {
         var admin = new User
         {
             Id           = Guid.NewGuid(),
             FullName     = "Kim Hà",
-            Email        = "admin",
+            Email        = "admin@gmail.com",
             Username     = "admin",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
             IsActive     = true,
@@ -552,15 +626,15 @@ using (var scope = app.Services.CreateScope())
         db.SaveChanges();
     }
 
-    // Seed Teacher — nampnhse173502@fpt.edu.vn
-    if (!db.Users.Any(u => u.Email == "nampnhse173502@fpt.edu.vn"))
+    // Seed Teacher 1 — teacher1@gmail.com
+    if (!db.Users.Any(u => u.Email == "teacher1@gmail.com"))
     {
         var teacher = new User
         {
             Id           = Guid.NewGuid(),
-            FullName     = "Nam Phan",
-            Email        = "nampnhse173502@fpt.edu.vn",
-            Username     = "namph",
+            FullName     = "Giáo viên 1",
+            Email        = "teacher1@gmail.com",
+            Username     = "teacher1",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
             IsActive     = true,
         };
@@ -577,15 +651,15 @@ using (var scope = app.Services.CreateScope())
         db.SaveChanges();
     }
 
-    // Seed Teacher — teacher
-    if (!db.Users.Any(u => u.Email == "teacher"))
+    // Seed Teacher 2 — teacher2@gmail.com
+    if (!db.Users.Any(u => u.Email == "teacher2@gmail.com"))
     {
         var teacher = new User
         {
             Id           = Guid.NewGuid(),
-            FullName     = "Giáo viên",
-            Email        = "teacher",
-            Username     = "teacher",
+            FullName     = "Giáo viên 2",
+            Email        = "teacher2@gmail.com",
+            Username     = "teacher2",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
             IsActive     = true,
         };
@@ -602,11 +676,12 @@ using (var scope = app.Services.CreateScope())
         db.SaveChanges();
     }
 
-    // Seed 30 Students: user1@gmail.com to user30@gmail.com
+    // Seed 30 Students: student1@gmail.com to student30@gmail.com
     var hasNewStudents = false;
     for (int i = 1; i <= 30; i++)
     {
-        var email = $"user{i}@gmail.com";
+        var email = $"student{i}@gmail.com";
+        var username = $"student{i}";
         if (!db.Users.Any(u => u.Email == email))
         {
             var student = new User
@@ -614,7 +689,7 @@ using (var scope = app.Services.CreateScope())
                 Id           = Guid.NewGuid(),
                 FullName     = $"Học viên {i}",
                 Email        = email,
-                Username     = $"user{i}",
+                Username     = username,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
                 IsActive     = true,
                 CreatedAt    = DateTime.UtcNow
@@ -657,7 +732,7 @@ using (var scope = app.Services.CreateScope())
     // Seed 20 Classes và gán 15 học viên xoay vòng vào từng lớp
     if (!db.Classes.Any())
     {
-        var teacherUser = db.Users.FirstOrDefault(u => u.Email == "nampnhse173502@fpt.edu.vn");
+        var teacherUser = db.Users.FirstOrDefault(u => u.Email == "teacher1@gmail.com");
         var students = db.StudentProfiles.ToList();
         
         if (teacherUser != null && students.Count >= 15 && categories.Any())

@@ -45,6 +45,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(u => u.Username).IsUnique();
             e.Property(u => u.CreatedAt).HasDefaultValueSql("NOW()");
             e.Property(u => u.UpdatedAt).HasDefaultValueSql("NOW()");
+            e.ToTable(t => t.HasCheckConstraint("CK_User_Email_Format", "\"Email\" LIKE '%@%'"));
         });
 
         // ── TeacherProfile ────────────────────────────────────────────────

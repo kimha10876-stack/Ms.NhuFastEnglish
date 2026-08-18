@@ -6,6 +6,7 @@ public class ClassSession
     public Guid ClassId { get; set; }
     /// <summary>NULL = giáo viên chính dạy, có giá trị = guest dạy thay</summary>
     public Guid? GuestTeacherId { get; set; }
+    public string? GuestTeacherName { get; set; }
     public int SessionNumber { get; set; }
     public DateOnly SessionDate { get; set; }
     public string StartTime { get; set; } = default!;
