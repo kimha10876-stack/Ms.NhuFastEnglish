@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, BookOpen, GraduationCap,
   FileText, MessageSquare, LogOut, Settings,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Folder
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/shared/utils/cn'
@@ -55,12 +55,14 @@ export function Sidebar({ open, onClose, onEditProfile }: SidebarProps) {
     displayNavItems = [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
       { to: '/classes', icon: BookOpen, label: 'Lớp học của tôi' },
+      { to: '/documents', icon: Folder, label: 'Tài liệu học tập' },
       { to: '/blog', icon: FileText, label: 'Blog chia sẻ' },
     ]
   } else if (isTeacher && !isAdmin) {
     displayNavItems = [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
       { to: '/classes', icon: BookOpen, label: 'Lớp học phụ trách' },
+      { to: '/documents', icon: Folder, label: 'Kho tài liệu' },
       { to: '/blog-management', icon: FileText, label: 'Góc chia sẻ / Blog' },
     ]
   } else {
@@ -69,6 +71,7 @@ export function Sidebar({ open, onClose, onEditProfile }: SidebarProps) {
       { to: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
       { to: '/students', icon: GraduationCap, label: 'Học viên' },
       { to: '/classes', icon: BookOpen, label: 'Lớp học' },
+      { to: '/documents', icon: Folder, label: 'Kho tài liệu' },
       { to: '/teachers', icon: Users, label: 'Giáo viên' },
       {
         to: '/consultations',

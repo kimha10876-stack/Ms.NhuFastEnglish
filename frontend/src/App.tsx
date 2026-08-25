@@ -22,6 +22,7 @@ const BlogManagementPage = lazy(() => import('@/features/blog/BlogManagementPage
 const PublicBlogPage     = lazy(() => import('@/features/blog/PublicBlogPage'))
 const BlogPostDetailPage = lazy(() => import('@/features/blog/BlogPostDetailPage'))
 const BlogEditorPage     = lazy(() => import('@/features/blog/BlogEditorPage'))
+const DocumentsPage      = lazy(() => import('@/features/classes/DocumentsPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -59,6 +60,7 @@ export default function App() {
                 {/* Common classes */}
                 <Route path="classes" element={<ClassesPage />} />
                 <Route path="classes/:id" element={<ClassDetailPage />} />
+                <Route path="documents" element={<DocumentsPage />} />
 
                 {/* Admin-only routes */}
                 <Route element={<RoleGuard allowedRoles={['Admin']} />}>

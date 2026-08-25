@@ -444,3 +444,32 @@ export function useConfirmTuitionPayment(classId: string) {
   })
 }
 
+export function useAllDocuments(params?: { search?: string }) {
+  return useQuery({
+    queryKey: ['classes', 'all-documents', params],
+    queryFn: () => classesApi.getAllDocuments(params),
+  })
+}
+
+export function useCreateGlobalDocument() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ classId, body }: { classId: string; body: CreateDocumentRequest }) => classesApi.createDocument(classId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', 'all-documents'] })
+      qc.invalidateQueries({ queryKey: ['classes'] })
+    },
+  })
+}
+
+export function useDeleteGlobalDocument() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (documentId: string) => classesApi.deleteDocument(documentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', 'all-documents'] })
+      qc.invalidateQueries({ queryKey: ['classes'] })
+    },
+  })
+}
+

@@ -202,4 +202,7 @@ export const classesApi = {
 
   confirmTuitionPayment: (paymentId: string, body: ConfirmTuitionPaymentRequest) =>
     api.put<ApiResponse<null>>(`/classes/tuitions/${paymentId}/confirm`, body).then((r) => r.data),
+
+  getAllDocuments: (params?: { search?: string }) =>
+    api.get<ApiResponse<any[]>>('/classes/all-documents', { params }).then((r) => r.data.data!),
 }

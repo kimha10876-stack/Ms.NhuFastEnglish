@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, ChevronDown, BookOpen, FileText, Calendar,
   Clock, Sparkles, MapPin, Save, CheckCircle2, AlertCircle,
   Paperclip, ExternalLink, Send, Download, PlusCircle,
-  GraduationCap, File, CheckSquare, XCircle, Megaphone, Bold, Italic, Underline, MoreVertical, Upload
+  GraduationCap, File, CheckSquare, XCircle, Megaphone, Bold, Italic, Underline, MoreVertical
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -216,8 +216,23 @@ export default function ClassDetailPage() {
     fileType: 'pdf',
     fileSizeKb: 100
   })
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadMode, setUploadMode] = useState<'upload' | 'link'>('upload')
+  useEffect(() => {
+    if (docForm.fileUrl.includes('drive.google.com')) {
+      setDocForm(prev => ({ ...prev, fileType: 'drive' }))
+    } else if (docForm.fileUrl) {
+      const ext = docForm.fileUrl.split('.').pop()?.toLowerCase() || ''
+      if (ext === 'pdf') {
+        setDocForm(prev => ({ ...prev, fileType: 'pdf' }))
+      } else if (['doc', 'docx'].includes(ext)) {
+        setDocForm(prev => ({ ...prev, fileType: 'word' }))
+      } else if (['ppt', 'pptx'].includes(ext)) {
+        setDocForm(prev => ({ ...prev, fileType: 'ppt' }))
+      } else {
+        setDocForm(prev => ({ ...prev, fileType: 'other' }))
+      }
+    }
+  }, [docForm.fileUrl])
+
   const [shareClassIds, setShareClassIds] = useState<string[]>([])
 
   // Assignments states
@@ -730,37 +745,10 @@ export default function ClassDetailPage() {
   }
 
   // Document handlers
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setIsUploading(true)
-    try {
-      const res = await classesApi.uploadFile(file)
-      const ext = file.name.split('.').pop()?.toLowerCase() || ''
-      let fileType = 'other'
-      if (['pdf'].includes(ext)) fileType = 'pdf'
-      else if (['doc', 'docx'].includes(ext)) fileType = 'word'
-      else if (['ppt', 'pptx'].includes(ext)) fileType = 'ppt'
-
-      setDocForm({
-        title: file.name,
-        fileUrl: res.fileUrl,
-        fileType: fileType,
-        fileSizeKb: Math.round(file.size / 1024)
-      })
-    } catch (error) {
-      console.error(error)
-      alert('Tải tệp lên thất bại!')
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
   const handleSaveDoc = (e: React.FormEvent) => {
     e.preventDefault()
     if (!docForm.fileUrl) {
-      alert('Vui lòng chọn file hoặc nhập đường dẫn tài liệu!')
+      alert('Vui lòng nhập đường dẫn tài liệu!')
       return
     }
     createDocMutation.mutate({
@@ -777,7 +765,6 @@ export default function ClassDetailPage() {
           fileSizeKb: 100
         })
         setShareClassIds([])
-        setUploadMode('upload')
       }
     })
   }
@@ -3336,139 +3323,64 @@ export default function ClassDetailPage() {
                 : 'Tài liệu này sẽ xuất hiện trong phần Giáo trình & Tài liệu chung của lớp.'}
             </p>
 
-            <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
-              <button
-                type="button"
-                onClick={() => setUploadMode('upload')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  uploadMode === 'upload' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                Tải tệp lên
-              </button>
-              <button
-                type="button"
-                onClick={() => setUploadMode('link')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  uploadMode === 'link' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                Nhập link thủ công
-              </button>
-            </div>
-
             <form onSubmit={handleSaveDoc} className="space-y-4">
-              {uploadMode === 'upload' ? (
-                <div className="space-y-3">
-                  {!docForm.fileUrl ? (
-                    <div className="border border-dashed border-gray-200 hover:border-amber-400 bg-gray-50/50 rounded-2xl p-6 transition-all text-center relative cursor-pointer">
-                      <input
-                        type="file"
-                        onChange={handleFileUpload}
-                        disabled={isUploading}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                      />
-                      {isUploading ? (
-                        <div className="flex flex-col items-center py-2">
-                          <Loader2 className="h-6 w-6 animate-spin text-amber-500 mb-2" />
-                          <p className="text-xs font-bold text-amber-600">Đang tải tệp lên...</p>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center py-2">
-                          <div className="p-3 bg-amber-50 rounded-xl text-amber-500 mb-2">
-                            <Upload className="h-5 w-5" />
-                          </div>
-                          <p className="text-xs font-bold text-gray-700">Click để chọn hoặc kéo thả tệp</p>
-                          <p className="text-[10px] text-gray-400 font-semibold mt-1">Hỗ trợ PDF, Word, Powerpoint, Excel...</p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 p-3 bg-emerald-50/80 border border-emerald-100 rounded-xl">
-                        <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg shrink-0">
-                          <Check className="h-5 w-5" />
-                        </div>
-                        <div className="min-w-0 flex-1 text-left">
-                          <p className="text-xs font-bold text-gray-800 truncate">{docForm.title}</p>
-                          <p className="text-[10px] text-gray-550 font-semibold mt-0.5">
-                            {(docForm.fileSizeKb).toLocaleString('vi-VN')} KB • {docForm.fileType.toUpperCase()}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setDocForm({ title: '', fileUrl: '', fileType: 'pdf', fileSizeKb: 100 })}
-                          className="text-[10px] font-bold text-red-500 hover:underline shrink-0"
-                        >
-                          Chọn tệp khác
-                        </button>
-                      </div>
-
-                      <div className="space-y-1 text-left">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tên hiển thị của tài liệu</label>
-                        <Input
-                          value={docForm.title}
-                          onChange={(e) => setDocForm({ ...docForm, title: e.target.value })}
-                          placeholder="Nhập tên hiển thị trên lớp học"
-                          required
-                          className="rounded-xl"
-                        />
-                      </div>
-                    </div>
-                  )}
+              <div className="space-y-1 text-left">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Đường dẫn tài liệu (Link Google Drive) *</label>
+                <div className="relative">
+                  <Link2 className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
+                  <Input
+                    value={docForm.fileUrl}
+                    onChange={(e) => setDocForm({ ...docForm, fileUrl: e.target.value })}
+                    placeholder="https://drive.google.com/..."
+                    required
+                    className="pl-9 rounded-xl text-xs h-10"
+                  />
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-1 text-left">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tiêu đề tài liệu</label>
-                    <Input
-                      value={docForm.title}
-                      onChange={(e) => setDocForm({ ...docForm, title: e.target.value })}
-                      placeholder="Ví dụ: Giáo trình Giao tiếp.pdf"
-                      required
-                      className="rounded-xl"
-                    />
-                  </div>
+                {docForm.fileUrl.includes('drive.google.com') && (
+                  <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-1">
+                    <Check className="h-3.5 w-3.5" />
+                    Đã nhận dạng liên kết Google Drive!
+                  </p>
+                )}
+              </div>
 
-                  <div className="space-y-1 text-left">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Đường dẫn tệp (URL / Link ngoài)</label>
-                    <Input
-                      value={docForm.fileUrl}
-                      onChange={(e) => setDocForm({ ...docForm, fileUrl: e.target.value })}
-                      placeholder="https://..."
-                      required
-                      className="rounded-xl"
-                    />
-                  </div>
+              <div className="space-y-1 text-left">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tiêu đề tài liệu *</label>
+                <Input
+                  value={docForm.title}
+                  onChange={(e) => setDocForm({ ...docForm, title: e.target.value })}
+                  placeholder="Ví dụ: Tài liệu bổ trợ Nghe Nói IPA"
+                  required
+                  className="rounded-xl"
+                />
+              </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-left">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Định dạng file</label>
-                      <CustomDropdown
-                        value={docForm.fileType}
-                        options={[
-                          { id: 'pdf', name: 'PDF Document (.pdf)' },
-                          { id: 'word', name: 'Microsoft Word (.docx)' },
-                          { id: 'ppt', name: 'Powerpoint (.pptx)' },
-                          { id: 'other', name: 'Other Link' }
-                        ]}
-                        onChange={(val) => setDocForm({ ...docForm, fileType: val })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Kích thước file (KB)</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={docForm.fileSizeKb}
-                        onChange={(e) => setDocForm({ ...docForm, fileSizeKb: Number(e.target.value) })}
-                        required
-                        className="rounded-xl"
-                      />
-                    </div>
-                  </div>
+              <div className="grid grid-cols-2 gap-3 text-left">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Định dạng file</label>
+                  <CustomDropdown
+                    value={docForm.fileType}
+                    options={[
+                      { id: 'drive', name: 'Google Drive' },
+                      { id: 'pdf', name: 'PDF Document (.pdf)' },
+                      { id: 'word', name: 'Microsoft Word (.docx)' },
+                      { id: 'ppt', name: 'Powerpoint (.pptx)' },
+                      { id: 'other', name: 'Link ngoài khác' }
+                    ]}
+                    onChange={(val) => setDocForm({ ...docForm, fileType: val })}
+                  />
                 </div>
-              )}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Dung lượng ước lượng (KB)</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={docForm.fileSizeKb}
+                    onChange={(e) => setDocForm({ ...docForm, fileSizeKb: Number(e.target.value) })}
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
 
               {otherActiveClasses.length > 0 && (
                 <div className="space-y-1.5 border-t border-gray-100 pt-3">
@@ -3501,7 +3413,7 @@ export default function ClassDetailPage() {
 
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="secondary" className="flex-1 rounded-xl font-bold text-xs h-9" onClick={() => setShowAddDoc(false)}>Huỷ</Button>
-                <Button type="submit" disabled={createDocMutation.isPending || isUploading} className="flex-1 rounded-xl font-bold text-xs h-9">
+                <Button type="submit" disabled={createDocMutation.isPending} className="flex-1 rounded-xl font-bold text-xs h-9">
                   {createDocMutation.isPending ? 'Đang lưu...' : 'Thêm tài liệu'}
                 </Button>
               </div>

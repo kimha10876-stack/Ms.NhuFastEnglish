@@ -876,6 +876,59 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
         return StatusCode(201, ApiResponse.Created(new { Id = firstDocId }, "Thêm tài liệu thành công"));
     }
 
+    [HttpGet("all-documents")]
+    public async Task<IActionResult> GetAllDocuments([FromQuery] string? search)
+    {
+        var isStudent = User.IsInRole("Student");
+        var isTeacher = User.IsInRole("Teacher");
+        var isAdmin = User.IsInRole("Admin");
+
+        IQueryable<ClassDocument> query = db.ClassDocuments
+            .Include(d => d.Class)
+            .Include(d => d.Session)
+            .Include(d => d.Uploader);
+
+        if (isStudent)
+        {
+            var profile = await db.StudentProfiles.FirstOrDefaultAsync(sp => sp.UserId == UserId);
+            if (profile == null) return Ok(ApiResponse.Ok(new List<object>()));
+
+            query = query.Where(d => db.ClassMembers.Any(m => m.ClassId == d.ClassId && m.StudentId == profile.Id && m.Status == "active"));
+        }
+        else if (isTeacher && !isAdmin)
+        {
+            query = query.Where(d => d.Class.TeacherId == UserId || d.UploadedBy == UserId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLower();
+            query = query.Where(d => d.Title.ToLower().Contains(searchLower));
+        }
+
+        var docs = await query
+            .OrderByDescending(d => d.CreatedAt)
+            .Select(d => new
+            {
+                Id = d.Id,
+                ClassId = d.ClassId,
+                ClassName = d.Class.Name,
+                SessionId = d.SessionId,
+                SessionTopic = d.Session != null ? d.Session.Topic : null,
+                SessionNumber = d.Session != null ? (int?)d.Session.SessionNumber : null,
+                Title = d.Title,
+                FileUrl = d.FileUrl,
+                FileType = d.FileType,
+                FileSizeKb = d.FileSizeKb,
+                UploadedBy = d.UploadedBy,
+                UploadedByName = d.Uploader != null ? d.Uploader.FullName : "Giáo viên",
+                CreatedAt = d.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(ApiResponse.Ok(docs));
+    }
+
     [HttpDelete("documents/{documentId:guid}")]
     [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> DeleteDocument(Guid documentId)
