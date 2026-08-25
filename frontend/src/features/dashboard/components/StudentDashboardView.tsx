@@ -568,7 +568,9 @@ export function StudentDashboardView() {
                         {a.grade !== null && a.grade !== undefined ? (
                           <div className="flex items-center gap-2 text-xs">
                             <Award className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                            <span className="font-bold text-amber-900">Điểm: {a.grade}/10</span>
+                            <span className="font-bold text-amber-900">
+                              {a.assignmentType === 'Quiz' ? `Đúng ${a.grade} câu` : `Điểm: ${a.grade}/10`}
+                            </span>
                             {a.teacherFeedback && (
                               <span className="text-gray-500 truncate">• {a.teacherFeedback}</span>
                             )}

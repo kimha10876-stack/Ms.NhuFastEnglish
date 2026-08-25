@@ -254,7 +254,7 @@ export default function ClassDetailPage() {
       questionText: '',
       options: ['', '', '', ''],
       correctAnswer: 'A',
-      points: 2
+      points: 1
     }
     setAssignmentQuestions([...assignmentQuestions, newQ])
   }
@@ -2084,11 +2084,22 @@ export default function ClassDetailPage() {
                 if (isStudent) {
                   if (a.submission) {
                     if (a.submission.grade !== null) {
-                      statusBadge = (
-                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                          Đã chấm: {a.submission.grade}/10
-                        </span>
-                      )
+                      if (a.assignmentType === 'Quiz') {
+                        const totalQuestions = a.questionsJson ? (JSON.parse(a.questionsJson) as any[]).length : 0
+                        const correctAnswers = a.submission.grade
+                        const percent = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
+                        statusBadge = (
+                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                            Đúng {correctAnswers}/{totalQuestions} câu ({percent}%)
+                          </span>
+                        )
+                      } else {
+                        statusBadge = (
+                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                            Đã chấm: {a.submission.grade}/10
+                          </span>
+                        )
+                      }
                     } else {
                       statusBadge = (
                         <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
@@ -3424,15 +3435,22 @@ export default function ClassDetailPage() {
 
       {/* ── Add/Edit Assignment Modal ── */}
       {showAddAssignment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 animate-in fade-in duration-200" onClick={() => setShowAddAssignment(false)}>
-          <div
-            className={`bg-white rounded-2xl shadow-xl w-full p-6 animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh] transition-all duration-300 ${
-              assignmentForm.assignmentType === 'Quiz' ? 'max-w-2xl' : 'max-w-md'
-            }`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-bold text-lg text-gray-900 mb-4">{editingAssignment ? 'Cập nhật bài tập' : 'Giao bài tập mới'}</h2>
-            <form onSubmit={handleSaveAssignment} className="space-y-4">
+        <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col h-screen w-screen overflow-hidden animate-in fade-in duration-200">
+          {/* Header Bar */}
+          <header className="h-16 border-b border-gray-200 bg-white px-6 flex items-center justify-between shrink-0 shadow-sm">
+            <h3 className="font-extrabold text-base text-gray-800">
+              {editingAssignment ? 'Chỉnh sửa bài tập / Quiz' : 'Giao bài tập mới / Quiz'}
+            </h3>
+            <div className="flex items-center gap-3">
+              <Button type="button" variant="secondary" className="rounded-xl px-4 py-2 text-xs font-semibold" onClick={() => setShowAddAssignment(false)}>Huỷ</Button>
+              <Button type="button" onClick={(e) => handleSaveAssignment(e as any)} disabled={createAssignmentMutation.isPending || updateAssignmentMutation.isPending} className="rounded-xl px-4 py-2 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white">Lưu bài tập</Button>
+            </div>
+          </header>
+
+          {/* Spacious Content Container */}
+          <div className="flex-1 overflow-y-auto p-6 md:p-10">
+            <div className="max-w-4xl mx-auto bg-white border border-gray-200 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
+              <form onSubmit={handleSaveAssignment} className="space-y-6">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tiêu đề bài tập</label>
                 <Input value={assignmentForm.title} onChange={(e) => setAssignmentForm({ ...assignmentForm, title: e.target.value })} placeholder="Ví dụ: Luyện nghe Unit 1" required className="rounded-xl" />
@@ -3502,41 +3520,30 @@ export default function ClassDetailPage() {
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-gray-400 uppercase">Loại câu hỏi</label>
-                              <CustomDropdown
-                                value={q.type}
-                                options={[
-                                  { id: 'MultipleChoice', name: 'Trắc nghiệm A/B/C/D' },
-                                  { id: 'TrueFalse', name: 'Đúng / Sai' },
-                                  { id: 'FillInTheBlank', name: 'Điền từ vào chỗ trống' },
-                                  { id: 'ShortAnswer', name: 'Câu trả lời ngắn' },
-                                  { id: 'Writing', name: 'Viết / Tự luận' }
-                                ]}
-                                onChange={(val) => {
-                                  const defaults: Partial<AssignmentQuestion> = { type: val as any }
-                                  if (val === 'MultipleChoice') {
-                                    defaults.options = ['', '', '', '']
-                                    defaults.correctAnswer = 'A'
-                                  } else if (val === 'TrueFalse') {
-                                    defaults.correctAnswer = 'True'
-                                  } else {
-                                    defaults.correctAnswer = ''
-                                  }
-                                  updateQuestion(idx, defaults)
-                                }}
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-gray-400 uppercase">Điểm số</label>
-                              <Input
-                                type="number" min="0.5" step="0.5"
-                                value={q.points}
-                                onChange={(e) => updateQuestion(idx, { points: Number(e.target.value) })}
-                                className="rounded-xl h-[38px] text-xs font-semibold"
-                              />
-                            </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase">Loại câu hỏi</label>
+                            <CustomDropdown
+                              value={q.type}
+                              options={[
+                                { id: 'MultipleChoice', name: 'Trắc nghiệm A/B/C/D' },
+                                { id: 'TrueFalse', name: 'Đúng / Sai' },
+                                { id: 'FillInTheBlank', name: 'Điền từ vào chỗ trống' },
+                                { id: 'ShortAnswer', name: 'Câu trả lời ngắn' },
+                                { id: 'Writing', name: 'Viết / Tự luận' }
+                              ]}
+                              onChange={(val) => {
+                                const defaults: Partial<AssignmentQuestion> = { type: val as any }
+                                if (val === 'MultipleChoice') {
+                                  defaults.options = ['', '', '', '']
+                                  defaults.correctAnswer = 'A'
+                                } else if (val === 'TrueFalse') {
+                                  defaults.correctAnswer = 'True'
+                                } else {
+                                  defaults.correctAnswer = ''
+                                }
+                                updateQuestion(idx, defaults)
+                              }}
+                            />
                           </div>
 
                           <div className="space-y-1">
@@ -3636,11 +3643,8 @@ export default function ClassDetailPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-2 border-t border-gray-100">
-                <Button type="button" variant="secondary" className="flex-1 rounded-xl" onClick={() => setShowAddAssignment(false)}>Huỷ</Button>
-                <Button type="submit" disabled={createAssignmentMutation.isPending || updateAssignmentMutation.isPending} className="flex-1 rounded-xl">Lưu bài tập</Button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -3724,10 +3728,25 @@ export default function ClassDetailPage() {
                   {/* Grading View */}
                   {selectedAssignment.submission?.grade !== null && selectedAssignment.submission?.grade !== undefined && (
                     <div className="bg-emerald-50 border border-emerald-200/80 p-4 rounded-2xl flex gap-4 items-start mb-4 animate-in fade-in duration-200">
-                      <div className="w-14 h-14 rounded-full bg-emerald-100 border-4 border-white flex flex-col items-center justify-center shrink-0 shadow-sm">
-                        <span className="text-lg font-black text-emerald-800 leading-none">{selectedAssignment.submission.grade}</span>
-                        <span className="text-[8px] font-bold text-emerald-500 tracking-wider">ĐIỂM</span>
-                      </div>
+                      {selectedAssignment.assignmentType === 'Quiz' ? (
+                        (() => {
+                          const totalQuestions = selectedAssignment.questionsJson ? (JSON.parse(selectedAssignment.questionsJson) as any[]).length : 0
+                          const correctAnswers = selectedAssignment.submission.grade
+                          const percent = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
+                          return (
+                            <div className="w-16 h-16 rounded-full bg-emerald-100 border-4 border-white flex flex-col items-center justify-center shrink-0 shadow-sm">
+                              <span className="text-sm font-black text-emerald-800 leading-none">{correctAnswers}/{totalQuestions}</span>
+                              <span className="text-[8px] font-bold text-emerald-500 tracking-wider mt-0.5">ĐÚNG</span>
+                              <span className="text-[8px] font-bold text-emerald-600 tracking-wider leading-none mt-0.5">{percent}%</span>
+                            </div>
+                          )
+                        })()
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-emerald-100 border-4 border-white flex flex-col items-center justify-center shrink-0 shadow-sm">
+                          <span className="text-lg font-black text-emerald-800 leading-none">{selectedAssignment.submission.grade}</span>
+                          <span className="text-[8px] font-bold text-emerald-500 tracking-wider">ĐIỂM</span>
+                        </div>
+                      )}
                       <div>
                         <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Kết quả & Đánh giá từ Giáo viên</h4>
                         <p className="text-sm text-emerald-700 font-semibold mt-1 leading-relaxed whitespace-pre-wrap">
@@ -3981,9 +4000,21 @@ export default function ClassDetailPage() {
                                 Nộp: {new Date(sub.submittedAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                               </span>
                               {sub.grade !== null ? (
-                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                  {sub.grade} Điểm
-                                </span>
+                                selectedAssignment.assignmentType === 'Quiz' ? (
+                                  (() => {
+                                    const totalQuestions = selectedAssignment.questionsJson ? (JSON.parse(selectedAssignment.questionsJson) as any[]).length : 0
+                                    const percent = totalQuestions > 0 ? Math.round((sub.grade / totalQuestions) * 100) : 0
+                                    return (
+                                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                        Đúng {sub.grade}/{totalQuestions} câu ({percent}%)
+                                      </span>
+                                    )
+                                  })()
+                                ) : (
+                                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                    {sub.grade} Điểm
+                                  </span>
+                                )
                               ) : (
                                 <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
                                   Chờ chấm
@@ -4006,11 +4037,11 @@ export default function ClassDetailPage() {
                                         <div key={q.id} className="pt-2 text-xs">
                                           <div className="flex items-start justify-between gap-2">
                                             <span className="font-semibold text-gray-700">Câu {qIdx + 1}: {q.questionText}</span>
-                                            {ansObj?.isCorrect === true && <span className="text-emerald-600 font-bold text-[10px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 shrink-0">Đúng (+{q.points}đ)</span>}
-                                            {ansObj?.isCorrect === false && <span className="text-red-600 font-bold text-[10px] bg-red-50 px-1.5 py-0.5 rounded border border-red-100 shrink-0">Sai (0đ)</span>}
+                                            {ansObj?.isCorrect === true && <span className="text-emerald-600 font-bold text-[10px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 shrink-0">Đúng</span>}
+                                            {ansObj?.isCorrect === false && <span className="text-red-600 font-bold text-[10px] bg-red-50 px-1.5 py-0.5 rounded border border-red-100 shrink-0">Sai</span>}
                                             {ansObj?.isCorrect === undefined && (
                                               <span className="text-gray-500 font-bold text-[10px] bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 shrink-0">
-                                                Tự luận: {ansObj?.grade !== undefined && ansObj?.grade !== null ? `${ansObj.grade}/${q.points}đ` : 'Chờ chấm'}
+                                                Tự luận: {ansObj?.grade === 1 ? 'Đúng / Đạt' : ansObj?.grade === 0 ? 'Sai / Chưa đạt' : 'Chờ chấm'}
                                               </span>
                                             )}
                                           </div>
@@ -4076,17 +4107,19 @@ export default function ClassDetailPage() {
             <p className="text-xs text-gray-400 mb-4 font-semibold">Học sinh: {selectedSubmission.studentName}</p>
             <form onSubmit={handleGradeSub} className="space-y-4">
               {selectedAssignment?.assignmentType === 'Quiz' ? (
-                // Detailed Quiz Grading View
                 <div className="space-y-4">
                   <div className="bg-amber-50/50 border border-amber-100 p-3 rounded-xl mb-4">
-                    <p className="text-xs text-amber-800 font-bold">
-                      Tổng điểm đã chấm: <span className="text-sm font-extrabold">{gradeForm.grade}</span> /{' '}
-                      {(() => {
-                        const questions: AssignmentQuestion[] = selectedAssignment.questionsJson ? JSON.parse(selectedAssignment.questionsJson) : []
-                        return questions.reduce((sum, q) => sum + q.points, 0)
-                      })()}{' '}
-                      điểm
-                    </p>
+                    {(() => {
+                      const questions: AssignmentQuestion[] = selectedAssignment.questionsJson ? JSON.parse(selectedAssignment.questionsJson) : []
+                      const totalQuestions = questions.length
+                      const correctCount = gradeForm.grade
+                      const percent = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0
+                      return (
+                        <p className="text-xs text-amber-800 font-bold">
+                          Số câu đúng đã chấm: <span className="text-sm font-extrabold">{correctCount}</span> / {totalQuestions} câu (Tỷ lệ đạt: <span className="text-sm font-extrabold">{percent}%</span>)
+                        </p>
+                      )
+                    })()}
                   </div>
 
                   <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
@@ -4102,13 +4135,13 @@ export default function ClassDetailPage() {
                           <div key={q.id} className="p-3 border border-gray-200 rounded-xl space-y-2.5 bg-gray-50/30">
                             <div className="flex items-start justify-between gap-2">
                               <span className="text-xs font-bold text-gray-800">
-                                Câu {idx + 1} ({q.points}đ): {q.questionText}
+                                Câu {idx + 1}: {q.questionText}
                               </span>
                               {isAutoGraded ? (
                                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                                   studentAnsObj?.isCorrect ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0' : 'bg-red-50 text-red-700 border border-red-200 shrink-0'
                                 }`}>
-                                  {studentAnsObj?.isCorrect ? `Đúng (+${q.points}đ)` : 'Sai (0đ)'}
+                                  {studentAnsObj?.isCorrect ? 'Đúng' : 'Sai'}
                                 </span>
                               ) : (
                                 <span className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
@@ -4126,13 +4159,31 @@ export default function ClassDetailPage() {
                             {!isAutoGraded && (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-gray-100 pt-2">
                                 <div className="space-y-1">
-                                  <label className="text-[10px] font-bold text-gray-400 uppercase">Điểm câu này (Tối đa {q.points})</label>
-                                  <Input
-                                    type="number" min="0" max={q.points} step="0.5"
-                                    value={studentAnsObj?.grade ?? 0}
-                                    onChange={(e) => handleWritingGradeChange(q.id, Number(e.target.value))}
-                                    className="rounded-xl h-8 text-xs font-bold"
-                                  />
+                                  <label className="text-[10px] font-bold text-gray-400 uppercase">Đánh giá câu trả lời</label>
+                                  <div className="flex gap-2 mt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleWritingGradeChange(q.id, 1)}
+                                      className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                                        studentAnsObj?.grade === 1
+                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                      }`}
+                                    >
+                                      Đúng / Đạt
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleWritingGradeChange(q.id, 0)}
+                                      className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                                        studentAnsObj?.grade === 0
+                                          ? 'bg-red-50 text-red-700 border-red-300'
+                                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                      }`}
+                                    >
+                                      Sai / Chưa đạt
+                                    </button>
+                                  </div>
                                 </div>
                                 <div className="space-y-1">
                                   <label className="text-[10px] font-bold text-gray-400 uppercase">Nhận xét riêng câu này</label>

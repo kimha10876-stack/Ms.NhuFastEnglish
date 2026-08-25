@@ -342,10 +342,25 @@ export default function DoAssignmentPage() {
             {/* Grade Result Banner */}
             {isGraded && assignment.submission && (
               <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex gap-3.5 items-start">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 border-2 border-white flex flex-col items-center justify-center shrink-0 shadow-sm">
-                  <span className="text-base font-black text-emerald-800 leading-none">{assignment.submission.grade}</span>
-                  <span className="text-[7px] font-bold text-emerald-500 tracking-wider">ĐIỂM</span>
-                </div>
+                {assignment.assignmentType === 'Quiz' ? (
+                  (() => {
+                    const totalQuestions = questions.length
+                    const correctAnswers = assignment.submission.grade ?? 0
+                    const percent = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
+                    return (
+                      <div className="w-14 h-14 rounded-full bg-emerald-100 border-2 border-white flex flex-col items-center justify-center shrink-0 shadow-sm">
+                        <span className="text-sm font-black text-emerald-800 leading-none">{correctAnswers}/{totalQuestions}</span>
+                        <span className="text-[7px] font-bold text-emerald-500 tracking-wider mt-0.5">CÂU ĐÚNG</span>
+                        <span className="text-[8px] font-bold text-emerald-600 leading-none mt-0.5">{percent}%</span>
+                      </div>
+                    )
+                  })()
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 border-2 border-white flex flex-col items-center justify-center shrink-0 shadow-sm">
+                    <span className="text-base font-black text-emerald-800 leading-none">{assignment.submission.grade}</span>
+                    <span className="text-[7px] font-bold text-emerald-500 tracking-wider">ĐIỂM</span>
+                  </div>
+                )}
                 <div>
                   <h4 className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Kết quả chấm</h4>
                   <p className="text-xs text-emerald-700 font-semibold mt-1 leading-relaxed">
@@ -400,9 +415,6 @@ export default function DoAssignmentPage() {
                           <span className="bg-slate-100 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-md">
                             Câu {idx + 1}
                           </span>
-                          <span className="text-[10px] text-gray-400 font-bold">
-                            ({q.points} điểm)
-                          </span>
                         </div>
 
                         {/* Grading Indicator */}
@@ -410,17 +422,17 @@ export default function DoAssignmentPage() {
                           <div className="shrink-0 text-[10px] font-bold">
                             {isCorrect === true && (
                               <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Đúng (+{q.points}đ)
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Đúng
                               </span>
                             )}
                             {isCorrect === false && (
                               <span className="text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <XCircle className="h-3.5 w-3.5 text-red-500" /> Sai (0đ)
+                                <XCircle className="h-3.5 w-3.5 text-red-500" /> Sai
                               </span>
                             )}
                             {isCorrect === undefined && (
                               <span className="text-gray-600 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
-                                {isGraded ? `Tự luận: ${questionGrade ?? 0}/${q.points}đ` : 'Chờ giáo viên chấm'}
+                                {isGraded ? (questionGrade === 1 ? 'Đúng / Đạt' : 'Sai / Chưa đạt') : 'Chờ giáo viên chấm'}
                               </span>
                             )}
                           </div>
