@@ -1082,7 +1082,7 @@ export default function ClassDetailPage() {
           Bài học & Tài liệu
         </button>
 
-        {isTeacher && (
+        {(isStaff || isStudent) && (
           <button
             onClick={() => setTab('assignments')}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all shrink-0 ${
