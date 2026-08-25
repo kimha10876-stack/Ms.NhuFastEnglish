@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, ChevronDown, BookOpen, FileText, Calendar,
   Clock, Sparkles, MapPin, Save, CheckCircle2, AlertCircle,
   Paperclip, ExternalLink, Send, Download, PlusCircle,
-  GraduationCap, File, CheckSquare, XCircle, Megaphone, Bold, Italic, Underline, MoreVertical
+  GraduationCap, File, CheckSquare, XCircle, Megaphone, Bold, Italic, Underline, MoreVertical, Upload
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -67,6 +67,114 @@ function formatContent(text: string) {
   return escaped
 }
 
+interface SessionAttendanceProps {
+  classId: string
+  sessionId: string
+}
+
+function SessionAttendance({ classId, sessionId }: SessionAttendanceProps) {
+  const { data: attendanceList = [], isLoading: loadingAttendance } = useClassAttendance(classId, sessionId)
+  const updateAttendanceMutation = useUpdateAttendance(classId, sessionId)
+  const [savingStudentId, setSavingStudentId] = useState<string | null>(null)
+
+  const handleToggle = (studentId: string, currentStatus: string | null, targetStatus: string) => {
+    if (currentStatus === targetStatus) return
+    setSavingStudentId(studentId)
+    updateAttendanceMutation.mutate({ studentId, status: targetStatus }, {
+      onSuccess: () => setSavingStudentId(null),
+      onError: () => {
+        setSavingStudentId(null)
+        alert('Cập nhật điểm danh thất bại!')
+      }
+    })
+  }
+
+  if (loadingAttendance) {
+    return (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
+      </div>
+    )
+  }
+
+  const presentCount = attendanceList.filter(a => a.status === 'present' || a.status === null).length
+  const absentCount = attendanceList.filter(a => a.status === 'absent').length
+
+  return (
+    <div className="mt-4 border-t border-gray-100 pt-4 text-left">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <h5 className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+            Điểm danh học viên
+          </h5>
+          <p className="text-[10px] text-gray-400 font-semibold mt-0.5">Tích chọn trạng thái đi học của học viên</p>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded-lg border border-gray-150 animate-in fade-in duration-300">
+          <span className="text-emerald-600">Đi học: {presentCount}</span>
+          <span>•</span>
+          <span className="text-red-500">Vắng: {absentCount}</span>
+        </div>
+      </div>
+      
+      {attendanceList.length === 0 ? (
+        <div className="text-center py-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+          <p className="text-xs text-gray-400 font-medium italic">Không có học viên nào trong danh sách lớp.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[300px] overflow-y-auto pr-1">
+          {attendanceList.map((att) => {
+            const isPresent = att.status === 'present' || att.status === null;
+            const isAbsent = att.status === 'absent';
+            const isSaving = savingStudentId === att.studentId;
+
+            return (
+              <div key={att.studentId} className="flex items-center justify-between p-2.5 border border-gray-150 rounded-xl bg-gray-50/20 hover:bg-gray-50/60 transition-all">
+                <div className="min-w-0 flex-1 pr-2">
+                  <p className="text-xs font-extrabold text-gray-900 truncate leading-snug">{att.fullName}</p>
+                  <p className="text-[9px] text-gray-450 font-medium truncate">{att.email}</p>
+                </div>
+                
+                <div className="flex items-center gap-1 shrink-0">
+                  {isSaving ? (
+                    <div className="px-5 py-1">
+                      <Loader2 className="h-3 w-3 animate-spin text-amber-500" />
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleToggle(att.studentId, att.status, 'present')}
+                        className={`px-3 py-1 rounded-lg text-[9px] font-bold transition-all border ${
+                          isPresent
+                            ? 'bg-emerald-500 border-emerald-500 text-white font-extrabold shadow-xs'
+                            : 'bg-white border-gray-200 text-gray-450 hover:bg-gray-50'
+                        }`}
+                      >
+                        Đi học
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggle(att.studentId, att.status, 'absent')}
+                        className={`px-3 py-1 rounded-lg text-[9px] font-bold transition-all border ${
+                          isAbsent
+                            ? 'bg-red-500 border-red-500 text-white font-extrabold shadow-xs'
+                            : 'bg-white border-gray-200 text-gray-450 hover:bg-gray-50'
+                        }`}
+                      >
+                        Vắng
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ClassDetailPage() {
   const { id = '' } = useParams<{ id: string }>()
   const navigate     = useNavigate()
@@ -108,6 +216,8 @@ export default function ClassDetailPage() {
     fileType: 'pdf',
     fileSizeKb: 100
   })
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadMode, setUploadMode] = useState<'upload' | 'link'>('upload')
   const [shareClassIds, setShareClassIds] = useState<string[]>([])
 
   // Assignments states
@@ -233,23 +343,9 @@ export default function ClassDetailPage() {
   const sessions = sessionData?.sessions ?? []
   const generalDocuments = sessionData?.generalDocuments ?? []
 
-  const sortedSessions = [...sessions].sort((a, b) => {
-    const dateDiff = new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
-    if (dateDiff !== 0) return dateDiff
-    return b.sessionNumber - a.sessionNumber
-  })
 
-  const [selectedSessionForAttendance, setSelectedSessionForAttendance] = useState<string>('')
-  const [savingAttendanceStudentId, setSavingAttendanceStudentId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (sortedSessions.length > 0 && !selectedSessionForAttendance) {
-      setSelectedSessionForAttendance(sortedSessions[0].id)
-    }
-  }, [sortedSessions, selectedSessionForAttendance])
 
-  const { data: attendanceList = [], isLoading: loadingAttendance } = useClassAttendance(id, selectedSessionForAttendance)
-  const updateAttendanceMutation = useUpdateAttendance(id, selectedSessionForAttendance)
 
   // Tuition hooks
   const { data: tuitionRecords = [], isLoading: loadingTuitions } = useClassTuitions(id)
@@ -341,19 +437,7 @@ export default function ClassDetailPage() {
     }, 0)
   }
 
-  const handleToggleAttendance = (studentId: string, currentStatus: string | null, targetStatus: string) => {
-    if (currentStatus === targetStatus) return
-    setSavingAttendanceStudentId(studentId)
-    updateAttendanceMutation.mutate({ studentId, status: targetStatus }, {
-      onSuccess: () => {
-        setSavingAttendanceStudentId(null)
-      },
-      onError: () => {
-        setSavingAttendanceStudentId(null)
-        alert('Cập nhật điểm danh thất bại!')
-      }
-    })
-  }
+
 
   const handlePostAnnouncement = (e: React.FormEvent) => {
     e.preventDefault()
@@ -646,8 +730,39 @@ export default function ClassDetailPage() {
   }
 
   // Document handlers
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    try {
+      const res = await classesApi.uploadFile(file)
+      const ext = file.name.split('.').pop()?.toLowerCase() || ''
+      let fileType = 'other'
+      if (['pdf'].includes(ext)) fileType = 'pdf'
+      else if (['doc', 'docx'].includes(ext)) fileType = 'word'
+      else if (['ppt', 'pptx'].includes(ext)) fileType = 'ppt'
+
+      setDocForm({
+        title: file.name,
+        fileUrl: res.fileUrl,
+        fileType: fileType,
+        fileSizeKb: Math.round(file.size / 1024)
+      })
+    } catch (error) {
+      console.error(error)
+      alert('Tải tệp lên thất bại!')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   const handleSaveDoc = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!docForm.fileUrl) {
+      alert('Vui lòng chọn file hoặc nhập đường dẫn tài liệu!')
+      return
+    }
     createDocMutation.mutate({
       ...docForm,
       sessionId: selectedSessionForDoc ?? undefined,
@@ -662,6 +777,7 @@ export default function ClassDetailPage() {
           fileSizeKb: 100
         })
         setShareClassIds([])
+        setUploadMode('upload')
       }
     })
   }
@@ -872,46 +988,65 @@ export default function ClassDetailPage() {
     <div className="p-6">
 
       {/* ── Header ── */}
-      <div className="flex items-start gap-3 mb-6">
-        <button
-          onClick={() => navigate('/classes')}
-          className="mt-0.5 p-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
+      <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4 gap-4">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <button
+            onClick={() => navigate('/classes')}
+            className="p-1.5 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span
-              className="text-[11px] font-bold text-white px-2.5 py-0.5 rounded-full"
-              style={{ backgroundColor: cls.categoryColorHex }}
-            >
-              {cls.categoryName}
-            </span>
-            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${STATUS_COLOR[cls.status] ?? STATUS_COLOR.active}`}>
-              {STATUS_LABEL[cls.status] ?? cls.status}
-            </span>
-            {cls.monthlyFee > 0 ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200">
-                <CreditCard className="h-3.5 w-3.5 text-amber-600" />
-                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cls.monthlyFee)}/tháng
+          <div className="min-w-0 text-left">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base md:text-lg font-extrabold tracking-tight text-gray-900 truncate" title={cls.name}>
+                {cls.name}
+              </h1>
+              <span
+                className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full shrink-0"
+                style={{ backgroundColor: cls.categoryColorHex }}
+              >
+                {cls.categoryName}
               </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-md border border-gray-200">
-                <CreditCard className="h-3.5 w-3.5 text-gray-400" />
-                Chưa đặt học phí
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border shrink-0 ${STATUS_COLOR[cls.status] ?? STATUS_COLOR.active}`}>
+                {STATUS_LABEL[cls.status] ?? cls.status}
               </span>
-            )}
+              {cls.monthlyFee > 0 ? (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 shrink-0">
+                  <CreditCard className="h-3 w-3 text-amber-600" />
+                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cls.monthlyFee)}/tháng
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-gray-500 bg-gray-150 px-2 py-0.5 rounded-md border border-gray-200 shrink-0">
+                  <CreditCard className="h-3 w-3 text-gray-400" />
+                  Chưa đặt học phí
+                </span>
+              )}
+            </div>
+            
+            <p className="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-x-2 font-medium">
+              <span>Giáo viên: <span className="font-bold text-gray-600">{cls.teacherName}</span></span>
+              {cls.room && (
+                <>
+                  <span>•</span>
+                  <span>Phòng: <span className="font-bold text-gray-600">{cls.room}</span></span>
+                </>
+              )}
+              {(cls.scheduleDays || cls.scheduleTime) && (
+                <>
+                  <span>•</span>
+                  <span>Lịch học: <span className="font-bold text-gray-600">{cls.scheduleDays} {cls.scheduleTime}</span></span>
+                </>
+              )}
+            </p>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 truncate">{cls.name}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Giáo viên: {cls.teacherName}</p>
         </div>
 
         {isAdmin && (
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="mt-0.5 p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            className="p-1.5 rounded-xl text-gray-455 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
             title="Xoá lớp học"
           >
             <Trash2 className="h-4 w-4" />
@@ -1917,6 +2052,9 @@ export default function ClassDetailPage() {
                                 </div>
                               )}
                             </div>
+                            {isStaff && (
+                              <SessionAttendance classId={id} sessionId={s.id} />
+                            )}
                           </div>
                         )}
                       </div>
@@ -2041,235 +2179,145 @@ export default function ClassDetailPage() {
       )}
 
       {tab === 'members' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* CỘT TRÁI: ĐIỂM DANH (Chỉ dành cho Giáo viên/Admin) */}
-          {isStaff && (
-            <div className="lg:col-span-7 bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-150 pb-3 flex-wrap gap-2 text-left">
-                <div>
-                  <h3 className="font-extrabold text-gray-900 text-base">Điểm danh theo buổi học</h3>
-                  <p className="text-xs text-gray-400 font-semibold mt-0.5">Chọn buổi học để theo dõi và tích điểm danh</p>
-                </div>
-                
-                {sortedSessions.length > 0 && (
-                  <div className="w-56">
-                    <select
-                      value={selectedSessionForAttendance}
-                      onChange={(e) => setSelectedSessionForAttendance(e.target.value)}
-                      className="w-full text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl p-2.5 focus:border-amber-500 focus:ring-amber-500/20"
-                    >
-                      {sortedSessions.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          Buổi {s.sessionNumber}: {s.topic || 'Chưa có tiêu đề'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
+        <div className="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-5 text-left">
+          <div className="border-b border-gray-150 pb-3 flex justify-between items-center flex-wrap gap-2">
+            <div>
+              <h3 className="font-extrabold text-gray-900 text-base">Thành viên lớp học</h3>
+              <p className="text-xs text-gray-400 font-semibold mt-0.5">Danh sách các học viên đang tham gia lớp</p>
+            </div>
+            <span className="text-xs font-bold text-gray-500 bg-gray-50 border border-gray-150 px-2.5 py-1 rounded-lg">
+              Sĩ số: {cls.members.length} học viên
+            </span>
+          </div>
 
-              {sortedSessions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center bg-gray-50/50 rounded-xl border border-dashed border-gray-200 p-4">
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mb-2.5 text-amber-500">
-                    <Calendar className="h-5 w-5" />
+          {/* Link mời và nút thêm học viên (chỉ Staff mới thấy) */}
+          {isStaff && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+              <Button onClick={() => setShowAdd(true)} className="gap-1.5 rounded-xl font-bold text-xs h-9 bg-amber-500 hover:bg-amber-600 text-gray-900 w-full">
+                <Plus className="h-4 w-4" />
+                Thêm học viên trực tiếp
+              </Button>
+
+              {activeInvite ? (
+                <div className="space-y-2 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-xs h-9">
+                    <Link2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <span className="truncate text-gray-600 flex-1 text-[11px] font-mono">{activeInvite.inviteUrl}</span>
+                    <button
+                      onClick={() => handleCopy(activeInvite.inviteUrl)}
+                      className="shrink-0 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                      title="Sao chép link"
+                    >
+                      {copied ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-600 animate-in zoom-in duration-200" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5 text-amber-600" />
+                      )}
+                    </button>
                   </div>
-                  <p className="font-bold text-gray-800 text-xs">Chưa có buổi học nào</p>
-                  <p className="text-[10px] text-gray-400 font-semibold mt-0.5">Vui lòng tạo buổi học ở tab "Bài học & Tài liệu" trước khi điểm danh</p>
-                </div>
-              ) : loadingAttendance ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowInvite(true)}
+                      className="flex-1 h-7 text-[10px] font-bold rounded-lg"
+                    >
+                      Tạo link mới
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowRevokeConfirm(true)}
+                      className="flex-1 h-7 text-[10px] font-bold border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 rounded-lg"
+                    >
+                      Hủy link
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                  {attendanceList.map((att) => {
-                    const isPresent = att.status === 'present' || att.status === null;
-                    const isAbsent = att.status === 'absent';
-                    const isSaving = savingAttendanceStudentId === att.studentId;
-
-                    return (
-                      <div key={att.studentId} className="flex items-center justify-between p-3 border border-gray-100 rounded-xl bg-gray-50/30 hover:bg-gray-50/70 transition-all">
-                        <div className="min-w-0 flex-1 pr-3 text-left">
-                          <p className="text-xs font-extrabold text-gray-900 truncate">{att.fullName}</p>
-                          <p className="text-[10px] text-gray-400 font-semibold truncate mt-0.5">{att.email}</p>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {isSaving ? (
-                            <div className="px-6 py-1.5 flex items-center justify-center">
-                              <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
-                            </div>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleAttendance(att.studentId, att.status, 'present')}
-                                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-xs border ${
-                                  isPresent
-                                    ? 'bg-emerald-500 border-emerald-500 text-white font-extrabold'
-                                    : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
-                                }`}
-                              >
-                                Đi học
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleAttendance(att.studentId, att.status, 'absent')}
-                                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-xs border ${
-                                  isAbsent
-                                    ? 'bg-red-500 border-red-500 text-white font-extrabold'
-                                    : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
-                                }`}
-                              >
-                                Vắng
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <Button variant="secondary" onClick={() => setShowInvite(true)} className="w-full gap-1.5 rounded-xl font-bold text-xs h-9">
+                  <Link2 className="h-4 w-4" />
+                  Tạo link mời học viên
+                </Button>
               )}
             </div>
           )}
 
-          {/* CỘT PHẢI: QUẢN LÝ THÀNH VIÊN & LINK MỜI */}
-          <div className={`${isStaff ? 'lg:col-span-5' : 'lg:col-span-12'} bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4`}>
-            <div className="border-b border-gray-150 pb-3 text-left">
-              <h3 className="font-extrabold text-gray-900 text-base">Thành viên lớp học</h3>
-              <p className="text-xs text-gray-400 font-semibold mt-0.5">Danh sách các học viên đang tham gia lớp</p>
+          {cls.members.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 border border-gray-200 border-dashed rounded-xl bg-gray-50/50">
+              <Users className="h-8 w-8 text-gray-300 mb-2" />
+              <p className="text-gray-500 font-bold text-xs">Chưa có học viên nào tham gia</p>
             </div>
-
-            {/* Link mời và nút thêm học viên */}
-            {isStaff && (
-              <div className="space-y-3">
-                <Button onClick={() => setShowAdd(true)} className="w-full gap-1.5 rounded-xl font-bold text-xs h-9 bg-amber-500 hover:bg-amber-600 text-gray-900">
-                  <Plus className="h-4 w-4" />
-                  Thêm học viên trực tiếp
-                </Button>
-
-                {activeInvite ? (
-                  <div className="space-y-2 animate-in fade-in duration-200">
-                    <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm">
-                      <Link2 className="h-4 w-4 text-amber-500 shrink-0" />
-                      <span className="truncate text-gray-600 flex-1 text-[11px] font-mono">{activeInvite.inviteUrl}</span>
-                      <button
-                        onClick={() => handleCopy(activeInvite.inviteUrl)}
-                        className="shrink-0 p-1 rounded-lg hover:bg-amber-100 transition-colors"
-                        title="Sao chép link"
-                      >
-                        {copied ? (
-                          <Check className="h-3.5 w-3.5 text-emerald-600 animate-in zoom-in duration-200" />
-                        ) : (
-                          <Copy className="h-3.5 w-3.5 text-amber-600" />
-                        )}
-                      </button>
+          ) : (
+            <div className="space-y-2">
+              <div className="max-h-[500px] overflow-y-auto space-y-2 pr-1">
+                {paginatedMembers.map((m) => (
+                  <div key={m.memberId} className="flex items-center justify-between p-3 border border-gray-100 rounded-xl bg-gray-50/20 hover:bg-amber-50/5 hover:border-amber-200/30 transition-all">
+                    <div className="flex items-center gap-3 min-w-0 flex-1 text-left">
+                      <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0 border border-amber-200/30">
+                        <span className="text-xs font-bold text-amber-700">
+                          {m.fullName[0]?.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-extrabold text-gray-900 truncate leading-snug">{m.fullName}</p>
+                        <p className="text-[10px] text-gray-400 font-semibold truncate mt-0.5">{m.email}</p>
+                      </div>
                     </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        onClick={() => setShowInvite(true)}
-                        className="flex-1 h-8 text-[10px] font-bold rounded-lg"
-                      >
-                        Tạo link mới
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowRevokeConfirm(true)}
-                        className="flex-1 h-8 text-[10px] font-bold border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 rounded-lg"
-                      >
-                        Hủy link
-                      </Button>
+
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      {isStaff && (
+                        <button
+                          onClick={() => {
+                            setDeleteConfirm({
+                              show: true,
+                              title: 'Xóa học viên khỏi lớp?',
+                              message: `Bạn có chắc muốn xóa học viên ${m.fullName} khỏi lớp học này không?`,
+                              onConfirm: () => {
+                                removeMember(m.memberId)
+                                setDeleteConfirm(prev => ({ ...prev, show: false }))
+                              }
+                            })
+                          }}
+                          className="p-1.5 rounded-lg text-gray-405 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          title="Xóa khỏi lớp"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
-                ) : (
-                  <Button variant="secondary" onClick={() => setShowInvite(true)} className="w-full gap-1.5 rounded-xl font-bold text-xs h-9">
-                    <Link2 className="h-4 w-4" />
-                    Tạo link mời học viên
-                  </Button>
-                )}
+                ))}
               </div>
-            )}
 
-            {cls.members.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 border border-gray-200 border-dashed rounded-xl bg-gray-50/50">
-                <Users className="h-8 w-8 text-gray-300 mb-2" />
-                <p className="text-gray-500 font-bold text-xs">Chưa có học viên nào</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
-                  {paginatedMembers.map((m) => (
-                    <div key={m.memberId} className="flex items-center justify-between p-2.5 border border-gray-100 rounded-xl bg-gray-50/20 hover:bg-amber-50/10 transition-colors">
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1 text-left">
-                        <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center shrink-0 border border-amber-200/40">
-                          <span className="text-[10px] font-bold text-amber-700">
-                            {m.fullName[0]?.toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-gray-900 truncate leading-snug">{m.fullName}</p>
-                          <p className="text-[10px] text-gray-400 font-semibold truncate">{m.email}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                        {isStaff && (
-                          <button
-                            onClick={() => {
-                              setDeleteConfirm({
-                                show: true,
-                                title: 'Xóa học viên khỏi lớp?',
-                                message: `Bạn có chắc muốn xóa học viên ${m.fullName} khỏi lớp học này không?`,
-                                onConfirm: () => {
-                                  removeMember(m.memberId)
-                                  setDeleteConfirm(prev => ({ ...prev, show: false }))
-                                }
-                              })
-                            }}
-                            className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                            title="Xóa khỏi lớp"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+              {totalMemberPages > 1 && (
+                <div className="flex items-center justify-between pt-3 border-t border-gray-150 mt-3">
+                  <p className="text-[10px] font-bold text-gray-400">
+                    Trang {activeMemberPage}/{totalMemberPages}
+                  </p>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMemberPage(p => Math.max(p - 1, 1))}
+                      disabled={activeMemberPage === 1}
+                      className="h-7 w-7 p-0 rounded-lg"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMemberPage(p => Math.min(p + 1, totalMemberPages))}
+                      disabled={activeMemberPage === totalMemberPages}
+                      className="h-7 w-7 p-0 rounded-lg"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-
-                {totalMemberPages > 1 && (
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
-                    <p className="text-[10px] font-bold text-gray-400">
-                      Trang {activeMemberPage}/{totalMemberPages}
-                    </p>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setMemberPage(p => Math.max(p - 1, 1))}
-                        disabled={activeMemberPage === 1}
-                        className="h-7 w-7 p-0 rounded-lg"
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setMemberPage(p => Math.min(p + 1, totalMemberPages))}
-                        disabled={activeMemberPage === totalMemberPages}
-                        className="h-7 w-7 p-0 rounded-lg"
-                      >
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -3281,48 +3329,152 @@ export default function ClassDetailPage() {
       {showAddDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 animate-in fade-in duration-200" onClick={() => setShowAddDoc(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-bold text-lg text-gray-900 mb-2">Thêm tài liệu học tập</h2>
-            <p className="text-xs text-gray-400 mb-4">
+            <h2 className="font-bold text-lg text-gray-900 mb-1 text-left">Thêm tài liệu học tập</h2>
+            <p className="text-xs text-gray-400 mb-4 text-left">
               {selectedSessionForDoc 
                 ? `Tài liệu này sẽ được đính kèm vào Unit của buổi học.` 
                 : 'Tài liệu này sẽ xuất hiện trong phần Giáo trình & Tài liệu chung của lớp.'}
             </p>
+
+            <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
+              <button
+                type="button"
+                onClick={() => setUploadMode('upload')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  uploadMode === 'upload' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                Tải tệp lên
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadMode('link')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  uploadMode === 'link' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                Nhập link thủ công
+              </button>
+            </div>
+
             <form onSubmit={handleSaveDoc} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tiêu đề tài liệu</label>
-                <Input value={docForm.title} onChange={(e) => setDocForm({ ...docForm, title: e.target.value })} placeholder="Ví dụ: Giáo trình Giao tiếp.pdf" required className="rounded-xl" />
-              </div>
+              {uploadMode === 'upload' ? (
+                <div className="space-y-3">
+                  {!docForm.fileUrl ? (
+                    <div className="border border-dashed border-gray-200 hover:border-amber-400 bg-gray-50/50 rounded-2xl p-6 transition-all text-center relative cursor-pointer">
+                      <input
+                        type="file"
+                        onChange={handleFileUpload}
+                        disabled={isUploading}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                      />
+                      {isUploading ? (
+                        <div className="flex flex-col items-center py-2">
+                          <Loader2 className="h-6 w-6 animate-spin text-amber-500 mb-2" />
+                          <p className="text-xs font-bold text-amber-600">Đang tải tệp lên...</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center py-2">
+                          <div className="p-3 bg-amber-50 rounded-xl text-amber-500 mb-2">
+                            <Upload className="h-5 w-5" />
+                          </div>
+                          <p className="text-xs font-bold text-gray-700">Click để chọn hoặc kéo thả tệp</p>
+                          <p className="text-[10px] text-gray-400 font-semibold mt-1">Hỗ trợ PDF, Word, Powerpoint, Excel...</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-3 bg-emerald-50/80 border border-emerald-100 rounded-xl">
+                        <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg shrink-0">
+                          <Check className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1 text-left">
+                          <p className="text-xs font-bold text-gray-800 truncate">{docForm.title}</p>
+                          <p className="text-[10px] text-gray-550 font-semibold mt-0.5">
+                            {(docForm.fileSizeKb).toLocaleString('vi-VN')} KB • {docForm.fileType.toUpperCase()}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDocForm({ title: '', fileUrl: '', fileType: 'pdf', fileSizeKb: 100 })}
+                          className="text-[10px] font-bold text-red-500 hover:underline shrink-0"
+                        >
+                          Chọn tệp khác
+                        </button>
+                      </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Đường dẫn tệp (URL / Link ngoài)</label>
-                <Input value={docForm.fileUrl} onChange={(e) => setDocForm({ ...docForm, fileUrl: e.target.value })} placeholder="https://..." required className="rounded-xl" />
-              </div>
+                      <div className="space-y-1 text-left">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tên hiển thị của tài liệu</label>
+                        <Input
+                          value={docForm.title}
+                          onChange={(e) => setDocForm({ ...docForm, title: e.target.value })}
+                          placeholder="Nhập tên hiển thị trên lớp học"
+                          required
+                          className="rounded-xl"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-1 text-left">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tiêu đề tài liệu</label>
+                    <Input
+                      value={docForm.title}
+                      onChange={(e) => setDocForm({ ...docForm, title: e.target.value })}
+                      placeholder="Ví dụ: Giáo trình Giao tiếp.pdf"
+                      required
+                      className="rounded-xl"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Định dạng file</label>
-                  <CustomDropdown
-                    value={docForm.fileType}
-                    options={[
-                      { id: 'pdf', name: 'PDF Document (.pdf)' },
-                      { id: 'word', name: 'Microsoft Word (.docx)' },
-                      { id: 'ppt', name: 'Powerpoint (.pptx)' },
-                      { id: 'other', name: 'Other Link' }
-                    ]}
-                    onChange={(val) => setDocForm({ ...docForm, fileType: val })}
-                  />
+                  <div className="space-y-1 text-left">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Đường dẫn tệp (URL / Link ngoài)</label>
+                    <Input
+                      value={docForm.fileUrl}
+                      onChange={(e) => setDocForm({ ...docForm, fileUrl: e.target.value })}
+                      placeholder="https://..."
+                      required
+                      className="rounded-xl"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-left">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Định dạng file</label>
+                      <CustomDropdown
+                        value={docForm.fileType}
+                        options={[
+                          { id: 'pdf', name: 'PDF Document (.pdf)' },
+                          { id: 'word', name: 'Microsoft Word (.docx)' },
+                          { id: 'ppt', name: 'Powerpoint (.pptx)' },
+                          { id: 'other', name: 'Other Link' }
+                        ]}
+                        onChange={(val) => setDocForm({ ...docForm, fileType: val })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Kích thước file (KB)</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={docForm.fileSizeKb}
+                        onChange={(e) => setDocForm({ ...docForm, fileSizeKb: Number(e.target.value) })}
+                        required
+                        className="rounded-xl"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kích thước file (KB)</label>
-                  <Input type="number" min="1" value={docForm.fileSizeKb} onChange={(e) => setDocForm({ ...docForm, fileSizeKb: Number(e.target.value) })} required className="rounded-xl" />
-                </div>
-              </div>
+              )}
 
               {otherActiveClasses.length > 0 && (
                 <div className="space-y-1.5 border-t border-gray-100 pt-3">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Chia sẻ tài liệu này với các lớp khác</label>
-                  <p className="text-[10px] text-gray-400 font-semibold mb-2">Chọn lớp học để chia sẻ tài liệu này:</p>
-                  <div className="max-h-[120px] overflow-y-auto space-y-2 border border-gray-100 rounded-xl p-3 bg-gray-50/50">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block text-left">Chia sẻ tài liệu này với các lớp khác</label>
+                  <p className="text-[10px] text-gray-400 font-semibold mb-2 text-left">Chọn lớp học để chia sẻ tài liệu này:</p>
+                  <div className="max-h-[120px] overflow-y-auto space-y-2 border border-gray-150 rounded-xl p-3 bg-gray-50/50">
                     {otherActiveClasses.map((c) => {
                       const checked = shareClassIds.includes(c.id);
                       return (
@@ -3348,8 +3500,10 @@ export default function ClassDetailPage() {
               )}
 
               <div className="flex gap-3 pt-2">
-                <Button type="button" variant="secondary" className="flex-1 rounded-xl" onClick={() => setShowAddDoc(false)}>Huỷ</Button>
-                <Button type="submit" disabled={createDocMutation.isPending} className="flex-1 rounded-xl">Thêm tài liệu</Button>
+                <Button type="button" variant="secondary" className="flex-1 rounded-xl font-bold text-xs h-9" onClick={() => setShowAddDoc(false)}>Huỷ</Button>
+                <Button type="submit" disabled={createDocMutation.isPending || isUploading} className="flex-1 rounded-xl font-bold text-xs h-9">
+                  {createDocMutation.isPending ? 'Đang lưu...' : 'Thêm tài liệu'}
+                </Button>
               </div>
             </form>
           </div>
