@@ -219,6 +219,86 @@ export default function DoAssignmentPage() {
   // Calculate answered count
   const answeredCount = questions.filter((q) => !!quizAnswers[q.id]).length
 
+  const renderInlineSelectQuestion = (q: AssignmentQuestion, studentAns: string) => {
+    const text = q.questionText
+    const regex = /\[([^\]]+)\]/g
+    const parts = []
+    let lastIndex = 0
+    let match
+    let partIdx = 0
+
+    const hasBrackets = /\[([^\]]+)\]/.test(text)
+    if (!hasBrackets) {
+      return (
+        <div className="space-y-2">
+          <p className="text-left text-sm font-semibold text-gray-700">
+            {text}
+          </p>
+          <Input
+            value={studentAns}
+            onChange={(e) => setQuizAnswers({ ...quizAnswers, [q.id]: e.target.value })}
+            disabled={hasSubmitted || isBlocked}
+            placeholder="Nhập câu trả lời..."
+            className="rounded-2xl h-11 text-xs bg-white border border-gray-200"
+          />
+        </div>
+      )
+    }
+
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(
+          <span key={`text-${partIdx}`} className="leading-relaxed">
+            {text.substring(lastIndex, match.index)}
+          </span>
+        )
+        partIdx++
+      }
+
+      const options = match[1].split(/[\/|]/).map((opt) => opt.trim())
+      const sortedOptions = [...options].sort()
+
+      parts.push(
+        <select
+          key={`select-${partIdx}`}
+          value={studentAns}
+          disabled={hasSubmitted || isBlocked}
+          onChange={(e) => setQuizAnswers({ ...quizAnswers, [q.id]: e.target.value })}
+          className={`mx-1 inline-block px-2.5 py-1 text-xs font-bold rounded-xl border outline-none bg-white transition-all cursor-pointer ${
+            hasSubmitted
+              ? (studentAns === q.correctAnswer
+                  ? 'border-emerald-500 text-emerald-800 bg-emerald-50/50'
+                  : 'border-red-500 text-red-800 bg-red-50/50')
+              : 'border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20'
+          }`}
+        >
+          <option value="">-- Chọn --</option>
+          {sortedOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      )
+      partIdx++
+      lastIndex = regex.lastIndex
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(
+        <span key={`text-${partIdx}`} className="leading-relaxed">
+          {text.substring(lastIndex)}
+        </span>
+      )
+    }
+
+    return (
+      <div className="text-sm font-semibold text-gray-800 text-left leading-relaxed flex flex-wrap items-center gap-y-1.5 p-3.5 bg-gray-50/40 rounded-2xl border border-gray-100">
+        {parts}
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans select-none">
       
@@ -440,9 +520,11 @@ export default function DoAssignmentPage() {
                       </div>
 
                       {/* Question Text */}
-                      <h3 className="font-extrabold text-sm text-gray-800 leading-relaxed text-left">
-                        {q.questionText}
-                      </h3>
+                      {q.type !== 'FillInTheBlank' && (
+                        <h3 className="font-extrabold text-sm text-gray-800 leading-relaxed text-left">
+                          {q.questionText}
+                        </h3>
+                      )}
 
                       {/* Interactive Answer Choices */}
                       {q.type === 'MultipleChoice' && q.options && (
@@ -536,16 +618,10 @@ export default function DoAssignmentPage() {
 
                       {q.type === 'FillInTheBlank' && (
                         <div className="space-y-1.5">
-                          <Input
-                            value={studentAns}
-                            onChange={(e) => setQuizAnswers({ ...quizAnswers, [q.id]: e.target.value })}
-                            disabled={hasSubmitted || isBlocked}
-                            placeholder="Nhập câu trả lời hoặc từ cần điền..."
-                            className="rounded-2xl h-11 text-xs bg-white border border-gray-200"
-                          />
+                          {renderInlineSelectQuestion(q, studentAns)}
                           {hasSubmitted && (
-                            <p className="text-[10px] font-bold text-gray-400 text-left">
-                              Đáp án đúng của giáo viên: <span className="text-emerald-700">{q.correctAnswer}</span>
+                            <p className="text-[10px] font-bold text-gray-400 text-left mt-1.5">
+                              Đáp án đúng: <span className="text-emerald-700 font-extrabold">{q.correctAnswer}</span>
                             </p>
                           )}
                         </div>

@@ -784,7 +784,22 @@ export default function ClassDetailPage() {
   // Assignment handlers
   const handleSaveAssignment = (e: React.FormEvent) => {
     e.preventDefault()
-    const questionsJson = assignmentForm.assignmentType === 'Quiz' ? JSON.stringify(assignmentQuestions) : null
+
+    // Parse FillInTheBlank questions to extract correctAnswer automatically
+    const parsedQuestions = assignmentQuestions.map((q) => {
+      if (q.type === 'FillInTheBlank') {
+        const match = q.questionText.match(/\[([^\]]+)\]/)
+        if (match && match[1]) {
+          const options = match[1].split(/[\/|]/).map(o => o.trim())
+          if (options.length > 0) {
+            return { ...q, correctAnswer: options[0] }
+          }
+        }
+      }
+      return q
+    })
+
+    const questionsJson = assignmentForm.assignmentType === 'Quiz' ? JSON.stringify(parsedQuestions) : null
 
     if (editingAssignment) {
       updateAssignmentMutation.mutate({
@@ -3612,15 +3627,12 @@ export default function ClassDetailPage() {
 
                           {/* Fill In The Blank Option */}
                           {q.type === 'FillInTheBlank' && (
-                            <div className="space-y-1 border-t border-gray-100 pt-2">
-                              <label className="text-[10px] font-bold text-gray-400 uppercase">Từ/cụm từ đúng (Đáp án đúng)</label>
-                              <Input
-                                value={q.correctAnswer ?? ''}
-                                onChange={(e) => updateQuestion(idx, { correctAnswer: e.target.value })}
-                                placeholder="Nhập đáp án đúng..."
-                                required
-                                className="rounded-xl h-[38px] text-xs"
-                              />
+                            <div className="space-y-1.5 border-t border-gray-100 pt-2 text-xs">
+                              <div className="bg-blue-50/50 border border-blue-100 text-blue-800 p-3 rounded-xl space-y-1 text-[11px] leading-relaxed">
+                                <p className="font-extrabold text-blue-900">Hướng dẫn điền từ dạng chọn đáp án (Inline Select):</p>
+                                <p>Nhập câu văn hoàn chỉnh và đặt các lựa chọn trong ngoặc vuông ngăn cách bởi dấu gạch chéo `/` (từ đầu tiên luôn là đáp án đúng).</p>
+                                <p className="italic text-gray-500 mt-1">Ví dụ: Yesterday, she <strong>[went/go/goes]</strong> to the cinema.</p>
+                              </div>
                             </div>
                           )}
 
