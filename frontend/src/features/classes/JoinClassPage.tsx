@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { BookOpen, Users, LogIn, UserPlus, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { Users, LogIn, UserPlus, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { useAuthStore } from '@/features/auth/auth.store'
 import { useInviteInfo, useJoinByInvite } from './useClasses'
@@ -31,8 +31,8 @@ export default function JoinClassPage() {
 
       {/* Logo */}
       <div className="flex items-center gap-2.5 mb-8">
-        <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center">
-          <BookOpen className="h-5 w-5 text-gray-900" />
+        <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-gray-200 bg-white">
+          <img src="/logo.png" alt="Ms Nhu Fast English Logo" className="w-full h-full object-cover" />
         </div>
         <span className="font-bold text-[17px] tracking-tight text-gray-900">Ms Nhu Fast English</span>
       </div>

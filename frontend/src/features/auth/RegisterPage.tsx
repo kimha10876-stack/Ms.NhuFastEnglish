@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { BookOpen, ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { useRegisterStudent } from './useAuth'
@@ -52,8 +52,8 @@ export default function RegisterPage() {
       {/* ── Branding panel (desktop only) ───────────────────────────────── */}
       <div className="hidden md:flex md:w-[45%] bg-primary flex-col justify-between p-10 select-none">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-            <BookOpen className="h-4 w-4 text-white" />
+          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-white/20 bg-white">
+            <img src="/logo.png" alt="Ms Nhu Fast English Logo" className="w-full h-full object-cover" />
           </div>
           <span className="font-bold text-white text-[17px] tracking-tight">
             Ms Nhu Fast English
@@ -81,8 +81,8 @@ export default function RegisterPage() {
 
           {/* Mobile logo */}
           <div className="md:hidden flex items-center gap-2 justify-center mb-8">
-            <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center">
-              <BookOpen className="h-4 w-4 text-white" />
+            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-gray-200 bg-white">
+              <img src="/logo.png" alt="Ms Nhu Fast English Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-bold text-[17px] tracking-tight">Ms Nhu Fast English</span>
           </div>

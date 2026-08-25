@@ -130,8 +130,8 @@ export function Sidebar({ open, onClose, onEditProfile }: SidebarProps) {
           isCollapsed && "md:px-0 md:justify-center"
         )}>
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center shrink-0 shadow-sm">
-              <BookOpen className="h-3.5 w-3.5 text-gray-900" />
+            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 shadow-sm border border-gray-100 bg-white">
+              <img src="/logo.png" alt="Ms Nhu Fast English Logo" className="w-full h-full object-cover" />
             </div>
             <span className={cn(
               "font-bold text-[13px] text-gray-900 tracking-tight leading-tight truncate transition-all duration-200",

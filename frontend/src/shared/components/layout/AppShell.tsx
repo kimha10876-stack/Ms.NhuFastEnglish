@@ -120,8 +120,8 @@ export function AppShell() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0 shadow-sm">
-                <BookOpen className="h-4.5 w-4.5 text-gray-900" />
+              <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 shadow-sm border border-gray-100 bg-white">
+                <img src="/logo.png" alt="Ms Nhu Fast English Logo" className="w-full h-full object-cover" />
               </div>
               <span className="font-extrabold text-[15px] text-gray-900 tracking-tight leading-tight hidden sm:block">
                 Ms Nhu Fast English
