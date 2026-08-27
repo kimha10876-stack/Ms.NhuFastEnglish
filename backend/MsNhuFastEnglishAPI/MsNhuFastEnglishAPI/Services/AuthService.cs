@@ -346,13 +346,14 @@ public class AuthService(
                     var extIndex = subPath.LastIndexOf('.');
                     var publicId = extIndex >= 0 ? subPath[..extIndex] : subPath;
 
-                    var destroyParams = new DeletionParams(publicId);
-                    await cloudinary.DestroyAsync(destroyParams);
+                    var destroyParams = new DeletionParams(publicId) { Invalidate = true };
+                    var destroyResult = await cloudinary.DestroyAsync(destroyParams);
+                    Console.WriteLine($"[Cloudinary Delete Old Avatar in UpdateAvatarAsync] PublicId: {publicId}, Result: {destroyResult.Result}");
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore deletion errors
+                Console.WriteLine($"[Cloudinary Delete Error in UpdateAvatarAsync]: {ex.Message}");
             }
         }
         else if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.StartsWith("/api/uploads/"))
@@ -467,14 +468,15 @@ public class AuthService(
                             var extIndex = subPath.LastIndexOf('.');
                             var publicId = extIndex >= 0 ? subPath[..extIndex] : subPath;
 
-                            var destroyParams = new DeletionParams(publicId);
-                            await cloudinary.DestroyAsync(destroyParams);
+                            var destroyParams = new DeletionParams(publicId) { Invalidate = true };
+                            var destroyResult = await cloudinary.DestroyAsync(destroyParams);
+                            Console.WriteLine($"[Cloudinary Delete Old Avatar in UpdateProfileAsync] PublicId: {publicId}, Result: {destroyResult.Result}");
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore Cloudinary deletion errors
+                    Console.WriteLine($"[Cloudinary Delete Error in UpdateProfileAsync]: {ex.Message}");
                 }
             }
         }
