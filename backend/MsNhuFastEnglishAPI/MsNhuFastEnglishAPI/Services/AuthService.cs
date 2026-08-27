@@ -8,6 +8,8 @@ using MsNhuFastEnglishAPI.Models.DTOs;
 using MsNhuFastEnglishAPI.Models.Entities;
 using StackExchange.Redis;
 using MsNhuFastEnglishAPI.Shared;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 
 namespace MsNhuFastEnglishAPI.Services;
 
@@ -308,40 +310,85 @@ public class AuthService(
 
         if (user is null) return (null, "Tài khoản không tồn tại");
 
-        // Delete old avatar if it exists locally
-        if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.StartsWith("/api/uploads/"))
+        var cloudName = config["Cloudinary:CloudName"];
+        var apiKey = config["Cloudinary:ApiKey"];
+        var apiSecret = config["Cloudinary:ApiSecret"];
+
+        if (string.IsNullOrEmpty(cloudName) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(apiSecret))
         {
+            return (null, "Hệ thống chưa cấu hình Cloudinary API. Vui lòng kiểm tra lại thông số");
+        }
+
+        var account = new Account(cloudName, apiKey, apiSecret);
+        var cloudinary = new Cloudinary(account);
+
+        // Delete old avatar from Cloudinary if it exists there
+        if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.Contains("res.cloudinary.com"))
+        {
+            try
+            {
+                var uri = new Uri(user.AvatarUrl);
+                var path = uri.AbsolutePath;
+                var uploadKeyword = "/upload/";
+                var keywordIndex = path.IndexOf(uploadKeyword);
+                if (keywordIndex >= 0)
+                {
+                    var subPath = path[(keywordIndex + uploadKeyword.Length)..];
+                    var firstSlash = subPath.IndexOf('/');
+                    if (firstSlash >= 0)
+                    {
+                        var segment = subPath[..firstSlash];
+                        if (segment.StartsWith('v') && long.TryParse(segment[1..], out _))
+                        {
+                            subPath = subPath[(firstSlash + 1)..];
+                        }
+                    }
+                    var extIndex = subPath.LastIndexOf('.');
+                    var publicId = extIndex >= 0 ? subPath[..extIndex] : subPath;
+
+                    var destroyParams = new DeletionParams(publicId);
+                    await cloudinary.DestroyAsync(destroyParams);
+                }
+            }
+            catch
+            {
+                // Ignore deletion errors
+            }
+        }
+        else if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.StartsWith("/api/uploads/"))
+        {
+            // Delete local file if migrating from local storage
             var oldFileName = Path.GetFileName(user.AvatarUrl);
             var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", oldFileName);
             if (System.IO.File.Exists(oldFilePath))
             {
-                try
-                {
-                    System.IO.File.Delete(oldFilePath);
-                }
-                catch
-                {
-                    // Ignore deletion error
-                }
+                try { System.IO.File.Delete(oldFilePath); } catch {}
             }
         }
 
-        // Save new avatar
-        var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-        if (!Directory.Exists(uploadsFolder))
+        // Upload new avatar to Cloudinary
+        try
         {
-            Directory.CreateDirectory(uploadsFolder);
+            using var stream = file.OpenReadStream();
+            var uploadParams = new ImageUploadParams()
+            {
+                File = new FileDescription(file.FileName, stream),
+                Folder = "msnhu_avatars",
+                Transformation = new Transformation().Width(300).Height(300).Crop("fill")
+            };
+            var uploadResult = await cloudinary.UploadAsync(uploadParams);
+            if (uploadResult.Error != null)
+            {
+                return (null, $"Lỗi upload lên Cloudinary: {uploadResult.Error.Message}");
+            }
+
+            user.AvatarUrl = uploadResult.SecureUrl.ToString();
+        }
+        catch (Exception ex)
+        {
+            return (null, $"Lỗi kết nối với Cloudinary: {ex.Message}");
         }
 
-        var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
-
-        user.AvatarUrl = $"/api/uploads/{uniqueFileName}";
         user.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
@@ -388,6 +435,46 @@ public class AuthService(
                     {
                         // Ignore
                     }
+                }
+            }
+            else if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.Contains("res.cloudinary.com"))
+            {
+                try
+                {
+                    var cloudName = config["Cloudinary:CloudName"];
+                    var apiKey = config["Cloudinary:ApiKey"];
+                    var apiSecret = config["Cloudinary:ApiSecret"];
+                    if (!string.IsNullOrEmpty(cloudName) && !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(apiSecret))
+                    {
+                        var account = new Account(cloudName, apiKey, apiSecret);
+                        var cloudinary = new Cloudinary(account);
+                        var uri = new Uri(user.AvatarUrl);
+                        var path = uri.AbsolutePath;
+                        var uploadKeyword = "/upload/";
+                        var keywordIndex = path.IndexOf(uploadKeyword);
+                        if (keywordIndex >= 0)
+                        {
+                            var subPath = path[(keywordIndex + uploadKeyword.Length)..];
+                            var firstSlash = subPath.IndexOf('/');
+                            if (firstSlash >= 0)
+                            {
+                                var segment = subPath[..firstSlash];
+                                if (segment.StartsWith('v') && long.TryParse(segment[1..], out _))
+                                {
+                                    subPath = subPath[(firstSlash + 1)..];
+                                }
+                            }
+                            var extIndex = subPath.LastIndexOf('.');
+                            var publicId = extIndex >= 0 ? subPath[..extIndex] : subPath;
+
+                            var destroyParams = new DeletionParams(publicId);
+                            await cloudinary.DestroyAsync(destroyParams);
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore Cloudinary deletion errors
                 }
             }
         }
