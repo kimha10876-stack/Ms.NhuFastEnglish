@@ -420,6 +420,19 @@ public class AuthService(
         return (true, null);
     }
 
+    public async Task<(AuthUserDto? Result, string? Error)> GetProfileAsync(Guid userId)
+    {
+        var user = await db.Users
+            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+
+        if (user is null) return (null, "Tài khoản không tồn tại hoặc đã bị khóa");
+
+        var roles = user.UserRoles.Select(ur => ur.Role.Name).ToArray();
+        var dto = new AuthUserDto(user.Id, user.Email, user.FullName, roles, user.AvatarUrl, user.MustChangePassword, user.Username);
+        return (dto, null);
+    }
+
     private static bool TryParseToken(string token, out Guid userId, out string tokenId)
     {
         userId  = Guid.Empty;

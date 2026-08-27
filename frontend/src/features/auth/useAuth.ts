@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from './auth.api'
 import { useAuthStore } from './auth.store'
@@ -119,5 +119,14 @@ export function useUploadAvatar() {
     onSuccess: (data) => {
       setUser(data)
     },
+  })
+}
+
+export function useProfile() {
+  return useQuery({
+    queryKey: ['profile'],
+    queryFn: () => authApi.getProfile(),
+    enabled: !!localStorage.getItem('access_token'),
+    staleTime: 5 * 60 * 1000,
   })
 }

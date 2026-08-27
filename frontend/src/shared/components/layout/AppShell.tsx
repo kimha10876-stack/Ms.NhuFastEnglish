@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { Menu, BookOpen, AlertTriangle, Loader2, LogOut, Key, ChevronDown, User } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Sidebar } from './Sidebar'
 import { useAuthStore } from '@/features/auth/auth.store'
-import { useChangePassword } from '@/features/auth/useAuth'
+import { useChangePassword, useProfile } from '@/features/auth/useAuth'
 import { EditProfileModal } from '@/features/auth/components/EditProfileModal'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -24,7 +24,17 @@ export function AppShell() {
   const [successMsg, setSuccessMsg] = useState('')
 
   const user = useAuthStore((s) => s.user)
+  const setUser = useAuthStore((s) => s.setUser)
   const logout = useAuthStore((s) => s.logout)
+
+  const { data: freshProfile } = useProfile()
+
+  useEffect(() => {
+    if (freshProfile) {
+      setUser(freshProfile)
+    }
+  }, [freshProfile, setUser])
+
   const { mutate: changePassword, isPending } = useChangePassword()
 
   const location = useLocation()
