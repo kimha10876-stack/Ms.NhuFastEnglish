@@ -22,6 +22,15 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
 
+  // Crop States
+  const [cropImage, setCropImage] = useState<string | null>(null)
+  const [showCropModal, setShowCropModal] = useState(false)
+  const [zoom, setZoom] = useState(1)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [baseSize, setBaseSize] = useState({ width: 0, height: 0 })
+
   useEffect(() => {
     if (isOpen && user) {
       setFullName(user.fullName || '')
@@ -32,12 +41,88 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
     }
   }, [isOpen, user])
 
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget
+    const naturalWidth = img.naturalWidth
+    const naturalHeight = img.naturalHeight
+    
+    let width = 200
+    let height = 200
+    
+    if (naturalWidth > naturalHeight) {
+      height = 200
+      width = 200 * (naturalWidth / naturalHeight)
+    } else {
+      width = 200
+      height = 200 * (naturalHeight / naturalWidth)
+    }
+    
+    setBaseSize({ width, height })
+    setZoom(1)
+    setOffset({ x: 0, y: 0 })
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+    setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y })
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return
+    e.preventDefault()
+    
+    const newOffsetX = e.clientX - dragStart.x
+    const newOffsetY = e.clientY - dragStart.y
+    
+    const displayWidth = baseSize.width * zoom
+    const displayHeight = baseSize.height * zoom
+    
+    const maxX = Math.max(0, (displayWidth / 2) - 100)
+    const maxY = Math.max(0, (displayHeight / 2) - 100)
+    
+    setOffset({
+      x: Math.min(maxX, Math.max(-maxX, newOffsetX)),
+      y: Math.min(maxY, Math.max(-maxY, newOffsetY))
+    })
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return
+    const touch = e.touches[0]
+    setIsDragging(true)
+    setDragStart({ x: touch.clientX - offset.x, y: touch.clientY - offset.y })
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length !== 1) return
+    const touch = e.touches[0]
+    
+    const newOffsetX = touch.clientX - dragStart.x
+    const newOffsetY = touch.clientY - dragStart.y
+    
+    const displayWidth = baseSize.width * zoom
+    const displayHeight = baseSize.height * zoom
+    
+    const maxX = Math.max(0, (displayWidth / 2) - 100)
+    const maxY = Math.max(0, (displayHeight / 2) - 100)
+    
+    setOffset({
+      x: Math.min(maxX, Math.max(-maxX, newOffsetX)),
+      y: Math.min(maxY, Math.max(-maxY, newOffsetY))
+    })
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 2 * 1024 * 1024) {
-      setErrorMsg('Kích thước ảnh đại diện không được vượt quá 2MB')
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg('Kích thước ảnh đại diện không được vượt quá 5MB')
       return
     }
 
@@ -50,16 +135,56 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
     setErrorMsg('')
     setSuccessMsg('')
 
-    uploadAvatar(file, {
-      onSuccess: (data) => {
-        setAvatarUrl(data.avatarUrl || '')
-        setSuccessMsg('Tải ảnh đại diện lên thành công!')
-      },
-      onError: (err: any) => {
-        const msg = err?.response?.data?.message || 'Không thể tải ảnh đại diện lên'
-        setErrorMsg(msg)
-      }
-    })
+    const reader = new FileReader()
+    reader.onload = () => {
+      setCropImage(reader.result as string)
+      setShowCropModal(true)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  const handleCropConfirm = () => {
+    if (!cropImage) return
+
+    const canvas = document.createElement('canvas')
+    canvas.width = 300
+    canvas.height = 300
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const ratio = 300 / 200
+    const drawWidth = baseSize.width * zoom * ratio
+    const drawHeight = baseSize.height * zoom * ratio
+    const drawX = 150 - (drawWidth / 2) + (offset.x * ratio)
+    const drawY = 150 - (drawHeight / 2) + (offset.y * ratio)
+
+    const imgElement = new Image()
+    imgElement.src = cropImage
+    imgElement.onload = () => {
+      ctx.drawImage(imgElement, drawX, drawY, drawWidth, drawHeight)
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const croppedFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
+          
+          setErrorMsg('')
+          setSuccessMsg('')
+          
+          uploadAvatar(croppedFile, {
+            onSuccess: (data) => {
+              setAvatarUrl(data.avatarUrl || '')
+              setSuccessMsg('Cài ảnh đại diện thành công!')
+              setShowCropModal(false)
+              setCropImage(null)
+            },
+            onError: (err: any) => {
+              const msg = err?.response?.data?.message || 'Không thể tải ảnh đại diện lên'
+              setErrorMsg(msg)
+            }
+          })
+        }
+      }, 'image/jpeg', 0.9)
+    }
   }
 
   const handleDeleteAvatar = () => {
@@ -264,6 +389,116 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
           </div>
         </form>
       </div>
+
+      {/* Crop Modal Overlay */}
+      {showCropModal && cropImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center shrink-0">
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm">Cắt ảnh đại diện</h3>
+                <p className="text-[10px] text-gray-400 mt-0.5">Kéo để di chuyển, dùng thanh trượt để phóng to</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => { setShowCropModal(false); setCropImage(null); }}
+                className="text-gray-400 hover:text-gray-600 text-sm font-semibold"
+                disabled={isUploading}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 flex flex-col items-center gap-6">
+              {/* Cropping Viewport */}
+              <div 
+                className="relative w-[200px] h-[200px] rounded-full overflow-hidden border-2 border-amber-500 shadow-lg bg-gray-50 cursor-move"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleMouseUp}
+              >
+                <img
+                  src={cropImage}
+                  alt="Source avatar"
+                  onLoad={handleImageLoad}
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '50%',
+                    width: baseSize.width ? `${baseSize.width * zoom}px` : 'auto',
+                    height: baseSize.height ? `${baseSize.height * zoom}px` : 'auto',
+                    transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px)`,
+                    maxWidth: 'none',
+                    maxHeight: 'none',
+                    userSelect: 'none',
+                    pointerEvents: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Zoom Slider */}
+              <div className="w-full space-y-1.5 px-2">
+                <div className="flex justify-between text-[11px] font-semibold text-gray-500">
+                  <span>Thu nhỏ</span>
+                  <span>Phóng to</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="3"
+                  step="0.01"
+                  value={zoom}
+                  onChange={(e) => {
+                    const newZoom = parseFloat(e.target.value)
+                    setZoom(newZoom)
+                    const displayWidth = baseSize.width * newZoom
+                    const displayHeight = baseSize.height * newZoom
+                    const maxX = Math.max(0, (displayWidth / 2) - 100)
+                    const maxY = Math.max(0, (displayHeight / 2) - 100)
+                    setOffset({
+                      x: Math.min(maxX, Math.max(-maxX, offset.x)),
+                      y: Math.min(maxY, Math.max(-maxY, offset.y))
+                    })
+                  }}
+                  className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500 focus:outline-none"
+                  disabled={isUploading}
+                />
+              </div>
+            </div>
+
+            <div className="p-5 bg-gray-50 border-t border-gray-100 flex gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1 rounded-xl text-xs font-bold"
+                onClick={() => { setShowCropModal(false); setCropImage(null); }}
+                disabled={isUploading}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                type="button"
+                className="flex-1 rounded-xl text-xs font-bold gap-1.5"
+                onClick={handleCropConfirm}
+                disabled={isUploading || !baseSize.width}
+              >
+                {isUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Cắt & Lưu
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
