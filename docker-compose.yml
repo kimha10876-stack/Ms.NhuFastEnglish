@@ -70,7 +70,7 @@ services:
       redis:
         condition: service_started
     volumes:
-      - ./uploads:/app/wwwroot/uploads
+      - ../uploads:/app/wwwroot/uploads
 
   # ── Frontend (React + nginx) ─────────────────────────────────────────────────
   frontend:
