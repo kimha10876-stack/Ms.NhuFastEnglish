@@ -38,6 +38,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime         = true,
             ClockSkew                = TimeSpan.Zero
         };
+
+        options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+        {
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+                throw new UnauthorizedAccessException("Tài khoản chưa được xác thực hoặc token đã hết hạn");
+            },
+            OnForbidden = context =>
+            {
+                throw new AccessViolationException("Bạn không có quyền truy cập vào chức năng này");
+            }
+        };
     });
 
 builder.Services.AddAuthorization();

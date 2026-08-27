@@ -12,14 +12,40 @@ public class GlobalExceptionHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
-        logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
+        var statusCode = exception switch
+        {
+            UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
+            AccessViolationException => StatusCodes.Status403Forbidden,
+            _ => StatusCodes.Status500InternalServerError
+        };
 
-        httpContext.Response.StatusCode  = StatusCodes.Status500InternalServerError;
+        if (statusCode == StatusCodes.Status500InternalServerError)
+        {
+            logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
+        }
+        else
+        {
+            logger.LogWarning("Auth failure (Status {Status}): {Message}", statusCode, exception.Message);
+        }
+
+        httpContext.Response.StatusCode  = statusCode;
         httpContext.Response.ContentType = "application/json";
 
-        object body = env.IsDevelopment()
-            ? new { code = 500, message = exception.Message, detail = exception.ToString() }
-            : (object)ApiResponse.ServerError("Đã xảy ra lỗi, vui lòng thử lại sau");
+        object body;
+        if (statusCode == StatusCodes.Status401Unauthorized)
+        {
+            body = ApiResponse.Unauthorized(exception.Message);
+        }
+        else if (statusCode == StatusCodes.Status403Forbidden)
+        {
+            body = ApiResponse.Forbidden(exception.Message);
+        }
+        else
+        {
+            body = env.IsDevelopment()
+                ? new { code = 500, message = exception.Message, detail = exception.ToString() }
+                : (object)ApiResponse.ServerError("Đã xảy ra lỗi, vui lòng thử lại sau");
+        }
 
         await httpContext.Response.WriteAsJsonAsync(body, cancellationToken);
         return true;
