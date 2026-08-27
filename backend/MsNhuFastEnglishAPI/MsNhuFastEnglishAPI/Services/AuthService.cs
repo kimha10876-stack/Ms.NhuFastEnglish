@@ -287,6 +287,70 @@ public class AuthService(
                 signingCredentials: creds));
     }
 
+    public async Task<(AuthUserDto? Result, string? Error)> UpdateAvatarAsync(Guid userId, Microsoft.AspNetCore.Http.IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return (null, "Không nhận được file hoặc file rỗng");
+
+        // Validate file size (max 2MB)
+        if (file.Length > 2 * 1024 * 1024)
+            return (null, "Kích thước ảnh đại diện không được vượt quá 2MB");
+
+        // Validate file extension
+        var extension = Path.GetExtension(file.FileName).ToLower();
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        if (!allowedExtensions.Contains(extension))
+            return (null, "Chỉ chấp nhận các định dạng ảnh: .jpg, .jpeg, .png, .gif, .webp");
+
+        var user = await db.Users
+            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+
+        if (user is null) return (null, "Tài khoản không tồn tại");
+
+        // Delete old avatar if it exists locally
+        if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.StartsWith("/api/uploads/"))
+        {
+            var oldFileName = Path.GetFileName(user.AvatarUrl);
+            var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", oldFileName);
+            if (System.IO.File.Exists(oldFilePath))
+            {
+                try
+                {
+                    System.IO.File.Delete(oldFilePath);
+                }
+                catch
+                {
+                    // Ignore deletion error
+                }
+            }
+        }
+
+        // Save new avatar
+        var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+        if (!Directory.Exists(uploadsFolder))
+        {
+            Directory.CreateDirectory(uploadsFolder);
+        }
+
+        var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        user.AvatarUrl = $"/api/uploads/{uniqueFileName}";
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync();
+
+        var roles = user.UserRoles.Select(ur => ur.Role.Name).ToArray();
+        var dto = new AuthUserDto(user.Id, user.Email, user.FullName, roles, user.AvatarUrl, user.MustChangePassword, user.Username);
+        return (dto, null);
+    }
+
     public async Task<(AuthUserDto? Result, string? Error)> UpdateProfileAsync(Guid userId, UpdateProfileRequest req)
     {
         var username = req.Username.Trim().ToLower();
@@ -306,6 +370,27 @@ public class AuthService(
             .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
 
         if (user is null) return (null, "Tài khoản không tồn tại");
+
+        // Delete old avatar if it was changed/removed via this edit profile request
+        if (user.AvatarUrl != avatarUrl)
+        {
+            if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.StartsWith("/api/uploads/"))
+            {
+                var oldFileName = Path.GetFileName(user.AvatarUrl);
+                var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", oldFileName);
+                if (System.IO.File.Exists(oldFilePath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(oldFilePath);
+                    }
+                    catch
+                    {
+                        // Ignore
+                    }
+                }
+            }
+        }
 
         user.FullName = fullName;
         user.Username = username;

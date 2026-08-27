@@ -29,4 +29,14 @@ export const authApi = {
 
   updateProfile: (body: UpdateProfileReq) =>
     api.put<ApiResponse<AuthUser>>('/auth/profile', body).then((r) => r.data.data!),
+
+  uploadAvatar: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post<ApiResponse<AuthUser>>('/auth/profile/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }).then((r) => r.data.data!)
+  },
 }

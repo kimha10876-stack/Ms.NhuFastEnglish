@@ -1287,7 +1287,7 @@ public class ClassesController(ClassService classService, AppDbContext db) : Con
                         }
                     }
 
-                    sub.AnswersJson = System.Text.Json.JsonSerializer.Serialize(gradedAnswers);
+                    sub.AnswersJson = System.Text.Json.JsonSerializer.Serialize(gradedAnswers, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
 
                     if (!hasWritingQuestions)
                     {

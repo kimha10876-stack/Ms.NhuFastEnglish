@@ -19,6 +19,25 @@ import { Input } from '@/shared/components/ui/input'
 import { classesApi } from './classes.api'
 import type { ClassAssignment, AssignmentQuestion, StudentAnswer } from './classes.types'
 
+const parseStudentAnswers = (jsonStr: string | null | undefined): StudentAnswer[] => {
+  if (!jsonStr) return []
+  try {
+    const parsed = JSON.parse(jsonStr)
+    if (Array.isArray(parsed)) {
+      return parsed.map((ans: any) => ({
+        questionId: ans.questionId ?? ans.QuestionId ?? '',
+        answerText: ans.answerText ?? ans.AnswerText ?? '',
+        isCorrect: ans.isCorrect ?? ans.IsCorrect,
+        grade: ans.grade ?? ans.Grade,
+        teacherFeedback: ans.teacherFeedback ?? ans.TeacherFeedback
+      }))
+    }
+    return []
+  } catch {
+    return []
+  }
+}
+
 export default function DoAssignmentPage() {
   const { assignmentId } = useParams<{ classId: string; assignmentId: string }>()
   const [searchParams] = useSearchParams()
@@ -59,12 +78,7 @@ export default function DoAssignmentPage() {
 
   // Parse submission answers
   const submissionAnswers: StudentAnswer[] = React.useMemo(() => {
-    if (!assignment?.submission?.answersJson) return []
-    try {
-      return JSON.parse(assignment.submission.answersJson)
-    } catch {
-      return []
-    }
+    return parseStudentAnswers(assignment?.submission?.answersJson)
   }, [assignment?.submission?.answersJson])
 
   // Setup answers on load
@@ -88,7 +102,7 @@ export default function DoAssignmentPage() {
       // Quiz answers state
       if (assignment.assignmentType === 'Quiz' && assignment.submission?.answersJson) {
         try {
-          const answers: StudentAnswer[] = JSON.parse(assignment.submission.answersJson)
+          const answers = parseStudentAnswers(assignment.submission.answersJson)
           const answerMap: Record<string, string> = {}
           answers.forEach((ans) => {
             answerMap[ans.questionId] = ans.answerText

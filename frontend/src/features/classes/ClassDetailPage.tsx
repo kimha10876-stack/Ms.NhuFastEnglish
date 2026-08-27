@@ -175,6 +175,25 @@ function SessionAttendance({ classId, sessionId }: SessionAttendanceProps) {
   )
 }
 
+const parseStudentAnswers = (jsonStr: string | null | undefined): StudentAnswer[] => {
+  if (!jsonStr) return []
+  try {
+    const parsed = JSON.parse(jsonStr)
+    if (Array.isArray(parsed)) {
+      return parsed.map((ans: any) => ({
+        questionId: ans.questionId ?? ans.QuestionId ?? '',
+        answerText: ans.answerText ?? ans.AnswerText ?? '',
+        isCorrect: ans.isCorrect ?? ans.IsCorrect,
+        grade: ans.grade ?? ans.Grade,
+        teacherFeedback: ans.teacherFeedback ?? ans.TeacherFeedback
+      }))
+    }
+    return []
+  } catch {
+    return []
+  }
+}
+
 export default function ClassDetailPage() {
   const { id = '' } = useParams<{ id: string }>()
   const navigate     = useNavigate()
@@ -877,7 +896,7 @@ export default function ClassDetailPage() {
 
 
   const handleWritingGradeChange = (questionId: string, value: number) => {
-    const currentAnswers = gradeForm.answersJson ? JSON.parse(gradeForm.answersJson) as StudentAnswer[] : []
+    const currentAnswers = parseStudentAnswers(gradeForm.answersJson)
     const updated = currentAnswers.map((ans) => {
       if (ans.questionId === questionId) {
         return { ...ans, grade: value }
@@ -907,7 +926,7 @@ export default function ClassDetailPage() {
   }
 
   const handleWritingFeedbackChange = (questionId: string, feedback: string) => {
-    const currentAnswers = gradeForm.answersJson ? JSON.parse(gradeForm.answersJson) as StudentAnswer[] : []
+    const currentAnswers = parseStudentAnswers(gradeForm.answersJson)
     const updated = currentAnswers.map((ans) => {
       if (ans.questionId === questionId) {
         return { ...ans, teacherFeedback: feedback }
@@ -4040,7 +4059,7 @@ export default function ClassDetailPage() {
                               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Chi tiết bài làm Quiz</p>
                               {(() => {
                                 const questions: AssignmentQuestion[] = selectedAssignment.questionsJson ? JSON.parse(selectedAssignment.questionsJson) : []
-                                const answers: StudentAnswer[] = JSON.parse(sub.answersJson)
+                                const answers: StudentAnswer[] = parseStudentAnswers(sub.answersJson)
                                 return (
                                   <div className="space-y-2 divide-y divide-gray-50">
                                     {questions.map((q, qIdx) => {
@@ -4137,7 +4156,7 @@ export default function ClassDetailPage() {
                   <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
                     {(() => {
                       const questions: AssignmentQuestion[] = selectedAssignment.questionsJson ? JSON.parse(selectedAssignment.questionsJson) : []
-                      const answers: StudentAnswer[] = gradeForm.answersJson ? JSON.parse(gradeForm.answersJson) : []
+                      const answers: StudentAnswer[] = parseStudentAnswers(gradeForm.answersJson)
 
                       return questions.map((q, idx) => {
                         const studentAnsObj = answers.find((ans) => ans.questionId === q.id)

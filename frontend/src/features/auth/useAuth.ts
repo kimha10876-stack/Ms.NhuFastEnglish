@@ -110,3 +110,14 @@ export function useUpdateProfile() {
     },
   })
 }
+
+export function useUploadAvatar() {
+  const setUser = useAuthStore((s) => s.setUser)
+
+  return useMutation({
+    mutationFn: (file: File) => authApi.uploadAvatar(file),
+    onSuccess: (data) => {
+      setUser(data)
+    },
+  })
+}

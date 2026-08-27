@@ -108,4 +108,14 @@ public class AuthController(AuthService authService) : ControllerBase
         if (error is not null) return BadRequest(ApiResponse.BadRequest(error));
         return Ok(ApiResponse.Ok(result, "Cập nhật thông tin cá nhân thành công"));
     }
+
+    [HttpPost("profile/avatar")]
+    [Authorize]
+    public async Task<IActionResult> UpdateAvatar(Microsoft.AspNetCore.Http.IFormFile file)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var (result, error) = await authService.UpdateAvatarAsync(userId, file);
+        if (error is not null) return BadRequest(ApiResponse.BadRequest(error));
+        return Ok(ApiResponse.Ok(result, "Cập nhật ảnh đại diện thành công"));
+    }
 }

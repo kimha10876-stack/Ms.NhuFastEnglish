@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
-import { AlertTriangle, Loader2, Save, User as UserIcon } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { AlertTriangle, Loader2, Save, User as UserIcon, Camera, Trash2 } from 'lucide-react'
 import { useAuthStore } from '../auth.store'
-import { useUpdateProfile } from '../useAuth'
+import { useUpdateProfile, useUploadAvatar } from '../useAuth'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 
@@ -13,6 +13,8 @@ interface EditProfileModalProps {
 export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   const { user } = useAuthStore()
   const { mutate: updateProfile, isPending } = useUpdateProfile()
+  const { mutate: uploadAvatar, isPending: isUploading } = useUploadAvatar()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [fullName, setFullName] = useState('')
   const [username, setUsername] = useState('')
@@ -29,6 +31,41 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
       setSuccessMsg('')
     }
   }, [isOpen, user])
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      setErrorMsg('Kích thước ảnh đại diện không được vượt quá 2MB')
+      return
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      setErrorMsg('Chỉ chấp nhận các định dạng ảnh: JPG, JPEG, PNG, GIF, WEBP')
+      return
+    }
+
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    uploadAvatar(file, {
+      onSuccess: (data) => {
+        setAvatarUrl(data.avatarUrl || '')
+        setSuccessMsg('Tải ảnh đại diện lên thành công!')
+      },
+      onError: (err: any) => {
+        const msg = err?.response?.data?.message || 'Không thể tải ảnh đại diện lên'
+        setErrorMsg(msg)
+      }
+    })
+  }
+
+  const handleDeleteAvatar = () => {
+    setAvatarUrl('')
+    setSuccessMsg('Đã chọn gỡ ảnh đại diện. Nhấp "Lưu thay đổi" để áp dụng.')
+  }
 
   if (!isOpen || !user) return null
 
@@ -76,7 +113,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 animate-in fade-in duration-200"
-      onClick={(e) => e.target === e.currentTarget && !isPending && onClose()}
+      onClick={(e) => e.target === e.currentTarget && !isPending && !isUploading && onClose()}
     >
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
@@ -85,32 +122,85 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
             <p className="text-[11px] text-gray-400 mt-0.5">Thay đổi thông tin cá nhân của bạn</p>
           </div>
           <button
-            onClick={() => !isPending && onClose()}
+            onClick={() => !isPending && !isUploading && onClose()}
             className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-            disabled={isPending}
+            disabled={isPending || isUploading}
           >
             ✕
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {/* Avatar Preview */}
-          <div className="flex flex-col items-center gap-2 py-2">
-            {avatarUrl.trim() ? (
-              <img
-                src={avatarUrl.trim()}
-                alt="Avatar preview"
-                className="w-16 h-16 rounded-full object-cover border border-gray-200 shadow-sm"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150'
-                }}
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 shadow-inner">
-                <UserIcon className="h-8 w-8 text-amber-600" />
+          {/* Avatar Preview & Upload */}
+          <div className="flex flex-col items-center gap-2.5 py-2">
+            <div className="relative group w-20 h-20 rounded-full cursor-pointer overflow-hidden border-2 border-gray-200 hover:border-amber-500 transition-colors shadow-md">
+              {avatarUrl.trim() ? (
+                <img
+                  src={avatarUrl.trim()}
+                  alt="Avatar preview"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150'
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full bg-amber-100 flex items-center justify-center text-amber-700">
+                  <UserIcon className="h-10 w-10 text-amber-600" />
+                </div>
+              )}
+              
+              {/* Overlay on Hover */}
+              <div 
+                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-semibold gap-1"
+                onClick={() => !isPending && !isUploading && fileInputRef.current?.click()}
+              >
+                <Camera className="h-5 w-5" />
+                <span>Tải ảnh lên</span>
               </div>
-            )}
-            <span className="text-[10px] text-gray-400 font-medium">Xem trước ảnh đại diện</span>
+              
+              {/* Spinner while Uploading */}
+              {isUploading && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white">
+                  <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+                </div>
+              )}
+            </div>
+
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+              disabled={isPending || isUploading}
+            />
+
+            {/* Sub-buttons for Avatar Management */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => !isPending && !isUploading && fileInputRef.current?.click()}
+                className="text-xs text-amber-600 hover:text-amber-800 font-semibold transition-colors disabled:opacity-50"
+                disabled={isPending || isUploading}
+              >
+                Chọn ảnh
+              </button>
+              {avatarUrl.trim() && (
+                <>
+                  <span className="text-gray-300">|</span>
+                  <button
+                    type="button"
+                    onClick={handleDeleteAvatar}
+                    className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 transition-colors disabled:opacity-50"
+                    disabled={isPending || isUploading}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Xóa ảnh
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -121,7 +211,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              disabled={isPending}
+              disabled={isPending || isUploading}
             />
           </div>
 
@@ -133,18 +223,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              disabled={isPending}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-700">Link ảnh đại diện (Avatar URL)</label>
-            <Input
-              type="text"
-              placeholder="Nhập liên kết ảnh..."
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              disabled={isPending}
+              disabled={isPending || isUploading}
             />
           </div>
 
@@ -168,11 +247,11 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
               variant="secondary"
               className="flex-1 rounded-xl text-xs font-bold"
               onClick={onClose}
-              disabled={isPending}
+              disabled={isPending || isUploading}
             >
               Huỷ bỏ
             </Button>
-            <Button type="submit" className="flex-1 rounded-xl text-xs font-bold gap-1.5" disabled={isPending}>
+            <Button type="submit" className="flex-1 rounded-xl text-xs font-bold gap-1.5" disabled={isPending || isUploading}>
               {isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
