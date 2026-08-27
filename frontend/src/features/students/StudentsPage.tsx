@@ -36,6 +36,8 @@ const EMPTY_FORM: CreateStudentRequest = {
   email: '',
   password: '123456',
   phone: '',
+  parentPhone: '',
+  dateOfBirth: '',
   level: 'Mất gốc',
   goal: 'Giao tiếp cơ bản',
   status: 'active'
@@ -93,6 +95,8 @@ export default function StudentsPage() {
       fullName: student.fullName,
       email: student.email,
       phone: student.phone ?? '',
+      parentPhone: student.parentPhone ?? '',
+      dateOfBirth: student.dateOfBirth ?? '',
       level: student.level,
       goal: student.goal,
       status: student.status,
@@ -117,7 +121,18 @@ export default function StudentsPage() {
     e.preventDefault()
     setErrorMsg('')
 
-    createStudent(form, {
+    const payload = { ...form }
+    if (!payload.dateOfBirth?.trim()) {
+      delete payload.dateOfBirth
+    }
+    if (!payload.parentPhone?.trim()) {
+      delete payload.parentPhone
+    }
+    if (!payload.phone?.trim()) {
+      delete payload.phone
+    }
+
+    createStudent(payload, {
       onSuccess: () => {
         setShowCreate(false)
         setForm({ ...EMPTY_FORM })
@@ -138,6 +153,15 @@ export default function StudentsPage() {
     const payload = { ...editForm }
     if (!payload.password?.trim()) {
       delete payload.password
+    }
+    if (payload.dateOfBirth !== undefined && !payload.dateOfBirth?.trim()) {
+      payload.dateOfBirth = undefined
+    }
+    if (payload.parentPhone !== undefined && !payload.parentPhone?.trim()) {
+      payload.parentPhone = undefined
+    }
+    if (payload.phone !== undefined && !payload.phone?.trim()) {
+      payload.phone = undefined
     }
 
     updateStudent(payload, {
@@ -531,6 +555,25 @@ export default function StudentsPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Số ĐT Phụ huynh</label>
+                  <Input
+                    placeholder="VD: 0905987654"
+                    value={form.parentPhone}
+                    onChange={(e) => setForm((p) => ({ ...p, parentPhone: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Ngày sinh</label>
+                  <Input
+                    type="date"
+                    value={form.dateOfBirth}
+                    onChange={(e) => setForm((p) => ({ ...p, dateOfBirth: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700">Trạng thái hồ sơ</label>
                   <CustomDropdown
                     value={form.status}
@@ -645,6 +688,25 @@ export default function StudentsPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Số ĐT Phụ huynh</label>
+                  <Input
+                    placeholder="VD: 0905987654"
+                    value={editForm.parentPhone ?? ''}
+                    onChange={(e) => setEditForm((p) => ({ ...p, parentPhone: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Ngày sinh</label>
+                  <Input
+                    type="date"
+                    value={editForm.dateOfBirth ?? ''}
+                    onChange={(e) => setEditForm((p) => ({ ...p, dateOfBirth: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700">Trạng thái hồ sơ</label>
                   <CustomDropdown
                     value={editForm.status ?? 'active'}
@@ -736,14 +798,24 @@ export default function StudentsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 space-y-2.5">
                   <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider border-b border-gray-200/60 pb-1.5">Thông tin liên lạc</h3>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2.5 text-sm">
                     <div className="flex items-center gap-2 text-gray-600">
                       <Phone className="h-4 w-4 text-gray-400 shrink-0" />
-                      <span className="font-medium">{selectedStudent.phone || 'Chưa cung cấp'}</span>
+                      <span>SĐT học viên: <span className="font-semibold text-gray-800">{selectedStudent.phone || 'Chưa cung cấp'}</span></span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Phone className="h-4 w-4 text-gray-400 shrink-0" />
+                      <span>SĐT Phụ huynh: <span className="font-semibold text-gray-800">{selectedStudent.parentPhone || 'Chưa cung cấp'}</span></span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
                       <Mail className="h-4 w-4 text-gray-400 shrink-0" />
                       <span className="font-medium truncate">{selectedStudent.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
+                      <span>Ngày sinh: <span className="font-semibold text-gray-800">
+                        {selectedStudent.dateOfBirth ? new Date(selectedStudent.dateOfBirth).toLocaleDateString('vi-VN') : 'Chưa cung cấp'}
+                      </span></span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
                       <Calendar className="h-4 w-4 text-gray-400 shrink-0" />

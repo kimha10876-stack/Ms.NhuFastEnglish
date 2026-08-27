@@ -13,6 +13,8 @@ export interface StudentDetail {
   fullName: string
   email: string
   phone: string | null
+  parentPhone?: string | null
+  dateOfBirth?: string | null
   level: string
   goal: string
   status: string
@@ -27,6 +29,8 @@ export interface CreateStudentRequest {
   passwordHash?: string // password
   password?: string
   phone?: string
+  parentPhone?: string
+  dateOfBirth?: string
   level: string
   goal: string
   status: string
@@ -37,6 +41,8 @@ export interface UpdateStudentRequest {
   email?: string
   password?: string
   phone?: string
+  parentPhone?: string
+  dateOfBirth?: string
   level?: string
   goal?: string
   status?: string

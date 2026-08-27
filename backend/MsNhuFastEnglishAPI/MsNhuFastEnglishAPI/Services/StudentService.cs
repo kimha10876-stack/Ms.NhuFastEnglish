@@ -89,6 +89,8 @@ public class StudentService(AppDbContext db)
                 FullName:   s.User.FullName,
                 Email:      s.User.Email,
                 Phone:      s.Phone,
+                ParentPhone: s.ParentPhone,
+                DateOfBirth: s.DateOfBirth,
                 Level:      s.Level,
                 Goal:       s.Goal,
                 Status:     s.Status,
@@ -132,6 +134,8 @@ public class StudentService(AppDbContext db)
             FullName:   s.User.FullName,
             Email:      s.User.Email,
             Phone:      s.Phone,
+            ParentPhone: s.ParentPhone,
+            DateOfBirth: s.DateOfBirth,
             Level:      s.Level,
             Goal:       s.Goal,
             Status:     s.Status,
@@ -164,12 +168,14 @@ public class StudentService(AppDbContext db)
 
         var student = new StudentProfile
         {
-            Id     = Guid.NewGuid(),
-            UserId = user.Id,
-            Phone  = req.Phone?.Trim(),
-            Level  = req.Level.Trim(),
-            Goal   = req.Goal.Trim(),
-            Status = req.Status.Trim()
+            Id          = Guid.NewGuid(),
+            UserId      = user.Id,
+            Phone       = req.Phone?.Trim(),
+            ParentPhone = req.ParentPhone?.Trim(),
+            DateOfBirth = req.DateOfBirth,
+            Level       = req.Level.Trim(),
+            Goal        = req.Goal.Trim(),
+            Status      = req.Status.Trim()
         };
         db.StudentProfiles.Add(student);
 
@@ -180,6 +186,8 @@ public class StudentService(AppDbContext db)
             FullName:   user.FullName,
             Email:      user.Email,
             Phone:      student.Phone,
+            ParentPhone: student.ParentPhone,
+            DateOfBirth: student.DateOfBirth,
             Level:      student.Level,
             Goal:       student.Goal,
             Status:     student.Status,
@@ -215,6 +223,8 @@ public class StudentService(AppDbContext db)
         }
 
         if (req.Phone is not null) student.Phone = req.Phone.Trim();
+        if (req.ParentPhone is not null) student.ParentPhone = req.ParentPhone.Trim();
+        if (req.DateOfBirth.HasValue) student.DateOfBirth = req.DateOfBirth;
         if (req.Level is not null) student.Level = req.Level.Trim();
         if (req.Goal is not null)   student.Goal  = req.Goal.Trim();
         if (req.Status is not null) student.Status = req.Status.Trim();
