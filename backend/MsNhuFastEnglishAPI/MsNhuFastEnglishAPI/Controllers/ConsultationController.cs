@@ -46,6 +46,18 @@ public class ConsultationController(ConsultationService consultationService) : C
         return Ok(ApiResponse.Ok(count));
     }
 
+    // ── GET /api/consultations/export (Admin Only) ─────────────────────────────
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ExportConsultations(
+        [FromQuery] string? search = null,
+        [FromQuery] string? status = null)
+    {
+        var stream = await consultationService.ExportToExcelAsync(search, status);
+        var fileName = $"Danh_Sach_Tu_Van_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
     // ── PUT /api/consultations/{id:guid} (Admin Only) ─────────────────────────
     [HttpPut("{id:guid}")]
     [Authorize(Roles = "Admin")]

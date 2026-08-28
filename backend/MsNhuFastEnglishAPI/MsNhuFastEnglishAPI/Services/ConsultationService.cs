@@ -120,6 +120,71 @@ public class ConsultationService(AppDbContext db)
         return true;
     }
 
+    public async Task<MemoryStream> ExportToExcelAsync(string? search, string? status)
+    {
+        var query = db.ConsultationRequests.AsQueryable();
+
+        // Search by FullName or Phone
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLower().Trim();
+            query = query.Where(c => c.FullName.ToLower().Contains(searchLower) || c.Phone.Contains(searchLower));
+        }
+
+        // Filter by Status
+        if (!string.IsNullOrWhiteSpace(status) && status != "all")
+        {
+            query = query.Where(c => c.Status == status.ToLower().Trim());
+        }
+
+        var list = await query
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync();
+
+        var exportData = list.Select(c => new Dictionary<string, object?>
+        {
+            { "Họ và tên", c.FullName },
+            { "Số điện thoại", c.Phone },
+            { "Email", c.Email },
+            { "Mục tiêu học tập / Tin nhắn", c.Message },
+            { "Trạng thái", MapStatusToVietnamese(c.Status) },
+            { "Ghi chú của trung tâm", c.AdminNote },
+            { "Số lần yêu cầu", c.RequestCount },
+            { "Ngày đăng ký", ToVietnamTime(c.CreatedAt) },
+            { "Ngày liên hệ", ToVietnamTime(c.ContactedAt) }
+        });
+
+        var stream = new MemoryStream();
+        await MiniExcelLibs.MiniExcel.SaveAsAsync(stream, exportData);
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static string MapStatusToVietnamese(string status)
+    {
+        return status.ToLower().Trim() switch
+        {
+            "new" => "Yêu cầu mới",
+            "contacted" => "Đã liên hệ",
+            "enrolled" => "Đã nhập học",
+            "rejected" => "Từ chối",
+            _ => status
+        };
+    }
+
+    private static string? ToVietnamTime(DateTime? utcDateTime)
+    {
+        if (!utcDateTime.HasValue) return null;
+        var vietnamTime = utcDateTime.Value.AddHours(7);
+        return vietnamTime.ToString("dd/MM/yyyy HH:mm:ss");
+    }
+
+    private static string ToVietnamTime(DateTime utcDateTime)
+    {
+        var vietnamTime = utcDateTime.AddHours(7);
+        return vietnamTime.ToString("dd/MM/yyyy HH:mm:ss");
+    }
+
     private static ConsultationRequestDto MapToDto(ConsultationRequest c)
     {
         return new ConsultationRequestDto(
