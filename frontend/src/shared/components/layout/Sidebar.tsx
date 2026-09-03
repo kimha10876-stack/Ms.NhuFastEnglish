@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  LayoutDashboard, Users, BookOpen, GraduationCap,
+  LayoutDashboard, Users, BookOpen,
   FileText, MessageSquare, LogOut, Settings,
   ChevronLeft, ChevronRight, Folder
 } from 'lucide-react'
@@ -69,10 +69,9 @@ export function Sidebar({ open, onClose, onEditProfile }: SidebarProps) {
     // Admin
     displayNavItems = [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
-      { to: '/students', icon: GraduationCap, label: 'Học viên' },
+      { to: '/users', icon: Users, label: 'Thành viên' },
       { to: '/classes', icon: BookOpen, label: 'Lớp học' },
       { to: '/documents', icon: Folder, label: 'Kho tài liệu' },
-      { to: '/teachers', icon: Users, label: 'Giáo viên' },
       {
         to: '/consultations',
         icon: MessageSquare,

@@ -10,12 +10,11 @@ const LoginPage         = lazy(() => import('@/features/auth/LoginPage'))
 const RegisterPage      = lazy(() => import('@/features/auth/RegisterPage'))
 const ForgotPasswordPage = lazy(() => import('@/features/auth/ForgotPasswordPage'))
 const DashboardPage     = lazy(() => import('@/features/dashboard/DashboardPage'))
-const StudentsPage      = lazy(() => import('@/features/students/StudentsPage'))
 const ClassesPage       = lazy(() => import('@/features/classes/ClassesPage'))
 const ClassDetailPage   = lazy(() => import('@/features/classes/ClassDetailPage'))
 const DoAssignmentPage   = lazy(() => import('@/features/classes/DoAssignmentPage'))
 const JoinClassPage     = lazy(() => import('@/features/classes/JoinClassPage'))
-const TeachersPage      = lazy(() => import('@/features/teachers/TeachersPage'))
+const UsersPage         = lazy(() => import('@/features/users/UsersPage'))
 const ConsultationsPage = lazy(() => import('@/features/consultations/ConsultationsPage'))
 const SettingsPage      = lazy(() => import('@/features/settings/SettingsPage'))
 const BlogManagementPage = lazy(() => import('@/features/blog/BlogManagementPage'))
@@ -64,8 +63,9 @@ export default function App() {
 
                 {/* Admin-only routes */}
                 <Route element={<RoleGuard allowedRoles={['Admin']} />}>
-                  <Route path="students" element={<StudentsPage />} />
-                  <Route path="teachers" element={<TeachersPage />} />
+                  <Route path="users" element={<UsersPage />} />
+                  <Route path="students" element={<Navigate to="/users?role=Student" replace />} />
+                  <Route path="teachers" element={<Navigate to="/users?role=Teacher" replace />} />
                   <Route path="consultations" element={<ConsultationsPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>

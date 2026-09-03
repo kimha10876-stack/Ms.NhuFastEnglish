@@ -55,7 +55,7 @@ export function AdminDashboardView() {
       icon: GraduationCap,
       color: 'from-blue-500 to-indigo-600',
       bg: 'bg-blue-50 text-blue-600',
-      to: '/students',
+      to: '/users?role=Student',
     },
     {
       label: 'Lớp học đang mở',
@@ -71,7 +71,7 @@ export function AdminDashboardView() {
       icon: Users,
       color: 'from-purple-500 to-violet-600',
       bg: 'bg-purple-50 text-purple-600',
-      to: '/teachers',
+      to: '/users?role=Teacher',
     },
     {
       label: 'Yêu cầu tư vấn',
@@ -108,9 +108,9 @@ export function AdminDashboardView() {
               Tạo lớp mới
             </Button>
           </Link>
-          <Link to="/students">
+          <Link to="/users">
             <Button variant="secondary" className="bg-white/10 hover:bg-white/20 text-white font-semibold text-xs rounded-xl backdrop-blur-sm border border-white/10">
-              Thêm học viên
+              Quản lý thành viên
             </Button>
           </Link>
         </div>
@@ -218,18 +218,11 @@ export function AdminDashboardView() {
             </h3>
             <div className="grid grid-cols-2 gap-2">
               <Link
-                to="/students"
-                className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 hover:bg-amber-50 hover:text-amber-800 text-xs font-bold text-gray-700 transition-colors"
+                to="/users"
+                className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 hover:bg-amber-50 hover:text-amber-800 text-xs font-bold text-gray-700 transition-colors col-span-2 sm:col-span-1"
               >
-                <GraduationCap className="h-4 w-4 text-amber-500" />
-                Học viên
-              </Link>
-              <Link
-                to="/teachers"
-                className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 hover:bg-amber-50 hover:text-amber-800 text-xs font-bold text-gray-700 transition-colors"
-              >
-                <Users className="h-4 w-4 text-purple-500" />
-                Giáo viên
+                <Users className="h-4 w-4 text-amber-500" />
+                Thành viên
               </Link>
               <Link
                 to="/blog-management"
