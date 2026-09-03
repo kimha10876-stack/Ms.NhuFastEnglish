@@ -593,11 +593,11 @@ export default function ClassesPage() {
                   <label className="text-sm font-semibold text-gray-700">Học phí mỗi tháng (VNĐ)</label>
                   <Input
                     type="number"
-                    placeholder="VD: 800000"
+                    placeholder="VD: 5000 hoặc 10000"
                     value={form.monthlyFee ?? 0}
                     onChange={(e) => setForm((p) => ({ ...p, monthlyFee: Number(e.target.value) || 0 }))}
                     min={0}
-                    step={50000}
+                    step={1000}
                   />
                 </div>
                 <div className="space-y-1.5">

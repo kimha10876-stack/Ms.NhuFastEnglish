@@ -57,13 +57,13 @@ public class PaymentService(
 
             if (!req.CustomAmount.HasValue || req.CustomAmount.Value <= 0)
             {
-                amount = cls.MonthlyFee > 0 ? cls.MonthlyFee : 10000;
+                amount = cls.MonthlyFee > 0 ? cls.MonthlyFee : 5000;
             }
         }
 
         if (amount <= 0)
         {
-            return (null, "Số tiền thanh toán phải lớn hơn 0");
+            amount = 5000;
         }
 
         var orderCode = GenerateUniqueOrderCode();

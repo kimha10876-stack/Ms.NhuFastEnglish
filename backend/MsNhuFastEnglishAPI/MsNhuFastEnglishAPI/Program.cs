@@ -856,6 +856,8 @@ using (var scope = app.Services.CreateScope())
             for (int i = 1; i <= 20; i++)
             {
                 var category = categories[(i - 1) % categories.Count];
+                var isBasic = category.Slug == "giao-tiep" || category.Slug == "mat-goc" || category.Slug == "thieu-nhi";
+                var monthlyFee = isBasic ? 5000m : 10000m;
                 
                 var cls = new Class
                 {
@@ -864,6 +866,7 @@ using (var scope = app.Services.CreateScope())
                     TeacherId = teacherUser.Id,
                     CategoryId = category.Id,
                     Status = "active",
+                    MonthlyFee = monthlyFee,
                     ScheduleDays = i % 2 == 0 ? "T2,T4,T6" : "T3,T5,T7",
                     ScheduleTime = i % 3 == 0 ? "18:00-19:30" : i % 3 == 1 ? "19:30-21:00" : "15:00-16:30",
                     StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -972,6 +975,222 @@ using (var scope = app.Services.CreateScope())
                 };
                 db.CurriculumTemplateUnits.AddRange(t2Units);
             }
+            db.SaveChanges();
+        }
+    }
+
+    // ── Cập nhật MonthlyFee cho các lớp hiện có: 5,000 VND (Basic) vs 10,000 VND (Nâng cao/IELTS) ──
+    var existingClasses = db.Classes.Include(c => c.Category).ToList();
+    var hasClassFeeUpdates = false;
+    foreach (var c in existingClasses)
+    {
+        var isBasic = c.Category != null && (c.Category.Slug == "giao-tiep" || c.Category.Slug == "mat-goc" || c.Category.Slug == "thieu-nhi");
+        var targetFee = isBasic ? 5000m : 10000m;
+        if (c.MonthlyFee != targetFee)
+        {
+            c.MonthlyFee = targetFee;
+            hasClassFeeUpdates = true;
+        }
+    }
+    if (hasClassFeeUpdates)
+    {
+        db.SaveChanges();
+    }
+
+    // ── Seed Payment & Transaction data nếu chưa có ─────────────────────────────
+    if (!db.Payments.Any())
+    {
+        var students = db.StudentProfiles.Include(sp => sp.User).ToList();
+        var classes = db.Classes.Include(c => c.Category).ToList();
+        var adminUser = db.Users.FirstOrDefault(u => u.Email == "admin@gmail.com");
+
+        if (students.Any() && classes.Any())
+        {
+            var now = DateTime.UtcNow;
+            var seedPayments = new List<Payment>();
+
+            // 1. student1: Đã thanh toán học phí lớp Basic (5,000 VND) qua PayOS
+            var s1 = students.FirstOrDefault(s => s.User.Email == "student1@gmail.com") ?? students[0];
+            var basicClass = classes.FirstOrDefault(c => c.MonthlyFee == 5000m) ?? classes[0];
+
+            var p1 = new Payment
+            {
+                Id = Guid.NewGuid(),
+                OrderCode = 100000001,
+                PaymentCode = $"PAY-{now:yyyyMMdd}-0001",
+                UserId = s1.UserId,
+                StudentProfileId = s1.Id,
+                ClassId = basicClass.Id,
+                Amount = 5000m,
+                DiscountAmount = 0,
+                FinalAmount = 5000m,
+                Currency = "VND",
+                PaymentType = "TuitionMonthly",
+                Status = "Completed",
+                PaymentMethod = "PayOS",
+                BillingMonth = now.Month,
+                BillingYear = now.Year,
+                Description = $"Học phí {basicClass.Name} T{now.Month}",
+                CreatedAt = now.AddDays(-3),
+                CompletedAt = now.AddDays(-3).AddMinutes(5),
+                ExpiresAt = now.AddDays(-3).AddMinutes(35)
+            };
+            p1.Transactions.Add(new PaymentTransaction
+            {
+                Id = Guid.NewGuid(),
+                PaymentId = p1.Id,
+                TransactionReference = "PAYOS-TX-100000001",
+                Gateway = "PayOS",
+                Amount = 5000m,
+                Status = "Success",
+                Note = "Giao dịch thanh toán tự động qua Webhook PayOS",
+                PaidAt = p1.CompletedAt,
+                CreatedAt = p1.CompletedAt ?? now
+            });
+            seedPayments.Add(p1);
+
+            // 2. student2: Đã thanh toán học phí lớp Nâng cao / IELTS (10,000 VND) qua PayOS
+            if (students.Count > 1)
+            {
+                var s2 = students.FirstOrDefault(s => s.User.Email == "student2@gmail.com") ?? students[1];
+                var advClass = classes.FirstOrDefault(c => c.MonthlyFee == 10000m) ?? classes.Last();
+
+                var p2 = new Payment
+                {
+                    Id = Guid.NewGuid(),
+                    OrderCode = 100000002,
+                    PaymentCode = $"PAY-{now:yyyyMMdd}-0002",
+                    UserId = s2.UserId,
+                    StudentProfileId = s2.Id,
+                    ClassId = advClass.Id,
+                    Amount = 10000m,
+                    DiscountAmount = 0,
+                    FinalAmount = 10000m,
+                    Currency = "VND",
+                    PaymentType = "TuitionMonthly",
+                    Status = "Completed",
+                    PaymentMethod = "PayOS",
+                    BillingMonth = now.Month,
+                    BillingYear = now.Year,
+                    Description = $"Học phí {advClass.Name} T{now.Month}",
+                    CreatedAt = now.AddDays(-2),
+                    CompletedAt = now.AddDays(-2).AddMinutes(3),
+                    ExpiresAt = now.AddDays(-2).AddMinutes(33)
+                };
+                p2.Transactions.Add(new PaymentTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    PaymentId = p2.Id,
+                    TransactionReference = "PAYOS-TX-100000002",
+                    Gateway = "PayOS",
+                    Amount = 10000m,
+                    Status = "Success",
+                    Note = "Giao dịch thanh toán tự động qua Webhook PayOS",
+                    PaidAt = p2.CompletedAt,
+                    CreatedAt = p2.CompletedAt ?? now
+                });
+                seedPayments.Add(p2);
+            }
+
+            // 3. student3: Đã thanh toán tiền mặt tại quầy (Cash - Admin xác nhận, 5,000 VND)
+            if (students.Count > 2)
+            {
+                var s3 = students.FirstOrDefault(s => s.User.Email == "student3@gmail.com") ?? students[2];
+                var class3 = classes.FirstOrDefault(c => c.MonthlyFee == 5000m) ?? classes[0];
+
+                var p3 = new Payment
+                {
+                    Id = Guid.NewGuid(),
+                    OrderCode = 100000003,
+                    PaymentCode = $"PAY-{now:yyyyMMdd}-0003",
+                    UserId = s3.UserId,
+                    StudentProfileId = s3.Id,
+                    ClassId = class3.Id,
+                    Amount = 5000m,
+                    DiscountAmount = 0,
+                    FinalAmount = 5000m,
+                    Currency = "VND",
+                    PaymentType = "TuitionMonthly",
+                    Status = "Completed",
+                    PaymentMethod = "Cash",
+                    BillingMonth = now.Month,
+                    BillingYear = now.Year,
+                    Description = $"Học phí {class3.Name} T{now.Month}",
+                    ConfirmedBy = adminUser?.Id,
+                    Note = "Học viên đóng tiền mặt tại văn phòng",
+                    CreatedAt = now.AddDays(-1),
+                    CompletedAt = now.AddDays(-1)
+                };
+                p3.Transactions.Add(new PaymentTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    PaymentId = p3.Id,
+                    TransactionReference = "MANUAL-CASH-001",
+                    Gateway = "Cash/Manual",
+                    Amount = 5000m,
+                    Status = "Success",
+                    Note = "Xác nhận thu trực tiếp tại quầy",
+                    PaidAt = p3.CompletedAt,
+                    CreatedAt = p3.CreatedAt
+                });
+                seedPayments.Add(p3);
+            }
+
+            // 4. student1: Đơn đang chờ thanh toán (Pending - 5,000 VND)
+            var p4 = new Payment
+            {
+                Id = Guid.NewGuid(),
+                OrderCode = 100000004,
+                PaymentCode = $"PAY-{now:yyyyMMdd}-0004",
+                UserId = s1.UserId,
+                StudentProfileId = s1.Id,
+                ClassId = basicClass.Id,
+                Amount = 5000m,
+                DiscountAmount = 0,
+                FinalAmount = 5000m,
+                Currency = "VND",
+                PaymentType = "TuitionMonthly",
+                Status = "Pending",
+                PaymentMethod = "PayOS",
+                BillingMonth = now.AddMonths(1).Month,
+                BillingYear = now.AddMonths(1).Year,
+                Description = $"Học phí {basicClass.Name} T{now.AddMonths(1).Month}",
+                CreatedAt = now.AddHours(-1),
+                ExpiresAt = now.AddMinutes(20)
+            };
+            seedPayments.Add(p4);
+
+            // 5. student4: Đơn đang chờ thanh toán (Pending - 10,000 VND)
+            if (students.Count > 3)
+            {
+                var s4 = students.FirstOrDefault(s => s.User.Email == "student4@gmail.com") ?? students[3];
+                var advClass = classes.FirstOrDefault(c => c.MonthlyFee == 10000m) ?? classes.Last();
+
+                var p5 = new Payment
+                {
+                    Id = Guid.NewGuid(),
+                    OrderCode = 100000005,
+                    PaymentCode = $"PAY-{now:yyyyMMdd}-0005",
+                    UserId = s4.UserId,
+                    StudentProfileId = s4.Id,
+                    ClassId = advClass.Id,
+                    Amount = 10000m,
+                    DiscountAmount = 0,
+                    FinalAmount = 10000m,
+                    Currency = "VND",
+                    PaymentType = "TuitionMonthly",
+                    Status = "Pending",
+                    PaymentMethod = "PayOS",
+                    BillingMonth = now.Month,
+                    BillingYear = now.Year,
+                    Description = $"Học phí {advClass.Name} T{now.Month}",
+                    CreatedAt = now.AddMinutes(-10),
+                    ExpiresAt = now.AddMinutes(20)
+                };
+                seedPayments.Add(p5);
+            }
+
+            db.Payments.AddRange(seedPayments);
             db.SaveChanges();
         }
     }

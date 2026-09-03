@@ -2632,8 +2632,8 @@ export default function ClassDetailPage() {
                       <Input
                         type="number"
                         min="0"
-                        step="50000"
-                        placeholder="VD: 800000"
+                        step="1000"
+                        placeholder="VD: 5000 hoặc 10000"
                         value={editForm.monthlyFee ?? 0}
                         onChange={(e) => setEditForm(p => p ? { ...p, monthlyFee: Number(e.target.value) || 0 } : p)}
                         className="w-full text-xs font-bold rounded-xl h-8"
