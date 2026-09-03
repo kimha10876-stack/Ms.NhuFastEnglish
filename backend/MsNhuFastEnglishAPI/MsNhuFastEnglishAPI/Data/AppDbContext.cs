@@ -26,7 +26,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ClassAttendance> ClassAttendances => Set<ClassAttendance>();
     public DbSet<ClassAnnouncement> ClassAnnouncements => Set<ClassAnnouncement>();
     public DbSet<AnnouncementComment> AnnouncementComments => Set<AnnouncementComment>();
-    public DbSet<TuitionPayment> TuitionPayments => Set<TuitionPayment>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -257,17 +258,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // ── TuitionPayment ────────────────────────────────────────────────
-        mb.Entity<TuitionPayment>(e =>
+        // ── Payment ───────────────────────────────────────────────────────
+        mb.Entity<Payment>(e =>
         {
-            e.Property(tp => tp.PaidAt).HasDefaultValueSql("NOW()");
-            e.HasOne(tp => tp.Class)
-             .WithMany(c => c.TuitionPayments)
-             .HasForeignKey(tp => tp.ClassId)
-             .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(tp => tp.Student)
-             .WithMany()
-             .HasForeignKey(tp => tp.StudentId)
+            e.HasIndex(p => p.OrderCode).IsUnique();
+            e.HasIndex(p => p.PaymentCode).IsUnique();
+            e.HasIndex(p => p.Status);
+            e.Property(p => p.CreatedAt).HasDefaultValueSql("NOW()");
+
+            e.HasOne(p => p.User)
+             .WithMany(u => u.Payments)
+             .HasForeignKey(p => p.UserId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(p => p.StudentProfile)
+             .WithMany(s => s.Payments)
+             .HasForeignKey(p => p.StudentProfileId)
+             .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasOne(p => p.Class)
+             .WithMany(c => c.Payments)
+             .HasForeignKey(p => p.ClassId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ── PaymentTransaction ───────────────────────────────────────────
+        mb.Entity<PaymentTransaction>(e =>
+        {
+            e.HasIndex(pt => pt.TransactionReference);
+            e.Property(pt => pt.CreatedAt).HasDefaultValueSql("NOW()");
+
+            e.HasOne(pt => pt.Payment)
+             .WithMany(p => p.Transactions)
+             .HasForeignKey(pt => pt.PaymentId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 

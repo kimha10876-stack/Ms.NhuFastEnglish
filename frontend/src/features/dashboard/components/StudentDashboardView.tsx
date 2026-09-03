@@ -14,24 +14,24 @@ import {
   HelpCircle,
   FileCheck,
   AlertCircle,
-  CreditCard,
-  History,
-  QrCode,
-  Copy,
-  Check,
-  Loader2,
   Award,
   CheckCircle2,
   X,
   ChevronRight,
+  CreditCard,
+  Receipt,
 } from 'lucide-react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/features/auth/auth.store'
 import { api } from '@/shared/api/client'
 import type { ApiResponse } from '@/shared/api/types'
 import { classesApi } from '@/features/classes/classes.api'
-import type { StudentAssignmentItem, StudentMonthlyTuitionSummary } from '@/features/classes/classes.types'
+import type { StudentAssignmentItem } from '@/features/classes/classes.types'
 import { Button } from '@/shared/components/ui/button'
+import { useCreatePayment } from '@/features/payments/usePayments'
+import { PaymentCheckoutModal } from '@/features/payments/components/PaymentCheckoutModal'
+import { PaymentHistoryModal } from '@/features/payments/components/PaymentHistoryModal'
+import type { PaymentResponse } from '@/features/payments/payments.types'
 
 interface MyClass {
   classId: string
@@ -48,14 +48,15 @@ interface MyClass {
 
 export function StudentDashboardView() {
   const user = useAuthStore((s) => s.user)
-  const queryClient = useQueryClient()
 
   // State
   const [showHomeworkModal, setShowHomeworkModal] = useState(false)
   const [assignmentTab, setAssignmentTab] = useState<'pending' | 'completed'>('pending')
-  const [selectedPayTuition, setSelectedPayTuition] = useState<StudentMonthlyTuitionSummary | null>(null)
+  const [activePayment, setActivePayment] = useState<PaymentResponse | null>(null)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
-  const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [payingClassId, setPayingClassId] = useState<string | null>(null)
+
+  const createPaymentMutation = useCreatePayment()
 
   // 1. Fetch Student profile details (Level, Goal, etc.)
   const { data: studentProfile } = useQuery({
@@ -77,51 +78,11 @@ export function StudentDashboardView() {
     queryFn: () => classesApi.getMyAssignments(),
   })
 
-  // 4. Fetch My Tuitions
-  const { data: myTuitions = [] } = useQuery<StudentMonthlyTuitionSummary[]>({
-    queryKey: ['my-tuitions'],
-    queryFn: () => classesApi.getMyTuitions(),
-  })
-
-  // Mutation pay tuition
-  const payTuitionMutation = useMutation({
-    mutationFn: ({ classId, month, year, amount, note }: { classId: string; month: number; year: number; amount: number; note?: string }) =>
-      classesApi.payTuition(classId, {
-        month,
-        year,
-        amount,
-        paymentMethod: 'VietQR',
-        note,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-tuitions'] })
-      queryClient.invalidateQueries({ queryKey: ['my-classes'] })
-      setSelectedPayTuition(null)
-    },
-  })
-
   const myClasses = myClassesData.filter((cls) => cls.status === 'active')
 
   // Filter assignments
   const pendingAssignments = myAssignments.filter((a) => !a.isSubmitted)
   const completedAssignments = myAssignments.filter((a) => a.isSubmitted)
-
-  // Unpaid tuition list for current month
-  const unpaidTuitions = myTuitions.filter((t) => t.monthlyFee > 0 && !t.isCurrentMonthPaid)
-
-  // All payment history aggregated
-  const allPaymentHistory = myTuitions.flatMap((t) => t.history || [])
-    .sort((a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime())
-
-  const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text)
-    setCopiedField(field)
-    setTimeout(() => setCopiedField(null), 2000)
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
-  }
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'Chưa có hạn'
@@ -191,59 +152,6 @@ export function StudentDashboardView() {
           </div>
         </div>
       ) : null}
-
-      {/* ── UNPAID TUITION ALERT BANNER (ONLY SHOW WHEN UNPAID) ── */}
-      {unpaidTuitions.length > 0 && (
-        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-red-500/20">
-                <CreditCard className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <span>Học phí cần thanh toán</span>
-                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[11px] font-extrabold">
-                    Tháng {unpaidTuitions[0].currentMonth}/{unpaidTuitions[0].currentYear}
-                  </span>
-                </h3>
-                <p className="text-xs text-gray-600 mt-0.5">
-                  Bạn có <strong className="text-red-700">{unpaidTuitions.length} lớp học</strong> chưa hoàn tất học phí tháng này.
-                </p>
-              </div>
-            </div>
-
-            <Button
-              onClick={() => setSelectedPayTuition(unpaidTuitions[0])}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md shadow-red-600/20 shrink-0 gap-1.5 h-8.5 px-4"
-            >
-              <QrCode className="h-4 w-4" />
-              Đóng học phí ngay
-            </Button>
-          </div>
-
-          {/* Quick list of unpaid classes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-red-100">
-            {unpaidTuitions.map((t) => (
-              <div
-                key={t.classId}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-white/80 border border-red-100 text-xs"
-              >
-                <span className="font-bold text-gray-900 truncate">{t.className}</span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-extrabold text-red-600">{formatCurrency(t.monthlyFee)}</span>
-                  <button
-                    onClick={() => setSelectedPayTuition(t)}
-                    className="text-[11px] font-bold text-amber-700 hover:underline"
-                  >
-                    Thanh toán
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* ── Target Level & Goal Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -345,6 +253,30 @@ export function StudentDashboardView() {
                       </div>
                     )}
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setPayingClassId(cls.classId)
+                      createPaymentMutation.mutate(
+                        { classId: cls.classId, paymentType: 'TuitionMonthly', paymentMethod: 'PayOS' },
+                        {
+                          onSuccess: (res) => {
+                            setActivePayment(res)
+                            setPayingClassId(null)
+                          },
+                          onError: () => setPayingClassId(null),
+                        }
+                      )
+                    }}
+                    disabled={payingClassId === cls.classId}
+                    className="mt-1 w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-teal-50/80 hover:bg-teal-100/90 text-teal-700 text-xs font-semibold border border-teal-200/70 transition-all hover:shadow-sm"
+                  >
+                    <CreditCard className="w-3.5 h-3.5 text-teal-600" />
+                    <span>{payingClassId === cls.classId ? 'Đang tạo mã VietQR...' : 'Đóng học phí (VietQR)'}</span>
+                  </button>
                 </Link>
               ))}
             </div>
@@ -381,15 +313,13 @@ export function StudentDashboardView() {
             {/* Payment History Button */}
             <button
               onClick={() => setShowHistoryModal(true)}
-              className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-amber-50 border border-gray-100 text-xs font-bold text-gray-700 hover:text-amber-900 transition-all group"
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-indigo-50/60 hover:bg-indigo-100/70 border border-indigo-200/70 text-xs font-bold text-gray-800 hover:text-indigo-950 transition-all group"
             >
               <div className="flex items-center gap-2">
-                <History className="h-4 w-4 text-amber-500 group-hover:rotate-[-20deg] transition-transform" />
+                <Receipt className="h-4 w-4 text-indigo-600 group-hover:scale-110 transition-transform" />
                 <span>Lịch sử đóng học phí</span>
               </div>
-              <span className="text-[11px] text-gray-400 group-hover:text-amber-600 font-semibold">
-                {allPaymentHistory.length} lần
-              </span>
+              <ChevronRight className="h-3.5 w-3.5 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
             </button>
 
             <div className="space-y-2 border-t border-gray-100 pt-3">
@@ -608,205 +538,15 @@ export function StudentDashboardView() {
         </div>
       )}
 
-      {/* ── MODAL THANH TOÁN HỌC PHÍ VIETQR ── */}
-      {selectedPayTuition && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <div>
-                <h2 className="font-extrabold text-gray-900 text-base">Đóng học phí qua VietQR</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Lớp: {selectedPayTuition.className}</p>
-              </div>
-              <button
-                onClick={() => setSelectedPayTuition(null)}
-                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      {/* Payment Modals */}
+      <PaymentCheckoutModal
+        payment={activePayment}
+        onClose={() => setActivePayment(null)}
+        onSuccess={() => setActivePayment(null)}
+      />
 
-            <div className="p-5 overflow-y-auto space-y-4">
-              {/* Amount Box */}
-              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-center space-y-1">
-                <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">
-                  Học phí Tháng {selectedPayTuition.currentMonth}/{selectedPayTuition.currentYear}
-                </p>
-                <p className="text-2xl font-black text-amber-700 tracking-tight">
-                  {formatCurrency(selectedPayTuition.monthlyFee)}
-                </p>
-              </div>
-
-              {/* VietQR Code Image */}
-              <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-2xl border border-gray-150">
-                <img
-                  src={`https://img.vietqr.io/image/MB-0905123456-compact2.png?amount=${selectedPayTuition.monthlyFee}&addInfo=${encodeURIComponent(
-                    `MSNHU ${user?.fullName} T${selectedPayTuition.currentMonth}`
-                  )}&accountName=TRUNG%20TAM%20MS%20NHU`}
-                  alt="Mã VietQR"
-                  className="w-56 h-auto rounded-xl shadow-md border border-white"
-                />
-                <p className="text-[11px] text-gray-500 mt-2 text-center font-medium">
-                  Mở ứng dụng Ngân hàng hoặc Ví điện tử để quét mã thanh toán tự động
-                </p>
-              </div>
-
-              {/* Bank Details with Copy buttons */}
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase font-bold">Ngân hàng</p>
-                    <p className="font-bold text-gray-900">MBBank (Ngân hàng Quân Đội)</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase font-bold">Số tài khoản</p>
-                    <p className="font-bold text-gray-900 font-mono text-sm">0905 123 456</p>
-                  </div>
-                  <button
-                    onClick={() => copyToClipboard('0905123456', 'stk')}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-gray-200 font-bold text-[11px] text-gray-700 hover:bg-gray-100"
-                  >
-                    {copiedField === 'stk' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-                    {copiedField === 'stk' ? 'Đã chép' : 'Sao chép'}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase font-bold">Chủ tài khoản</p>
-                    <p className="font-bold text-gray-900">TRUNG TAM TIENG ANH MS NHU</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase font-bold">Nội dung chuyển khoản</p>
-                    <p className="font-bold text-amber-700 font-mono">
-                      MSNHU {user?.fullName} T{selectedPayTuition.currentMonth}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => copyToClipboard(`MSNHU ${user?.fullName} T${selectedPayTuition.currentMonth}`, 'nd')}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-gray-200 font-bold text-[11px] text-gray-700 hover:bg-gray-100"
-                  >
-                    {copiedField === 'nd' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-                    {copiedField === 'nd' ? 'Đã chép' : 'Sao chép'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-gray-100 bg-gray-50 flex gap-2.5">
-              <Button
-                variant="secondary"
-                className="flex-1 rounded-xl text-xs font-bold"
-                onClick={() => setSelectedPayTuition(null)}
-              >
-                Đóng
-              </Button>
-              <Button
-                className="flex-1 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-                disabled={payTuitionMutation.isPending}
-                onClick={() => {
-                  payTuitionMutation.mutate({
-                    classId: selectedPayTuition.classId,
-                    month: selectedPayTuition.currentMonth,
-                    year: selectedPayTuition.currentYear,
-                    amount: selectedPayTuition.monthlyFee,
-                    note: `Chuyển khoản VietQR tháng ${selectedPayTuition.currentMonth}`,
-                  })
-                }}
-              >
-                {payTuitionMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    Xác nhận đã chuyển khoản
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL LỊCH SỬ ĐÓNG HỌC PHÍ ── */}
       {showHistoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <History className="h-4 w-4" />
-                </div>
-                <div>
-                  <h2 className="font-extrabold text-gray-900 text-base">Lịch sử đóng học phí</h2>
-                  <p className="text-xs text-gray-400">Các giao dịch và học phí đã thanh toán</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowHistoryModal(false)}
-                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-5 overflow-y-auto space-y-3">
-              {allPaymentHistory.length === 0 ? (
-                <div className="p-8 text-center text-xs text-gray-400">
-                  Bạn chưa có lịch sử thanh toán học phí nào.
-                </div>
-              ) : (
-                allPaymentHistory.map((p) => (
-                  <div
-                    key={p.id}
-                    className="p-4 rounded-2xl border border-gray-150 bg-gray-50/60 flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="space-y-1 min-w-0">
-                      <p className="font-bold text-gray-900 truncate">{p.className}</p>
-                      <p className="text-gray-500">
-                        Học phí Tháng {p.month}/{p.year} • Phương thức: <strong>{p.paymentMethod}</strong>
-                      </p>
-                      <p className="text-[11px] text-gray-400">
-                        Thanh toán lúc: {formatDate(p.paidAt)}
-                      </p>
-                      {p.note && <p className="text-[11px] text-gray-600 italic">Ghi chú: {p.note}</p>}
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <p className="font-extrabold text-sm text-gray-900">{formatCurrency(p.amount)}</p>
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold mt-1 ${
-                          p.status === 'paid'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : p.status === 'pending'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {p.status === 'paid' ? 'Đã xác nhận' : p.status === 'pending' ? 'Chờ duyệt' : 'Từ chối'}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="p-4 border-t border-gray-100 bg-gray-50 text-right">
-              <Button
-                variant="secondary"
-                className="rounded-xl text-xs font-bold px-5"
-                onClick={() => setShowHistoryModal(false)}
-              >
-                Đóng
-              </Button>
-            </div>
-          </div>
-        </div>
+        <PaymentHistoryModal onClose={() => setShowHistoryModal(false)} />
       )}
 
     </div>

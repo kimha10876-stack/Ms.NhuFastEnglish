@@ -22,6 +22,14 @@ public class ClassesController(ClassService classService) : ControllerBase
     private bool IsAdmin =>
         User.IsInRole("Admin");
 
+    // ── GET /api/classes/my-classes ───────────────────────────────────────────
+    [HttpGet("my-classes")]
+    public async Task<IActionResult> GetMyClasses()
+    {
+        var result = await classService.GetMyClassesAsync(UserId);
+        return Ok(ApiResponse.Ok(result));
+    }
+
     // ── GET /api/classes ──────────────────────────────────────────────────────
     [HttpGet]
     [Authorize(Roles = "Admin,Teacher")]

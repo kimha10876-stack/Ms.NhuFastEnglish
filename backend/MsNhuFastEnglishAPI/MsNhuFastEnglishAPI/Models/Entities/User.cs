@@ -16,4 +16,5 @@ public class User
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public TeacherProfile? TeacherProfile { get; set; }
     public StudentProfile? StudentProfile { get; set; }
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 }

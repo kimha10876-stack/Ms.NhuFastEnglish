@@ -9,8 +9,35 @@ using MsNhuFastEnglishAPI.Data;
 using MsNhuFastEnglishAPI.Middleware;
 using MsNhuFastEnglishAPI.Models.Entities;
 using MsNhuFastEnglishAPI.Services;
+using MsNhuFastEnglishAPI.Services.PaymentServices;
 using MsNhuFastEnglishAPI.Shared;
 using StackExchange.Redis;
+
+// ── Load .env file if running locally ──────────────────────────────────────────
+var searchPaths = new[]
+{
+    Path.Combine(Directory.GetCurrentDirectory(), ".env"),
+    Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"),
+    Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"),
+    Path.Combine(AppContext.BaseDirectory, ".env")
+};
+foreach (var p in searchPaths)
+{
+    if (File.Exists(p))
+    {
+        foreach (var line in File.ReadAllLines(p))
+        {
+            var trimmed = line.Trim();
+            if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#')) continue;
+            var parts = trimmed.Split('=', 2);
+            if (parts.Length == 2 && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(parts[0].Trim())))
+            {
+                Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim());
+            }
+        }
+        break;
+    }
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,6 +130,11 @@ builder.Services.AddScoped<SettingsService>();
 builder.Services.AddScoped<StudentService>();
 builder.Services.AddScoped<TeacherService>();
 builder.Services.AddScoped<ConsultationService>();
+
+// ── Payment Services ──────────────────────────────────────────────────────────
+builder.Services.AddScoped<IPaymentGateway, PayOSGatewayService>();
+builder.Services.AddScoped<PaymentGatewayFactory>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 // ── Controllers + Swagger ─────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -504,21 +536,50 @@ using (var scope = app.Services.CreateScope())
                     ALTER TABLE ""Classes"" ADD COLUMN IF NOT EXISTS ""MonthlyFee"" NUMERIC(18,2) NOT NULL DEFAULT 0;
                     ALTER TABLE ""ConsultationRequests"" ADD COLUMN IF NOT EXISTS ""RequestCount"" INT NOT NULL DEFAULT 1;
 
-                    CREATE TABLE IF NOT EXISTS ""TuitionPayments"" (
+                    CREATE TABLE IF NOT EXISTS ""Payments"" (
                         ""Id"" UUID PRIMARY KEY,
-                        ""ClassId"" UUID NOT NULL REFERENCES ""Classes""(""Id"") ON DELETE CASCADE,
-                        ""StudentId"" UUID NOT NULL REFERENCES ""StudentProfiles""(""Id"") ON DELETE CASCADE,
-                        ""Month"" INT NOT NULL,
-                        ""Year"" INT NOT NULL,
+                        ""OrderCode"" BIGINT NOT NULL,
+                        ""PaymentCode"" VARCHAR(100) NOT NULL,
+                        ""UserId"" UUID NOT NULL REFERENCES ""Users""(""Id"") ON DELETE RESTRICT,
+                        ""StudentProfileId"" UUID REFERENCES ""StudentProfiles""(""Id"") ON DELETE SET NULL,
+                        ""ClassId"" UUID REFERENCES ""Classes""(""Id"") ON DELETE SET NULL,
                         ""Amount"" NUMERIC(18,2) NOT NULL DEFAULT 0,
-                        ""Status"" VARCHAR(50) NOT NULL DEFAULT 'paid',
-                        ""PaymentMethod"" VARCHAR(50) NOT NULL DEFAULT 'VietQR',
-                        ""TransactionCode"" VARCHAR(255),
-                        ""PaidAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                        ""DiscountAmount"" NUMERIC(18,2) NOT NULL DEFAULT 0,
+                        ""FinalAmount"" NUMERIC(18,2) NOT NULL DEFAULT 0,
+                        ""Currency"" VARCHAR(10) NOT NULL DEFAULT 'VND',
+                        ""PaymentType"" VARCHAR(50) NOT NULL DEFAULT 'TuitionMonthly',
+                        ""Status"" VARCHAR(50) NOT NULL DEFAULT 'Pending',
+                        ""PaymentMethod"" VARCHAR(50) NOT NULL DEFAULT 'PayOS',
+                        ""BillingMonth"" INT,
+                        ""BillingYear"" INT,
+                        ""Description"" TEXT NOT NULL DEFAULT '',
+                        ""CheckoutUrl"" TEXT,
+                        ""QrCode"" TEXT,
+                        ""ExpiresAt"" TIMESTAMP WITH TIME ZONE,
+                        ""CompletedAt"" TIMESTAMP WITH TIME ZONE,
                         ""ConfirmedBy"" UUID,
-                        ""ConfirmedAt"" TIMESTAMP WITH TIME ZONE,
-                        ""Note"" TEXT
+                        ""Note"" TEXT,
+                        ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                        ""UpdatedAt"" TIMESTAMP WITH TIME ZONE
                     );
+
+                    CREATE TABLE IF NOT EXISTS ""PaymentTransactions"" (
+                        ""Id"" UUID PRIMARY KEY,
+                        ""PaymentId"" UUID NOT NULL REFERENCES ""Payments""(""Id"") ON DELETE CASCADE,
+                        ""TransactionReference"" VARCHAR(255),
+                        ""Gateway"" VARCHAR(50) NOT NULL,
+                        ""Amount"" NUMERIC(18,2) NOT NULL DEFAULT 0,
+                        ""Status"" VARCHAR(50) NOT NULL DEFAULT 'Pending',
+                        ""GatewayResponse"" TEXT,
+                        ""Note"" TEXT,
+                        ""PaidAt"" TIMESTAMP WITH TIME ZONE,
+                        ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+                    );
+
+                    CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Payments_OrderCode"" ON ""Payments""(""OrderCode"");
+                    CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Payments_PaymentCode"" ON ""Payments""(""PaymentCode"");
+                    CREATE INDEX IF NOT EXISTS ""IX_Payments_Status"" ON ""Payments""(""Status"");
+                    CREATE INDEX IF NOT EXISTS ""IX_PaymentTransactions_TransactionReference"" ON ""PaymentTransactions""(""TransactionReference"");
                 ");
             }
             else
@@ -529,6 +590,48 @@ using (var scope = app.Services.CreateScope())
                 try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""AssignmentSubmissions"" ADD COLUMN ""AnswersJson"" TEXT;"); } catch {}
                 try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""Classes"" ADD COLUMN ""MonthlyFee"" NUMERIC NOT NULL DEFAULT 0;"); } catch {}
                 try { db.Database.ExecuteSqlRaw(@"ALTER TABLE ""ConsultationRequests"" ADD COLUMN ""RequestCount"" INTEGER NOT NULL DEFAULT 1;"); } catch {}
+                try {
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS ""Payments"" (
+                            ""Id"" TEXT PRIMARY KEY,
+                            ""OrderCode"" INTEGER NOT NULL UNIQUE,
+                            ""PaymentCode"" TEXT NOT NULL UNIQUE,
+                            ""UserId"" TEXT NOT NULL,
+                            ""StudentProfileId"" TEXT,
+                            ""ClassId"" TEXT,
+                            ""Amount"" NUMERIC NOT NULL DEFAULT 0,
+                            ""DiscountAmount"" NUMERIC NOT NULL DEFAULT 0,
+                            ""FinalAmount"" NUMERIC NOT NULL DEFAULT 0,
+                            ""Currency"" TEXT NOT NULL DEFAULT 'VND',
+                            ""PaymentType"" TEXT NOT NULL DEFAULT 'TuitionMonthly',
+                            ""Status"" TEXT NOT NULL DEFAULT 'Pending',
+                            ""PaymentMethod"" TEXT NOT NULL DEFAULT 'PayOS',
+                            ""BillingMonth"" INTEGER,
+                            ""BillingYear"" INTEGER,
+                            ""Description"" TEXT NOT NULL DEFAULT '',
+                            ""CheckoutUrl"" TEXT,
+                            ""QrCode"" TEXT,
+                            ""ExpiresAt"" TEXT,
+                            ""CompletedAt"" TEXT,
+                            ""ConfirmedBy"" TEXT,
+                            ""Note"" TEXT,
+                            ""CreatedAt"" TEXT NOT NULL DEFAULT (datetime('now')),
+                            ""UpdatedAt"" TEXT
+                        );
+                        CREATE TABLE IF NOT EXISTS ""PaymentTransactions"" (
+                            ""Id"" TEXT PRIMARY KEY,
+                            ""PaymentId"" TEXT NOT NULL,
+                            ""TransactionReference"" TEXT,
+                            ""Gateway"" TEXT NOT NULL,
+                            ""Amount"" NUMERIC NOT NULL DEFAULT 0,
+                            ""Status"" TEXT NOT NULL DEFAULT 'Pending',
+                            ""GatewayResponse"" TEXT,
+                            ""Note"" TEXT,
+                            ""PaidAt"" TEXT,
+                            ""CreatedAt"" TEXT NOT NULL DEFAULT (datetime('now'))
+                        );
+                    ");
+                } catch {}
             }
 
             // Gieo dữ liệu SystemSettings mặc định nếu bảng trống

@@ -20,10 +20,9 @@ import {
   useClassAssignments, useCreateAssignment, useUpdateAssignment, useDeleteAssignment,
   useAssignmentSubmissions, useGradeSubmission,
   useCurriculumTemplates, useImportCurriculum,
-  useClassAttendance, useUpdateAttendance, useUpdateMemberTuition,
+  useClassAttendance, useUpdateAttendance,
   useClassAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDeleteAnnouncement,
   useCreateComment, useDeleteComment, useSubmitAssignment,
-  useClassTuitions, useConfirmTuitionPayment,
 } from './useClasses'
 import type { UpdateClassRequest, ClassSession, ClassAssignment, AssignmentSubmission, AssignmentQuestion, StudentAnswer } from './classes.types'
 import TeacherSelect from './TeacherSelect'
@@ -33,7 +32,7 @@ import { useTeachers } from '@/features/teachers/useTeachers'
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 
-type Tab = 'announcements' | 'lessons' | 'assignments' | 'members' | 'info' | 'tuition'
+type Tab = 'announcements' | 'lessons' | 'assignments' | 'members' | 'info'
 
 const STATUS_OPTIONS = ['active', 'paused', 'ended']
 const STATUS_LABEL: Record<string, string> = {
@@ -336,7 +335,6 @@ export default function ClassDetailPage() {
   const { mutate: deleteClass, isPending: deleting } = useDeleteClass()
   const { mutate: addMember, isPending: adding }     = useAddMember(id)
   const { mutate: removeMember }                     = useRemoveMember(id)
-  const updateTuitionMutation = useUpdateMemberTuition(id)
   const { mutate: createInvite, isPending: creatingInvite } = useCreateInvite()
   const { data: searchResults = [] }                 = useSearchStudents(searchQ)
   const { data: activeInvite }                       = useActiveInvite(id)
@@ -376,17 +374,6 @@ export default function ClassDetailPage() {
 
   const sessions = sessionData?.sessions ?? []
   const generalDocuments = sessionData?.generalDocuments ?? []
-
-
-
-
-
-  // Tuition hooks
-  const { data: tuitionRecords = [], isLoading: loadingTuitions } = useClassTuitions(id)
-  const confirmTuitionMutation = useConfirmTuitionPayment(id)
-  const [showMonthlyFeeModal, setShowMonthlyFeeModal] = useState(false)
-  const [newMonthlyFee, setNewMonthlyFee] = useState<number>(0)
-
   // Announcements and Comments states & hooks
   const { data: announcements = [], isLoading: loadingAnnouncements } = useClassAnnouncements(id)
   const createAnnouncementMutation = useCreateAnnouncement(id)
@@ -2764,313 +2751,6 @@ export default function ClassDetailPage() {
               )}
             </div>
           )}
-        </div>
-      )}
-
-      {/* ── 5. Tuition tab (Học phí) ── */}
-      {tab === 'tuition' && isAdmin && (
-        <div className="space-y-6 text-left">
-          {/* Tuition Metrics Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Học phí mỗi tháng</p>
-                  {isAdmin && (
-                    <button
-                      onClick={() => {
-                        setNewMonthlyFee(cls.monthlyFee ?? 0)
-                        setShowMonthlyFeeModal(true)
-                      }}
-                      className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline"
-                    >
-                      Cài đặt
-                    </button>
-                  )}
-                </div>
-                <p className="text-xl font-black text-amber-700 mt-1">
-                  {cls.monthlyFee > 0
-                    ? `${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cls.monthlyFee)}`
-                    : 'Chưa cấu hình'}
-                </p>
-              </div>
-              <p className="text-[11px] text-gray-400 mt-0.5">Áp dụng cho mỗi học viên</p>
-            </div>
-
-            <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-sm">
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Đã đóng tháng này</p>
-              <p className="text-xl font-black text-emerald-600 mt-1">
-                {cls.members.filter((m) => m.tuitionStatus === 'paid').length} / {cls.members.length} học viên
-              </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Tỷ lệ hoàn tất học phí</p>
-            </div>
-
-            <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-sm">
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Chưa đóng tháng này</p>
-              <p className="text-xl font-black text-rose-600 mt-1">
-                {cls.members.filter((m) => m.tuitionStatus !== 'paid').length} học viên
-              </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Cần nhắc nhở thanh toán</p>
-            </div>
-          </div>
-
-          {/* Section 1: Member Current Month Tuition Status */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-extrabold text-gray-900 text-base">Trạng thái học phí thành viên</h3>
-                <p className="text-xs text-gray-400 font-semibold mt-0.5">
-                  Đánh dấu hoặc cập nhật trạng thái nộp học phí của từng học viên
-                </p>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto border border-gray-150 rounded-2xl">
-              <table className="w-full text-sm border-collapse bg-white">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-150">
-                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Học viên</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Trạng thái học phí</th>
-                    <th className="px-5 py-3.5 text-right text-[11px] font-bold uppercase tracking-wider text-gray-400">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {cls.members.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="px-5 py-12 text-center text-xs text-gray-400 font-medium">
-                        Lớp học chưa có thành viên nào.
-                      </td>
-                    </tr>
-                  ) : (
-                    cls.members.map((member) => {
-                      const isPaid = member.tuitionStatus === 'paid'
-                      return (
-                        <tr key={member.memberId} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold shrink-0 text-xs">
-                                {member.avatarUrl ? (
-                                  <img src={member.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-                                ) : (
-                                  member.fullName.substring(0, 2).toUpperCase()
-                                )}
-                              </div>
-                              <div>
-                                <p className="font-bold text-gray-900 text-xs">{member.fullName}</p>
-                                <p className="text-[10px] text-gray-400 font-semibold">{member.email}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 whitespace-nowrap">
-                            {isPaid ? (
-                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                <Check className="h-3 w-3" /> Đã đóng học phí
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100">
-                                <XCircle className="h-3 w-3" /> Chưa đóng học phí
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-4 text-right whitespace-nowrap">
-                            <button
-                              onClick={() => {
-                                const nextStatus = isPaid ? 'unpaid' : 'paid'
-                                updateTuitionMutation.mutate({
-                                  memberId: member.memberId,
-                                  tuitionStatus: nextStatus,
-                                }, {
-                                  onError: (err: any) => {
-                                    alert(err?.response?.data?.message || 'Không thể cập nhật học phí!')
-                                  }
-                                })
-                              }}
-                              disabled={updateTuitionMutation.isPending}
-                              className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all ${
-                                isPaid
-                                  ? 'bg-white border-gray-200 text-rose-600 hover:bg-rose-50'
-                                  : 'bg-amber-500 border-amber-500 text-gray-900 hover:bg-amber-600'
-                              }`}
-                            >
-                              {updateTuitionMutation.isPending ? 'Đang lưu...' : isPaid ? 'Đánh dấu chưa đóng' : 'Đánh dấu đã đóng'}
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Section 2: Payment Transaction History & Admin Confirmation */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <div>
-              <h3 className="font-extrabold text-gray-900 text-base">Lịch sử thanh toán & Xác nhận học phí</h3>
-              <p className="text-xs text-gray-400 font-semibold mt-0.5">
-                Danh sách các giao dịch đóng học phí của học viên qua VietQR và chuyển khoản
-              </p>
-            </div>
-
-            <div className="overflow-x-auto border border-gray-150 rounded-2xl">
-              <table className="w-full text-sm border-collapse bg-white">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-150">
-                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Học viên</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Kỳ học phí</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Số tiền</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Phương thức & Mã GD</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Ngày đóng</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">Trạng thái</th>
-                    <th className="px-5 py-3.5 text-right text-[11px] font-bold uppercase tracking-wider text-gray-400">Thao tác Admin</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {loadingTuitions ? (
-                    <tr>
-                      <td colSpan={7} className="px-5 py-8 text-center text-xs text-gray-400">
-                        Đang tải lịch sử giao dịch...
-                      </td>
-                    </tr>
-                  ) : tuitionRecords.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-5 py-12 text-center text-xs text-gray-400 font-medium">
-                        Chưa có lịch sử giao dịch học phí nào cho lớp này.
-                      </td>
-                    </tr>
-                  ) : (
-                    tuitionRecords.map((t) => (
-                      <tr key={t.id} className="hover:bg-gray-50/50 transition-colors text-xs">
-                        <td className="px-5 py-4">
-                          <div>
-                            <p className="font-bold text-gray-900">{t.studentName}</p>
-                            <p className="text-[10px] text-gray-400">{t.studentEmail}</p>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 font-bold text-gray-800">
-                          Tháng {t.month}/{t.year}
-                        </td>
-                        <td className="px-5 py-4 font-extrabold text-amber-700">
-                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(t.amount)}
-                        </td>
-                        <td className="px-5 py-4">
-                          <div>
-                            <span className="font-bold text-gray-700">{t.paymentMethod}</span>
-                            {t.transactionCode && (
-                              <p className="text-[10px] text-gray-400 font-mono mt-0.5">{t.transactionCode}</p>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 text-gray-500">
-                          {new Date(t.paidAt).toLocaleDateString('vi-VN', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                              t.status === 'paid'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                : t.status === 'pending'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                                : 'bg-red-50 text-red-700 border border-red-100'
-                            }`}
-                          >
-                            {t.status === 'paid' ? 'Đã xác nhận' : t.status === 'pending' ? 'Chờ duyệt' : 'Từ chối'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-right whitespace-nowrap">
-                          {t.status !== 'paid' ? (
-                            <Button
-                              size="sm"
-                              disabled={confirmTuitionMutation.isPending}
-                              onClick={() => {
-                                confirmTuitionMutation.mutate({
-                                  paymentId: t.id,
-                                  status: 'paid',
-                                  note: 'Admin đã xác nhận nhận đủ tiền',
-                                })
-                              }}
-                              className="h-8 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                              Xác nhận đã nhận học phí
-                            </Button>
-                          ) : (
-                            <span className="text-[11px] text-emerald-600 font-bold flex items-center justify-end gap-1">
-                              <Check className="h-3.5 w-3.5" /> Đã duyệt
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Modal Cài đặt học phí lớp ── */}
-      {showMonthlyFeeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-900 text-base">Cài đặt học phí lớp</h3>
-                <p className="text-xs text-gray-400">Áp dụng số tiền thu hàng tháng cho học viên</p>
-              </div>
-              <button
-                onClick={() => setShowMonthlyFeeModal(false)}
-                className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-700">Mức học phí hàng tháng (VNĐ)</label>
-              <Input
-                type="number"
-                min={0}
-                step={50000}
-                value={newMonthlyFee}
-                onChange={(e) => setNewMonthlyFee(Number(e.target.value) || 0)}
-                placeholder="VD: 800000"
-                className="w-full text-sm font-bold rounded-xl"
-              />
-              <p className="text-[11px] text-gray-400">
-                Hiển thị: <strong>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(newMonthlyFee)}</strong> / tháng
-              </p>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button
-                variant="secondary"
-                className="flex-1 rounded-xl text-xs font-bold"
-                onClick={() => setShowMonthlyFeeModal(false)}
-              >
-                Hủy
-              </Button>
-              <Button
-                disabled={updating}
-                className="flex-1 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-gray-950"
-                onClick={() => {
-                  update({ monthlyFee: newMonthlyFee }, {
-                    onSuccess: () => setShowMonthlyFeeModal(false)
-                  })
-                }}
-              >
-                {updating ? 'Đang lưu...' : 'Lưu học phí'}
-              </Button>
-            </div>
-          </div>
         </div>
       )}
 

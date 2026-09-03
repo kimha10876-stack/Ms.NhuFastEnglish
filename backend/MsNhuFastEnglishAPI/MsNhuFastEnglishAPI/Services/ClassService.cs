@@ -124,8 +124,7 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
                 Email:     m.Student.User.Email,
                 AvatarUrl: m.Student.User.AvatarUrl,
                 Status:    m.Status,
-                JoinedAt:  m.JoinedAt,
-                TuitionStatus: m.TuitionStatus
+                JoinedAt:  m.JoinedAt
             )).ToList()
         );
     }
@@ -432,6 +431,45 @@ public class ClassService(AppDbContext db, IConnectionMultiplexer redis, IConfig
             Name: c.Name,
             ColorHex: c.ColorHex,
             Icon: c.Icon
+        )).ToList();
+    }
+
+    public async Task<List<MyClassDto>> GetMyClassesAsync(Guid userId)
+    {
+        var profile = await db.StudentProfiles.FirstOrDefaultAsync(sp => sp.UserId == userId);
+        if (profile == null)
+        {
+            profile = new StudentProfile
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Level = "Mới bắt đầu",
+                Goal = "Giao tiếp cơ bản",
+                Status = "active"
+            };
+            db.StudentProfiles.Add(profile);
+            await db.SaveChangesAsync();
+        }
+
+        var classMembers = await db.ClassMembers
+            .Include(m => m.Class)
+                .ThenInclude(c => c.Category)
+            .Include(m => m.Class)
+                .ThenInclude(c => c.Teacher)
+            .Where(m => m.StudentId == profile.Id && m.Status == "active")
+            .ToListAsync();
+
+        return classMembers.Select(m => new MyClassDto(
+            ClassId: m.ClassId,
+            ClassName: m.Class.Name,
+            CategoryName: m.Class.Category.Name,
+            CategoryColorHex: m.Class.Category.ColorHex,
+            TeacherName: m.Class.Teacher.FullName,
+            Status: m.Class.Status,
+            JoinedAt: m.JoinedAt,
+            ScheduleDays: m.Class.ScheduleDays,
+            ScheduleTime: m.Class.ScheduleTime,
+            Room: m.Class.Room
         )).ToList();
     }
 }

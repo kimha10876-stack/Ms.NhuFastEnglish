@@ -34,7 +34,6 @@ public record UpdateClassRequest
 }
 
 public record AddMemberRequest(Guid StudentId);
-public record UpdateMemberTuitionRequest(string TuitionStatus);
 
 public record CreateInviteRequest(int ExpiryDays = 30);  // 0 = vĩnh viễn
 
@@ -102,8 +101,7 @@ public record ClassMemberDto(
     string   Email,
     string?  AvatarUrl,
     string   Status,
-    DateTime JoinedAt,
-    string   TuitionStatus
+    DateTime JoinedAt
 );
 
 public record InviteInfoDto(
@@ -330,51 +328,17 @@ public record StudentAssignmentItemDto(
     bool IsOverdue
 );
 
-// ── Tuition DTOs ─────────────────────────────────────────────────────────────
-public record TuitionPaymentDto(
-    Guid Id,
-    Guid ClassId,
-    string ClassName,
-    Guid StudentId,
-    string StudentName,
-    string StudentEmail,
-    int Month,
-    int Year,
-    decimal Amount,
-    string Status,
-    string PaymentMethod,
-    string? TransactionCode,
-    DateTime PaidAt,
-    Guid? ConfirmedBy,
-    DateTime? ConfirmedAt,
-    string? Note
-);
-
-public record PayTuitionRequest(
-    int Month,
-    int Year,
-    decimal Amount,
-    string PaymentMethod = "VietQR",
-    string? TransactionCode = null,
-    string? Note = null
-);
-
-public record ConfirmTuitionPaymentRequest(
-    string Status = "paid", // "paid" | "rejected"
-    string? Note = null
-);
-
-public record StudentMonthlyTuitionSummaryDto(
+// ── My Classes DTO ────────────────────────────────────────────────────────────
+public record MyClassDto(
     Guid ClassId,
     string ClassName,
     string CategoryName,
     string CategoryColorHex,
-    decimal MonthlyFee,
-    int CurrentMonth,
-    int CurrentYear,
-    bool IsCurrentMonthPaid,
-    DateTime? CurrentMonthPaidAt,
-    string CurrentMonthPaymentStatus, // "paid" | "unpaid" | "pending"
-    IList<TuitionPaymentDto> History
+    string TeacherName,
+    string Status,
+    DateTime JoinedAt,
+    string? ScheduleDays,
+    string? ScheduleTime,
+    string? Room
 );
 

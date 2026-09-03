@@ -15,4 +15,5 @@ public class StudentProfile
 
     public User User { get; set; } = default!;
     public ICollection<ClassMember> ClassMembers { get; set; } = new List<ClassMember>();
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 }

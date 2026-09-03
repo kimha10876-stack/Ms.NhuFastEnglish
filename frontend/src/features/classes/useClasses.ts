@@ -74,15 +74,6 @@ export function useRemoveMember(classId: string) {
   })
 }
 
-export function useUpdateMemberTuition(classId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ memberId, tuitionStatus }: { memberId: string; tuitionStatus: string }) =>
-      classesApi.updateMemberTuition(classId, memberId, tuitionStatus),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [...CLASSES_KEY, classId] }),
-  })
-}
-
 export function useCreateInvite() {
   const qc = useQueryClient()
   return useMutation({
@@ -420,26 +411,6 @@ export function useUpdateAnnouncement(classId: string) {
       classesApi.updateAnnouncement(classId, body.announcementId, { content: body.content }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['classes', classId, 'announcements'] })
-    },
-  })
-}
-
-export function useClassTuitions(classId: string) {
-  return useQuery({
-    queryKey: ['classes', classId, 'tuitions'],
-    queryFn: () => classesApi.getClassTuitionRecords(classId),
-    enabled: !!classId,
-  })
-}
-
-export function useConfirmTuitionPayment(classId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ paymentId, status, note }: { paymentId: string; status: 'paid' | 'rejected'; note?: string }) =>
-      classesApi.confirmTuitionPayment(paymentId, { status, note }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['classes', classId, 'tuitions'] })
-      qc.invalidateQueries({ queryKey: [...CLASSES_KEY, classId] })
     },
   })
 }

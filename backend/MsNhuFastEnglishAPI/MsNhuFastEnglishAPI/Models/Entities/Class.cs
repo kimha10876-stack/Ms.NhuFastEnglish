@@ -26,5 +26,5 @@ public class Class
     public ICollection<ClassSession> Sessions { get; set; } = new List<ClassSession>();
     public ICollection<ClassDocument> Documents { get; set; } = new List<ClassDocument>();
     public ICollection<ClassAssignment> Assignments { get; set; } = new List<ClassAssignment>();
-    public ICollection<TuitionPayment> TuitionPayments { get; set; } = new List<TuitionPayment>();
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 }
