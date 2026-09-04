@@ -1,0 +1,39 @@
+# ── Secrets (KHÔNG BAO GIỜ commit) ───────────────────────────
+.env
+*.env.local
+*.env.production
+
+# ── .NET / ASP.NET Core ───────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.csproj.user
+appsettings.Development.json
+
+# ── Node / Frontend ───────────────────────────────────────────
+node_modules/
+dist/
+.cache/
+*.tsbuildinfo
+
+# ── Docker ────────────────────────────────────────────────────
+# docker-compose.override.yml nếu bạn dùng local override
+
+# ── OS ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+
+# ── Claude Code (local settings) ──────────────────────────────
+.claude/
+
+# ── Logs ──────────────────────────────────────────────────────
+logs/
+*.log

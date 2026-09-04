@@ -1,0 +1,6 @@
+@MsNhuFastEnglishAPI_HostAddress = http://localhost:5122
+
+GET {{MsNhuFastEnglishAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

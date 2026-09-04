@@ -1,0 +1,187 @@
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/shared/components/ui/button'
+import { Input } from '@/shared/components/ui/input'
+import { PasswordInput } from '@/shared/components/ui/password-input'
+import { useRegisterStudent } from './useAuth'
+import { useAuthStore } from './auth.store'
+
+export default function RegisterPage() {
+  const [searchParams] = useSearchParams()
+  const inviteToken    = searchParams.get('invite')
+
+  const [form, setForm] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  })
+  const [passwordError, setPasswordError] = useState('')
+
+  const { mutate: register, isPending, error } = useRegisterStudent(inviteToken ?? undefined)
+
+  const user = useAuthStore((s) => s.user)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, navigate])
+
+  const set = (field: string) => (e: { target: { value: string } }) =>
+    setForm((prev) => ({ ...prev, [field]: e.target.value }))
+
+  const handleSubmit = (e: { preventDefault(): void }) => {
+    e.preventDefault()
+    if (form.password !== form.confirmPassword) {
+      setPasswordError('Mật khẩu xác nhận không khớp')
+      return
+    }
+    setPasswordError('')
+    register({
+      fullName: form.fullName,
+      email: form.email,
+      password: form.password,
+    })
+  }
+
+  return (
+    <div className="min-h-svh flex">
+
+      {/* ── Branding panel (desktop only) ───────────────────────────────── */}
+      <div className="hidden lg:flex lg:w-[45%] bg-primary flex-col justify-between p-10 select-none">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-white/20 bg-background">
+            <img src="/logo.png" alt="Ms Nhu Fast English Logo" className="w-full h-full object-cover" />
+          </div>
+          <span className="font-bold text-white text-[17px] tracking-tight">
+            Ms Nhu Fast English
+          </span>
+        </div>
+
+        <div>
+          <p className="text-white/50 text-xs font-semibold tracking-widest uppercase mb-3">
+            Đăng ký học viên
+          </p>
+          <h2 className="text-white text-[30px] font-bold leading-snug tracking-tight text-balance">
+            Bắt đầu hành trình
+          </h2>
+          <p className="text-white/60 mt-3 leading-relaxed text-[16px] max-w-xs">
+            Tạo tài khoản miễn phí và nhận lộ trình học tiếng Anh được cá nhân hóa cho bạn.
+          </p>
+        </div>
+
+        <p className="text-white/30 text-xs">© 2025 Ms Nhu Fast English</p>
+      </div>
+
+      {/* ── Form panel ──────────────────────────────────────────────────── */}
+      <div className="flex-1 flex items-center justify-center px-5 py-10 bg-surface-muted">
+        <div className="w-full max-w-[360px]">
+
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-2 justify-center mb-8">
+            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-border bg-background">
+              <img src="/logo.png" alt="Ms Nhu Fast English Logo" className="w-full h-full object-cover" />
+            </div>
+            <span className="font-bold text-[17px] tracking-tight">Ms Nhu Fast English</span>
+          </div>
+
+          {/* Card */}
+          <div className="bg-background rounded shadow-sm border border-black/[0.06] p-7">
+            <div className="mb-6">
+              <h1 className="text-[24px] lg:text-[30px] font-bold tracking-tight">Bắt đầu hành trình</h1>
+              <p className="text-muted-foreground text-[16px] mt-1">
+                Điền thông tin để đăng ký học viên
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+ <label className="text-sm text-label">Họ và tên</label>
+                <Input
+                  placeholder="Nguyễn Văn A"
+                  value={form.fullName}
+                  onChange={set('fullName')}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+ <label className="text-sm text-label">Email</label>
+                <Input
+                  type="email"
+                  placeholder="email@example.com"
+                  value={form.email}
+                  onChange={set('email')}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+ <label className="text-sm text-label">Mật khẩu</label>
+                <PasswordInput
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={set('password')}
+                  required
+                  autoComplete="new-password"
+                  minLength={8}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+ <label className="text-sm text-label">Xác nhận mật khẩu</label>
+                <PasswordInput
+                  placeholder="••••••••"
+                  value={form.confirmPassword}
+                  onChange={set('confirmPassword')}
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
+
+              {passwordError && (
+                <p className="text-[13px] text-destructive bg-destructive/5 px-3 py-2 rounded">
+                  {passwordError}
+                </p>
+              )}
+              {error && (
+                <p className="text-[13px] text-destructive bg-destructive/5 px-3 py-2 rounded">
+                  {(error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Đăng ký thất bại, vui lòng thử lại'}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-11 text-[15px] font-semibold mt-1"
+                loading={isPending}
+              >
+                Đăng ký
+              </Button>
+            </form>
+
+            <div className="mt-5 pt-5 border-t text-center text-sm text-muted-foreground">
+              Đã có tài khoản?{' '}
+              <Link to="/login" className="text-primary font-medium hover:underline underline-offset-2">
+                Đăng nhập
+              </Link>
+            </div>
+          </div>
+
+          <Link
+            to="/"
+            className="flex items-center justify-center gap-1.5 mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Về trang chủ
+          </Link>
+
+        </div>
+      </div>
+    </div>
+  )
+}

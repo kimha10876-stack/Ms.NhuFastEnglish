@@ -1,0 +1,96 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: self-hosted
+    environment: env
+    timeout-minutes: 20
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── 2. Kiểm tra secrets bắt buộc trước khi làm bất cứ điều gì ─────────
+      - name: Validate secrets
+        run: |
+          MISSING=""
+          [ -z "${{ secrets.POSTGRES_PASSWORD }}" ] && MISSING="$MISSING\n  - POSTGRES_PASSWORD"
+          [ -z "${{ secrets.POSTGRES_USER }}"     ] && MISSING="$MISSING\n  - POSTGRES_USER"
+          [ -z "${{ secrets.POSTGRES_DB }}"       ] && MISSING="$MISSING\n  - POSTGRES_DB"
+          [ -z "${{ secrets.REDIS_PASSWORD }}"    ] && MISSING="$MISSING\n  - REDIS_PASSWORD"
+          [ -z "${{ secrets.JWT_KEY }}"           ] && MISSING="$MISSING\n  - JWT_KEY"
+          if [ -n "$MISSING" ]; then
+            printf "❌ Thiếu GitHub Secrets — vào Settings → Secrets → Actions để thêm:%b\n" "$MISSING"
+            exit 1
+          fi
+          echo "✓ Tất cả secrets bắt buộc đã có"
+
+      # ── 3. Tạo .env từ GitHub Secrets ─────────────────────────────────────
+      - name: Write .env
+        run: |
+          {
+            echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}"
+            echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}"
+            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
+            echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}"
+            echo "JWT_KEY=${{ secrets.JWT_KEY }}"
+            echo "SMTP_HOST=${{ secrets.SMTP_HOST }}"
+            echo "SMTP_PORT=${{ secrets.SMTP_PORT }}"
+            echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}"
+            echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}"
+            echo "SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}"
+            echo "SMTP_FROM_NAME=${{ secrets.SMTP_FROM_NAME }}"
+            echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}"
+            echo "HTTP_PORT=${{ secrets.HTTP_PORT }}"
+          } > .env
+
+      # ── 4. Build images (BuildKit + parallel) ──────────────────────────────
+      - name: Build Docker images
+        env:
+          DOCKER_BUILDKIT: "1"
+          COMPOSE_DOCKER_CLI_BUILD: "1"
+        run: docker compose build --parallel --pull
+
+      # ── 5. Deploy ──────────────────────────────────────────────────────────
+      - name: Deploy containers
+        run: |
+          docker compose up -d --remove-orphans
+          sleep 15
+          docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Health}}"
+
+      # ── 6. Health check ────────────────────────────────────────────────────
+      - name: Health check
+        run: |
+          PORT="${{ secrets.HTTP_PORT }}"
+          PORT="${PORT:-80}"
+
+          # Chờ backend init xong (có retry DB nên cần thêm thời gian)
+          for i in $(seq 1 12); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              http://localhost:${PORT}/api/auth/login \
+              -X POST -H "Content-Type: application/json" \
+              -d '{"email":"x","password":"x"}' 2>/dev/null || echo "000")
+
+            if [ "$STATUS" = "401" ] || [ "$STATUS" = "400" ]; then
+              echo "✓ Backend đang chạy (HTTP $STATUS — đúng với request sai credentials)"
+              break
+            elif [ "$i" = "12" ]; then
+              echo "✗ Backend không phản hồi sau 60s — HTTP $STATUS"
+              docker compose logs backend --tail=50
+              exit 1
+            else
+              echo "Chờ backend... ($i/12, HTTP $STATUS)"
+              sleep 5
+            fi
+          done
+
+      # ── 7. Dọn dẹp image cũ ───────────────────────────────────────────────
+      - name: Prune old images
+        if: always()
+        run: docker image prune -f

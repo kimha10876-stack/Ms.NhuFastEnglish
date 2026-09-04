@@ -1,0 +1,429 @@
+import { useEffect, useState } from 'react'
+import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Menu, BookOpen, AlertTriangle, LogOut, Key, ChevronDown, User } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Sidebar } from './Sidebar'
+import { useAuthStore } from '@/features/auth/auth.store'
+import { useChangePassword } from '@/features/auth/useAuth'
+import { EditProfileModal } from '@/features/auth/components/EditProfileModal'
+import { Button } from '@/shared/components/ui/button'
+import { Input } from '@/shared/components/ui/input'
+import { FullPageLoader } from '@/shared/components/FullPageLoader'
+import { cn } from '@/shared/utils/cn'
+import { api } from '@/shared/api/client'
+import type { ApiResponse } from '@/shared/api/types'
+import { authApi } from '@/features/auth/auth.api'
+
+function RouteContent() {
+  const location = useLocation()
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    setIsLoading(true)
+    const timeoutId = window.setTimeout(() => setIsLoading(false), 180)
+    return () => window.clearTimeout(timeoutId)
+  }, [location.pathname])
+
+  if (isLoading) {
+    return <FullPageLoader className="min-h-[60vh] bg-transparent" message="Đang tải trang..." />
+  }
+
+  return <Outlet />
+}
+
+export function AppShell() {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
+
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const { mutate: changePassword, isPending } = useChangePassword()
+
+  const location = useLocation()
+  const [isClassesOpen, setIsClassesOpen] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+
+  const isStudent = user?.roles.includes('Student') ?? false
+
+  const { data: myClasses = [] } = useQuery<any[]>({
+    queryKey: ['my-classes'],
+    queryFn: () => api.get<ApiResponse<any[]>>('/classes/my-classes').then((r) => r.data.data!),
+    enabled: isStudent,
+  })
+
+  const activeClasses = myClasses.filter((cls) => cls.status === 'active')
+
+  const handleLogout = () => {
+    authApi.logout().finally(() => {
+      logout()
+      window.location.href = '/login'
+    })
+  }
+
+  const initials = user?.fullName
+    ?.split(' ')
+    .slice(-2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase() ?? 'U'
+
+  const handleOpenChangePassword = () => {
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setErrorMsg('')
+    setSuccessMsg('')
+    setShowChangePasswordModal(true)
+  }
+
+  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    if (newPassword.length < 6) {
+      setErrorMsg('Mật khẩu mới phải có ít nhất 6 ký tự')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setErrorMsg('Mật khẩu xác nhận không khớp')
+      return
+    }
+
+    changePassword(
+      { currentPassword, newPassword },
+      {
+        onSuccess: () => {
+          setSuccessMsg('Thay đổi mật khẩu thành công!')
+          setTimeout(() => {
+            setShowChangePasswordModal(false)
+          }, 1500)
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.message || 'Đổi mật khẩu thất bại'
+          setErrorMsg(msg)
+        },
+      }
+    )
+  }
+
+  return (
+    <div className="flex h-svh bg-muted flex-col">
+      {/* Must change password banner */}
+      {user?.mustChangePassword && (
+        <div className="bg-primary-500 text-ink-900 px-4 py-2.5 text-xs sm:text-sm font-semibold flex items-center justify-between shadow-md border-b border-primary-600/20 shrink-0 select-none animate-pulse">
+          <span className="flex items-center gap-1.5">
+            <span>⚠️</span>
+            Tài khoản của bạn đang sử dụng mật khẩu mặc định. Vui lòng đổi mật khẩu để bảo mật thông tin.
+          </span>
+          <button
+            onClick={handleOpenChangePassword}
+            className="underline font-bold hover:text-black transition-colors shrink-0 ml-3"
+          >
+            Đổi mật khẩu ngay
+          </button>
+        </div>
+      )}
+
+      {/* Student Horizontal Header */}
+      {isStudent && (
+        <header className="sticky top-0 z-40 w-full bg-background border-b border-border shadow-sm shrink-0">
+          <div className="px-4 lg:px-6 h-16 flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 shadow-sm border border-border bg-background">
+                <img src="/logo.png" alt="Ms Nhu Fast English Logo" className="w-full h-full object-cover" />
+              </div>
+              <span className="font-extrabold text-[15px] text-ink-900 tracking-tight leading-tight hidden sm:block">
+                Ms Nhu Fast English
+              </span>
+            </div>
+
+            {/* Desktop Navigation Links */}
+            <nav className="hidden lg:flex items-center gap-1">
+              <NavLink
+                to="/dashboard"
+                end
+                className={({ isActive }) =>
+                  cn(
+                    "px-4 py-2 text-sm font-semibold rounded transition-all",
+                    isActive
+                      ? "bg-primary-50 text-primary-700 shadow-sm"
+                      : "text-muted-foreground hover:bg-muted hover:text-gray-950"
+                  )
+                }
+              >
+                Tổng quan
+              </NavLink>
+
+              {/* Lớp học Dropdown */}
+              <div
+                className="relative"
+                onMouseEnter={() => setIsClassesOpen(true)}
+                onMouseLeave={() => setIsClassesOpen(false)}
+              >
+                <NavLink
+                  to="/classes"
+                  className={({ isActive }) =>
+                    cn(
+                      "px-4 py-2 text-sm font-semibold rounded transition-all flex items-center gap-1",
+                      isActive || location.pathname.startsWith('/classes')
+                        ? "bg-primary-50 text-primary-700 shadow-sm"
+                        : "text-muted-foreground hover:bg-muted hover:text-gray-950"
+                    )
+                  }
+                >
+                  Lớp học
+                  <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isClassesOpen && "rotate-180")} />
+                </NavLink>
+
+                {/* Submenu dropdown */}
+                {isClassesOpen && activeClasses.length > 0 && (
+                  <div className="absolute left-0 mt-1 w-64 rounded bg-background border border-border shadow-xl py-2.5 animate-in fade-in slide-in-from-top-2 duration-150 z-50">
+                    <div className="px-4 py-1.5 border-b border-gray-50 mb-1">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Các lớp đang học</p>
+                    </div>
+                    {activeClasses.map((cls) => (
+                      <NavLink
+                        key={cls.classId}
+                        to={`/classes/${cls.classId}`}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex items-center gap-2.5 px-4 py-2 text-xs font-semibold transition-colors",
+                            isActive
+                              ? "text-primary-700 bg-primary-50/50"
+                              : "text-muted-foreground hover:bg-muted hover:text-ink-900"
+                          )
+                        }
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                        <span className="truncate">{cls.className}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <NavLink
+                to="/blog"
+                className={({ isActive }) =>
+                  cn(
+                    "px-4 py-2 text-sm font-semibold rounded transition-all",
+                    isActive || location.pathname.startsWith('/blog')
+                      ? "bg-primary-50 text-primary-700 shadow-sm"
+                      : "text-muted-foreground hover:bg-muted hover:text-gray-950"
+                  )
+                }
+              >
+                Blog chia sẻ
+              </NavLink>
+            </nav>
+
+            {/* Right Profile Area */}
+            <div className="flex items-center gap-3">
+              {/* Mobile Hamburger Menu Button */}
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 rounded text-muted-foreground hover:bg-muted hover:text-ink-900 transition-colors lg:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+
+              {/* Profile Dropdown */}
+              <div
+                className="relative"
+                onMouseEnter={() => setIsProfileOpen(true)}
+                onMouseLeave={() => setIsProfileOpen(false)}
+              >
+                <button className="flex items-center gap-2 p-1.5 rounded hover:bg-muted transition-colors border border-transparent hover:border-border">
+                  {user?.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.fullName}
+                      className="w-8 h-8 rounded-full object-cover shrink-0 border border-border"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold shrink-0 shadow-inner">
+                      {initials}
+                    </div>
+                  )}
+                  <span className="text-xs font-bold text-foreground hidden sm:block truncate max-w-[120px]">
+                    {user?.fullName}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
+                </button>
+
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-1 w-52 rounded bg-background border border-border shadow-xl py-2 animate-in fade-in slide-in-from-top-2 duration-150 z-50">
+                    <div className="px-4 py-2 border-b border-gray-50 mb-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-gray-950 truncate">{user?.fullName}</p>
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Học viên</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{user?.email}</p>
+                    </div>
+                    <button
+                      onClick={() => setShowEditProfileModal(true)}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:bg-muted hover:text-ink-900 font-semibold transition-colors text-left"
+                    >
+                      <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                      Cập nhật hồ sơ
+                    </button>
+                    <button
+                      onClick={handleOpenChangePassword}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:bg-muted hover:text-ink-900 font-semibold transition-colors text-left"
+                    >
+                      <Key className="h-4 w-4 text-muted-foreground shrink-0" />
+                      Đổi mật khẩu
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 font-bold transition-colors text-left"
+                    >
+                      <LogOut className="h-4 w-4 shrink-0" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+      )}
+
+      <div className="flex flex-1 overflow-hidden relative">
+        <Sidebar 
+          open={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)} 
+          onEditProfile={() => setShowEditProfileModal(true)} 
+        />
+
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Mobile top bar (only show for admin/teacher since student has header) */}
+          {!isStudent && (
+            <header className="flex h-14 items-center gap-3 border-b border-border bg-background px-4 lg:hidden shrink-0">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 rounded text-muted-foreground hover:bg-muted hover:text-ink-900 transition-colors"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded bg-primary-500 flex items-center justify-center">
+                  <BookOpen className="h-3.5 w-3.5 text-ink-900" />
+                </div>
+                <span className="font-semibold text-sm text-ink-900">Ms Nhu English</span>
+              </div>
+            </header>
+          )}
+
+          <main className="flex-1 overflow-y-auto">
+            <RouteContent />
+          </main>
+        </div>
+      </div>
+
+      {/* Change Password Modal */}
+      {showChangePasswordModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 animate-in fade-in duration-200"
+          onClick={(e) => e.target === e.currentTarget && !isPending && setShowChangePasswordModal(false)}
+        >
+          <div className="bg-background rounded shadow-xl w-full max-w-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
+              <div>
+                <h2 className="font-bold text-ink-900 text-base">Đổi mật khẩu bảo mật</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Đặt mật khẩu mới cho tài khoản của bạn</p>
+              </div>
+              <button
+                onClick={() => !isPending && setShowChangePasswordModal(false)}
+                className="text-muted-foreground hover:text-muted-foreground p-1.5 rounded hover:bg-muted transition-colors"
+                disabled={isPending}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleChangePasswordSubmit} className="p-5 space-y-4">
+              <div className="space-y-1.5">
+ <label className="text-xs ">Mật khẩu hiện tại</label>
+                <Input
+                  type="password"
+                  placeholder="VD: 123456"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+ <label className="text-xs ">Mật khẩu mới</label>
+                <Input
+                  type="password"
+                  placeholder="Tối thiểu 6 ký tự"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+ <label className="text-xs ">Xác nhận mật khẩu mới</label>
+                <Input
+                  type="password"
+                  placeholder="Nhập lại mật khẩu mới..."
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              {errorMsg && (
+                <div className="bg-red-50 border-l-4 border-red-500 px-3 py-2 rounded-r-xl flex items-center gap-1.5 shrink-0">
+                  <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+                  <p className="text-xs text-red-700 font-semibold leading-normal">{errorMsg}</p>
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="bg-emerald-50 border-l-4 border-emerald-500 px-3 py-2 rounded-r-xl flex items-center gap-1.5 shrink-0">
+                  <span className="text-emerald-500">✓</span>
+                  <p className="text-xs text-emerald-700 font-semibold leading-normal">{successMsg}</p>
+                </div>
+              )}
+
+              <div className="flex gap-2.5 pt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1 rounded text-xs font-bold"
+                  onClick={() => setShowChangePasswordModal(false)}
+                  disabled={isPending}
+                >
+                  Huỷ bỏ
+                </Button>
+                <Button type="submit" className="flex-1 text-xs font-bold" loading={isPending}>
+                  Xác nhận
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal 
+        isOpen={showEditProfileModal} 
+        onClose={() => setShowEditProfileModal(false)} 
+      />
+    </div>
+  )
+}

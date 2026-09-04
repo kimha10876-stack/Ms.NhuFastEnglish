@@ -1,0 +1,5 @@
+export { SystemTab } from './SystemTab'
+export { ClassCategoriesTab } from './ClassCategoriesTab'
+export { UserRolesTab } from './UserRolesTab'
+export { BlogCategoriesTab } from './BlogCategoriesTab'
+export { CurriculumTemplatesTab } from './CurriculumTemplatesTab'

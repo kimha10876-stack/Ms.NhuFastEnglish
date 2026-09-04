@@ -1,0 +1,8 @@
+export { AnnouncementsTab } from './AnnouncementsTab'
+export { LessonsTab } from './LessonsTab'
+export { DocumentsTab } from './DocumentsTab'
+export { AssignmentsTab } from './AssignmentsTab'
+export { MembersTab } from './MembersTab'
+export { TuitionTab } from './TuitionTab'
+export { PaymentHistoryTab } from './PaymentHistoryTab'
+export { InfoTab } from './InfoTab'

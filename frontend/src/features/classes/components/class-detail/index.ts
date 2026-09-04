@@ -1,0 +1,6 @@
+export { ClassDetailHeader } from './ClassDetailHeader'
+export { ClassDetailTabs } from './ClassDetailTabs'
+export { SessionAttendance } from './SessionAttendance'
+export * from './utils'
+export * from './tabs'
+export * from './modals'

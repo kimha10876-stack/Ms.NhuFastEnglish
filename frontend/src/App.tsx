@@ -1,0 +1,95 @@
+import { lazy, Suspense } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { AppShell } from '@/shared/components/layout/AppShell'
+import { AuthGuard } from '@/shared/components/layout/AuthGuard'
+import { RoleGuard } from '@/shared/components/layout/RoleGuard'
+import { ErrorBoundary, FullPageLoader } from '@/shared/components'
+import { Toaster } from '@/shared/components/ui/sonner'
+import NotFoundPage from '@/shared/pages/NotFoundPage'
+
+const LandingPage       = lazy(() => import('@/features/landing/LandingPage'))
+const LoginPage         = lazy(() => import('@/features/auth/LoginPage'))
+const RegisterPage      = lazy(() => import('@/features/auth/RegisterPage'))
+const ForgotPasswordPage = lazy(() => import('@/features/auth/ForgotPasswordPage'))
+const DashboardPage     = lazy(() => import('@/features/dashboard/DashboardPage'))
+const StudentsPage      = lazy(() => import('@/features/students/StudentsPage'))
+const ClassesPage       = lazy(() => import('@/features/classes/ClassesPage'))
+const ClassDetailPage   = lazy(() => import('@/features/classes/ClassDetailPage'))
+const DoAssignmentPage   = lazy(() => import('@/features/classes/DoAssignmentPage'))
+const JoinClassPage     = lazy(() => import('@/features/classes/JoinClassPage'))
+const TeachersPage      = lazy(() => import('@/features/teachers/TeachersPage'))
+const ConsultationsPage = lazy(() => import('@/features/consultations/ConsultationsPage'))
+const SettingsPage      = lazy(() => import('@/features/settings/SettingsPage'))
+const BlogManagementPage = lazy(() => import('@/features/blog/BlogManagementPage'))
+const PublicBlogPage     = lazy(() => import('@/features/blog/PublicBlogPage'))
+const BlogPostDetailPage = lazy(() => import('@/features/blog/BlogPostDetailPage'))
+const BlogEditorPage     = lazy(() => import('@/features/blog/BlogEditorPage'))
+const DocumentsPage      = lazy(() => import('@/features/classes/DocumentsPage'))
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+})
+
+function PageLoader() {
+  return <FullPageLoader />
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Toaster />
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+            {/* Public */}
+            <Route path="/"              element={<LandingPage />} />
+            <Route path="/login"         element={<LoginPage />} />
+            <Route path="/dang-ky"       element={<RegisterPage />} />
+            <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
+            <Route path="/tham-gia/:token" element={<JoinClassPage />} />
+            <Route path="/blog"          element={<PublicBlogPage />} />
+            <Route path="/blog/:slug"    element={<BlogPostDetailPage />} />
+
+            {/* Protected */}
+            <Route element={<AuthGuard />}>
+              <Route element={<AppShell />}>
+                {/* General dashboard (renders role-specific view inside) */}
+                <Route path="dashboard" element={<DashboardPage />} />
+
+                {/* Common classes */}
+                <Route path="classes" element={<ClassesPage />} />
+                <Route path="classes/:id" element={<ClassDetailPage />} />
+                <Route path="documents" element={<DocumentsPage />} />
+
+                {/* Admin-only routes */}
+                <Route element={<RoleGuard allowedRoles={['Admin']} />}>
+                  <Route path="students" element={<StudentsPage />} />
+                  <Route path="teachers" element={<TeachersPage />} />
+                  <Route path="consultations" element={<ConsultationsPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                </Route>
+
+                {/* Admin & Teacher routes */}
+                <Route element={<RoleGuard allowedRoles={['Admin', 'Teacher']} />}>
+                  <Route path="blog-management" element={<BlogManagementPage />} />
+                </Route>
+              </Route>
+              
+              {/* Fullscreen pages (no AppShell) */}
+              <Route path="classes/:classId/assignments/:assignmentId/do" element={<DoAssignmentPage />} />
+              <Route element={<RoleGuard allowedRoles={['Admin', 'Teacher']} />}>
+                <Route path="blog-management/editor" element={<BlogEditorPage />} />
+                <Route path="blog-management/editor/:id" element={<BlogEditorPage />} />
+              </Route>
+            </Route>
+
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  )
+}
