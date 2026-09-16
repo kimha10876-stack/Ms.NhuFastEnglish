@@ -1,145 +1,95 @@
 import { useParams, Link } from 'react-router-dom'
-import {
-  BookOpen,
-  Calendar,
-  Eye,
-  User,
-  ArrowLeft,
-  Loader2,
-  Folder,
-} from 'lucide-react'
+import { Folder } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
+import { LandingLayout } from '@/features/landing/LandingLayout'
+import { IMAGES } from '@/features/landing/landing.data'
 import { useBlogPostDetail } from './useBlog'
-import { useAuthStore } from '@/features/auth/auth.store'
+import { getBlogPostBySlug, getRecentPosts, getRelatedPosts } from './blog.dummy'
+import { RecentPostsSidebar } from './components/RecentPostsSidebar'
+import { RelatedPostsSection } from './components/RelatedPostsSection'
+
+const ARTICLE_PROSE = `
+  font-body text-[15px] leading-relaxed text-gray-700
+  [&_p]:mb-4
+  [&_h2]:font-heading [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-base [&_h2]:font-extrabold [&_h2]:uppercase [&_h2]:text-[#222222] sm:[&_h2]:text-lg
+  [&_strong]:font-semibold [&_strong]:text-[#222222]
+  [&_figure.blog-inline-image]:my-6 [&_figure.blog-inline-image_img]:w-full [&_figure.blog-inline-image_img]:rounded-lg
+  [&_ul.blog-feature-list]:my-4 [&_ul.blog-feature-list]:space-y-2.5 [&_ul.blog-feature-list]:pl-0
+  [&_ul.blog-feature-list_li]:relative [&_ul.blog-feature-list_li]:pl-5 [&_ul.blog-feature-list_li]:list-none
+  [&_ul.blog-feature-list_li]:before:absolute [&_ul.blog-feature-list_li]:before:left-0 [&_ul.blog-feature-list_li]:before:top-[0.55em]
+  [&_ul.blog-feature-list_li]:before:h-2 [&_ul.blog-feature-list_li]:before:w-2 [&_ul.blog-feature-list_li]:before:rotate-45
+  [&_ul.blog-feature-list_li]:before:bg-primary [&_ul.blog-feature-list_li]:before:content-['']
+  [&_ul.blog-promo-list]:my-4 [&_ul.blog-promo-list]:space-y-2 [&_ul.blog-promo-list]:pl-0
+  [&_ul.blog-promo-list_li]:list-none [&_ul.blog-promo-list_li]:pl-0
+  [&_img]:max-w-full [&_img]:rounded-lg
+  [&_a]:text-primary-700 [&_a]:underline hover:[&_a]:text-primary-800
+`
 
 export default function BlogPostDetailPage() {
   const { slug = '' } = useParams<{ slug: string }>()
-  const { data: post, isLoading, isError } = useBlogPostDetail(slug)
-  const user = useAuthStore((s) => s.user)
-  const isStudent = user?.roles.includes('Student') ?? false
+  const { data: apiPost } = useBlogPostDetail(slug)
+
+  const dummyPost = getBlogPostBySlug(slug)
+  const post = apiPost ?? dummyPost
+
+  const recentPosts = getRecentPosts(8, slug)
+  const relatedPosts = getRelatedPosts(slug, 4)
+  const heroImage = post?.thumbnailUrl ?? IMAGES.classForeignTeacher
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://msnhufastenglish.com/blog/${slug}`
 
   return (
-    <div className="min-h-svh bg-gray-50 flex flex-col">
-      
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-black/[0.06] shrink-0">
-        <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-amber-500 rounded-lg flex items-center justify-center">
-              <BookOpen className="h-4 w-4 text-gray-900" />
-            </div>
-            <span className="font-bold text-[17px] tracking-tight text-gray-900">Ms Nhu Fast English</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            {user && (
-              <Link to="/dashboard">
-                <Button size="sm" variant="outline" className="rounded-xl font-semibold border-amber-500/30 text-amber-700 hover:bg-amber-50">
-                  {isStudent ? 'Vào lớp học' : 'Trang quản lý'}
-                </Button>
-              </Link>
-            )}
-            <Link to="/blog">
-              <Button size="sm" variant="ghost" className="rounded-xl font-semibold flex items-center gap-1">
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Tất cả bài viết
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Main Content ───────────────────────────────────────────────────── */}
-      <main className="flex-1 max-w-3xl mx-auto px-5 py-8 w-full">
-        
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center py-32">
-            <Loader2 className="h-8 w-8 text-amber-500 animate-spin mb-3" />
-            <p className="text-sm text-gray-500">Đang tải nội dung bài viết...</p>
-          </div>
-        )}
-
-        {/* Error State */}
-        {isError && (
-          <div className="bg-white border rounded-2xl p-12 text-center shadow-sm">
-            <Folder className="h-10 w-10 text-red-400 mx-auto mb-3" />
-            <h3 className="font-semibold text-gray-900">Không tìm thấy bài viết</h3>
-            <p className="text-xs text-gray-500 mt-1 mb-6">
+    <LandingLayout>
+      {!post ? (
+        <main className="flex flex-1 items-center justify-center bg-[#fef9e7] px-4 py-20">
+          <div className="max-w-md rounded-2xl bg-white p-12 text-center shadow-md">
+            <Folder className="mx-auto mb-3 h-10 w-10 text-primary-600" />
+            <h3 className="font-heading font-extrabold text-[#222222]">Không tìm thấy bài viết</h3>
+            <p className="mt-1 text-sm text-gray-500">
               Bài viết này không tồn tại hoặc đã bị gỡ bỏ khỏi hệ thống.
             </p>
-            <Link to="/blog">
-              <Button className="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold rounded-xl text-xs px-5 h-[38px]">
+            <Link to="/blog" className="mt-6 inline-block">
+              <Button className="h-[38px] rounded-xl bg-primary px-5 text-xs font-bold text-[#333333] hover:bg-primary-400">
                 Quay lại trang Blog
               </Button>
             </Link>
           </div>
-        )}
-
-        {/* Post Detail */}
-        {post && (
-          <article className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden p-6 md:p-10 space-y-6">
-            
-            {/* Category tag */}
-            {post.categoryName && (
-              <span className="inline-block bg-amber-100 text-amber-800 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                {post.categoryName}
-              </span>
-            )}
-
-            {/* Title */}
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight">
+        </main>
+      ) : (
+        <>
+          {/* Hero — ảnh blur + tiêu đề */}
+          <section className="relative flex min-h-[200px] items-center justify-center overflow-hidden md:min-h-[260px] lg:min-h-[300px]">
+            <img
+              src={heroImage}
+              alt=""
+              className="absolute inset-0 h-full w-full scale-110 object-cover blur-[6px]"
+            />
+            <div className="absolute inset-0 bg-[#222222]/60" />
+            <h1 className="relative z-10 max-w-5xl px-6 text-center font-heading text-lg font-extrabold uppercase leading-snug tracking-wide text-white sm:text-xl md:text-2xl lg:text-[28px]">
               {post.title}
             </h1>
+          </section>
 
-            {/* Meta info */}
-            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 font-semibold border-y border-gray-100 py-3.5">
-              <span className="flex items-center gap-1.5">
-                <User className="h-4 w-4 text-gray-400" />
-                Đăng bởi: <strong className="text-gray-700">{post.authorName}</strong>
-              </span>
-              <span className="h-3 w-[1px] bg-gray-300 hidden sm:inline" />
-              <span className="flex items-center gap-1.5">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                Ngày đăng: <strong className="text-gray-700">{new Date(post.createdAt).toLocaleDateString('vi-VN')}</strong>
-              </span>
-              <span className="h-3 w-[1px] bg-gray-300 hidden sm:inline" />
-              <span className="flex items-center gap-1.5">
-                <Eye className="h-4 w-4 text-gray-400" />
-                Lượt xem: <strong className="text-gray-700">{post.viewCount}</strong>
-              </span>
+          <main className="flex-1 bg-[#fef9e7] py-8 lg:py-12">
+            <div className="mx-auto max-w-7xl px-4 lg:px-6">
+              <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-10">
+                {/* Nội dung bài viết */}
+                <article className="min-w-0 rounded-xl bg-white p-5 shadow-sm ring-1 ring-black/[0.04] sm:p-7 md:p-8">
+                  <div
+                    dangerouslySetInnerHTML={{ __html: post.content }}
+                    className={ARTICLE_PROSE}
+                  />
+                </article>
+
+                {/* Sidebar */}
+                <RecentPostsSidebar posts={recentPosts} />
+              </div>
+
+              {/* Bài viết liên quan + chia sẻ */}
+              <RelatedPostsSection posts={relatedPosts} shareUrl={shareUrl} />
             </div>
-
-
-
-            {/* Summary Block */}
-            <div className="bg-gray-50 border-l-4 border-amber-500 p-4 rounded-r-xl">
-              <p className="text-sm font-semibold italic text-gray-700 leading-relaxed">
-                "{post.summary}"
-              </p>
-            </div>
-
-            {/* Article Content Render */}
-            <div 
-              dangerouslySetInnerHTML={{ __html: post.content }}
-              className="text-gray-800 leading-relaxed text-[15px] space-y-4 pt-4 border-t border-gray-100
-                [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-2 [&_h2]:text-gray-900
-                [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-gray-900
-                [&_p]:text-gray-700 [&_p]:mb-4
-                [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-4 [&_ul]:space-y-1
-                [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-4 [&_ol]:space-y-1
-                [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-6 [&_img]:border [&_img]:border-gray-150 [&_img]:shadow-sm
-                [&_a]:text-amber-600 [&_a]:underline [&_a]:hover:text-amber-700"
-            />
-
-          </article>
-        )}
-      </main>
-
-      {/* ── Footer ─────────────────────────────────────────────────────────── */}
-      <footer className="py-6 px-5 border-t text-center text-xs text-gray-400 bg-white shrink-0">
-        © 2025 Ms Nhu Fast English · Trung tâm Anh ngữ
-      </footer>
-
-    </div>
+          </main>
+        </>
+      )}
+    </LandingLayout>
   )
 }
