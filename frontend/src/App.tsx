@@ -25,6 +25,7 @@ const BlogEditorPage     = lazy(() => import('@/features/blog/BlogEditorPage'))
 const DocumentsPage      = lazy(() => import('@/features/classes/DocumentsPage'))
 const NotFoundPage       = lazy(() => import('@/features/errors/NotFoundPage'))
 const ErrorPage          = lazy(() => import('@/features/errors/ErrorPage'))
+const CoursesPage        = lazy(() => import('@/features/landing/CoursesPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -53,6 +54,8 @@ export default function App() {
               <Route path="/tham-gia/:token" element={<JoinClassPage />} />
               <Route path="/blog"          element={<PublicBlogPage />} />
               <Route path="/blog/:slug"    element={<BlogPostDetailPage />} />
+              <Route path="/khoa-hoc"      element={<CoursesPage />} />
+              <Route path="/khoa-hoc/:slug" element={<CoursesPage />} />
               <Route path="/loi"           element={<ErrorPage />} />
 
               {/* Protected */}
