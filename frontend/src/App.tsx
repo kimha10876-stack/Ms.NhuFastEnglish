@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from '@/shared/components/layout/AppShell'
 import { AuthGuard } from '@/shared/components/layout/AuthGuard'
 import { RoleGuard } from '@/shared/components/layout/RoleGuard'
+import { ErrorBoundary } from '@/shared/components/ErrorBoundary'
 
 const LandingPage       = lazy(() => import('@/features/landing/LandingPage'))
 const LoginPage         = lazy(() => import('@/features/auth/LoginPage'))
@@ -22,6 +23,8 @@ const PublicBlogPage     = lazy(() => import('@/features/blog/PublicBlogPage'))
 const BlogPostDetailPage = lazy(() => import('@/features/blog/BlogPostDetailPage'))
 const BlogEditorPage     = lazy(() => import('@/features/blog/BlogEditorPage'))
 const DocumentsPage      = lazy(() => import('@/features/classes/DocumentsPage'))
+const NotFoundPage       = lazy(() => import('@/features/errors/NotFoundPage'))
+const ErrorPage          = lazy(() => import('@/features/errors/ErrorPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -39,54 +42,51 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Public */}
-            <Route path="/"              element={<LandingPage />} />
-            <Route path="/login"         element={<LoginPage />} />
-            <Route path="/dang-ky"       element={<RegisterPage />} />
-            <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
-            <Route path="/tham-gia/:token" element={<JoinClassPage />} />
-            <Route path="/blog"          element={<PublicBlogPage />} />
-            <Route path="/blog/:slug"    element={<BlogPostDetailPage />} />
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Public */}
+              <Route path="/"              element={<LandingPage />} />
+              <Route path="/login"         element={<LoginPage />} />
+              <Route path="/dang-ky"       element={<RegisterPage />} />
+              <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
+              <Route path="/tham-gia/:token" element={<JoinClassPage />} />
+              <Route path="/blog"          element={<PublicBlogPage />} />
+              <Route path="/blog/:slug"    element={<BlogPostDetailPage />} />
+              <Route path="/loi"           element={<ErrorPage />} />
 
-            {/* Protected */}
-            <Route element={<AuthGuard />}>
-              <Route element={<AppShell />}>
-                {/* General dashboard (renders role-specific view inside) */}
-                <Route path="dashboard" element={<DashboardPage />} />
+              {/* Protected */}
+              <Route element={<AuthGuard />}>
+                <Route element={<AppShell />}>
+                  <Route path="dashboard" element={<DashboardPage />} />
+                  <Route path="classes" element={<ClassesPage />} />
+                  <Route path="classes/:id" element={<ClassDetailPage />} />
+                  <Route path="documents" element={<DocumentsPage />} />
 
-                {/* Common classes */}
-                <Route path="classes" element={<ClassesPage />} />
-                <Route path="classes/:id" element={<ClassDetailPage />} />
-                <Route path="documents" element={<DocumentsPage />} />
+                  <Route element={<RoleGuard allowedRoles={['Admin']} />}>
+                    <Route path="users" element={<UsersPage />} />
+                    <Route path="students" element={<Navigate to="/users?role=Student" replace />} />
+                    <Route path="teachers" element={<Navigate to="/users?role=Teacher" replace />} />
+                    <Route path="consultations" element={<ConsultationsPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                  </Route>
 
-                {/* Admin-only routes */}
-                <Route element={<RoleGuard allowedRoles={['Admin']} />}>
-                  <Route path="users" element={<UsersPage />} />
-                  <Route path="students" element={<Navigate to="/users?role=Student" replace />} />
-                  <Route path="teachers" element={<Navigate to="/users?role=Teacher" replace />} />
-                  <Route path="consultations" element={<ConsultationsPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
+                  <Route element={<RoleGuard allowedRoles={['Admin', 'Teacher']} />}>
+                    <Route path="blog-management" element={<BlogManagementPage />} />
+                  </Route>
                 </Route>
 
-                {/* Admin & Teacher routes */}
+                <Route path="classes/:classId/assignments/:assignmentId/do" element={<DoAssignmentPage />} />
                 <Route element={<RoleGuard allowedRoles={['Admin', 'Teacher']} />}>
-                  <Route path="blog-management" element={<BlogManagementPage />} />
+                  <Route path="blog-management/editor" element={<BlogEditorPage />} />
+                  <Route path="blog-management/editor/:id" element={<BlogEditorPage />} />
                 </Route>
               </Route>
-              
-              {/* Fullscreen pages (no AppShell) */}
-              <Route path="classes/:classId/assignments/:assignmentId/do" element={<DoAssignmentPage />} />
-              <Route element={<RoleGuard allowedRoles={['Admin', 'Teacher']} />}>
-                <Route path="blog-management/editor" element={<BlogEditorPage />} />
-                <Route path="blog-management/editor/:id" element={<BlogEditorPage />} />
-              </Route>
-            </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </BrowserRouter>
     </QueryClientProvider>
   )

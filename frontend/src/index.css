@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Nunito:wght@600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,8 +13,8 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 37 91% 55%;          /* amber-500 #F59E0B */
-    --primary-foreground: 26 83% 14%;
+    --primary: 49 92% 51%;            /* #f8cd0a */
+    --primary-foreground: 0 0% 20%; /* #333333 */
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
@@ -22,7 +25,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 37 91% 55%;
+    --ring: 49 92% 51%;
     --radius: 12px;                /* Apple large radius */
   }
 
@@ -31,13 +34,34 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    @apply bg-background font-sans font-medium text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
+  .font-normal,
+  .font-medium,
+  .font-semibold,
+  .font-bold,
+  .font-extrabold {
+    font-weight: 500;
+  }
+
   #root {
     @apply min-h-svh;
+  }
+
+  /* Landing page — Montserrat body, Nunito headings */
+  .landing-page {
+    @apply bg-[#fef9e7] text-[#333333];
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  .landing-page h1,
+  .landing-page h2,
+  .landing-page h3,
+  .landing-page h4,
+  .landing-page .font-heading {
+    font-family: 'Nunito', sans-serif;
   }
 }

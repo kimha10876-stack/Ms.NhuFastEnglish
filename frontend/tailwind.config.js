@@ -5,7 +5,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'system-ui', 'sans-serif'],
+        sans: ['"Be Vietnam Pro"', 'sans-serif'],
+        body: ['Montserrat', 'sans-serif'],
+        heading: ['Nunito', 'sans-serif'],
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -17,7 +19,20 @@ export default {
         foreground: 'hsl(var(--foreground))',
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
         popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
-        primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
+        primary: {
+          50: '#fefce8',
+          100: '#fef9c7',
+          200: '#fdf0a0',
+          300: '#fce668',
+          400: '#fada1a',
+          500: '#f8cd0a',
+          600: '#e0b709',
+          700: '#b89307',
+          800: '#917405',
+          900: '#6a5403',
+          DEFAULT: '#f8cd0a',
+          foreground: '#333333',
+        },
         secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
         muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
         accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
